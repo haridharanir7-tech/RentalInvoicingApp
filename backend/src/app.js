@@ -21,7 +21,7 @@ app.get('/api/health', (req, res) => {
 // app.use('/api/priya', require('./modules/priya/...'));
 
 // 2. Subhashini (Landlords & Properties)
-// app.use('/api/subhashini', require('./modules/subhashini/...'));
+app.use('/api/master-data', require('./modules/subhashini/index'));
 
 // 3. Haridharani (Tenants & Rental Rates)
 // app.use('/api/haridharani', require('./modules/haridharani/...'));
