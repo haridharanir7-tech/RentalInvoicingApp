@@ -1,29 +1,16 @@
 import React from 'react';
-import { LogOut, User } from 'lucide-react';
+import { Building2, User } from 'lucide-react';
 
 export default function Navbar() {
-  const user = JSON.parse(localStorage.getItem('rental_user') || '{"fullName":"Admin User","role":"Admin"}');
-
-  const handleLogout = () => {
-    localStorage.removeItem('rental_token');
-    localStorage.removeItem('rental_user');
-    window.location.href = '/login';
-  };
-
   return (
     <header className="navbar">
-      <div style={{ fontWeight: 600, color: '#334155' }}>
-        Rental Management & Invoicing Portal
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: '#334155' }}>
+        <Building2 size={20} color="#2563eb" />
+        <span>Rental Invoicing Application</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <User size={16} color="#64748b" />
-          <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{user.fullName || user.full_name}</span>
-          <span className="badge" style={{ background: '#eff6ff', color: '#2563eb' }}>{user.role}</span>
-        </div>
-        <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: '0.8rem' }}>
-          <LogOut size={13} /> Logout
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <User size={18} color="#64748b" />
+        <span style={{ fontSize: '0.9rem', color: '#475569' }}>User Profile</span>
       </div>
     </header>
   );

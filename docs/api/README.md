@@ -23,3 +23,4 @@ Endpoints grouped by student module:
 - `GET /api/ragul/invoices`: Invoices list
 - `POST /api/ragul/invoices/generate`: Generate invoice
 - `GET /api/ragul/reports/gst-summary`: GST monthly summary
+
