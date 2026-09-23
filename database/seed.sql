@@ -15,7 +15,7 @@ VALUES
 (2, 'Sundaram Sundararajan (Individual)', 'ABCPS5678B', FALSE, NULL, '+91 9840123456', 'sundaram.properties@gmail.com', 'New No. 14, 2nd Main Road, Gandhinagar, Adyar, Chennai - 600020', 2, 'Active');
 
 -- 3. Users (Admin, Manager, Landlord)
--- Default test password for all accounts: "Password123!" (bcrypt hash: $2b$10$8K1p/a0dL.VpW31q4/U65O1Bsk7d6M28zG4VsqxSfeH/nZ4O0O1kG)
+-- Default test password for all accounts: "Password123!"
 INSERT INTO users (id, full_name, email, password_hash, role, linked_landlord_id, status)
 VALUES 
 (1, 'System Administrator', 'admin@rentalapp.com', '$2b$10$8K1p/a0dL.VpW31q4/U65O1Bsk7d6M28zG4VsqxSfeH/nZ4O0O1kG', 'Admin', NULL, 'Active'),
@@ -36,8 +36,8 @@ VALUES
 -- 5. Manager Assignments
 INSERT INTO manager_assignments (id, manager_id, landlord_id, property_id, status)
 VALUES 
-(1, 2, 1, NULL, 'Active'), -- Manager 2 manages all properties for Landlord 1
-(2, 2, 2, 3, 'Active');    -- Manager 2 specifically manages Flat 2B for Landlord 2
+(1, 2, 1, NULL, 'Active'),
+(2, 2, 2, 3, 'Active');
 
 -- 6. Tenants
 INSERT INTO tenants (id, tenant_name, pan, gstin, property_id, phone, email, lease_start_date, lease_end_date, security_deposit, status)
@@ -63,7 +63,6 @@ VALUES
 (2, 'INV/APX/2026-27/00002', '2026-09-01', 'Sep-2026', 1, 2, 2, 2, 60000.00, 8000.00, 12240.00, 80240.00, 'Sent', 1, '/invoices/INV_APX_2026_00002.pdf', 2, CURRENT_TIMESTAMP),
 (3, 'INV/SND/2026-27/00001', '2026-09-01', 'Sep-2026', 2, 3, 3, 3, 35000.00, 3000.00, 0.00, 38000.00, 'Generated', 2, '/invoices/INV_SND_2026_00001.pdf', 2, CURRENT_TIMESTAMP);
 
--- Reset Sequences to current max id
 SELECT setval('invoice_templates_id_seq', (SELECT MAX(id) FROM invoice_templates));
 SELECT setval('landlords_id_seq', (SELECT MAX(id) FROM landlords));
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));

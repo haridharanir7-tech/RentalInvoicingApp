@@ -1,26 +1,25 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 
-export default function ProtectedRoute({ allowedRoles }) {
-  const { user, loading } = useAuth();
+export default function ProtectedRoute() {
+  const token = localStorage.getItem('rental_token');
 
-  if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading application...</div>;
-  }
-
-  if (!user) {
+  // Allow access or redirect to login if no token
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Access Denied</h2>
-        <p>Your role ({user.role}) does not have permission to view this page.</p>
+  return (
+    <div className="app-container">
+      <Sidebar />
+      <div className="main-wrapper">
+        <Navbar />
+        <main className="content-area">
+          <Outlet />
+        </main>
       </div>
-    );
-  }
-
-  return <Outlet />;
+    </div>
+  );
 }

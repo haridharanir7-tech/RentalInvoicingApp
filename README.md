@@ -1,97 +1,96 @@
 # Rental Invoicing App
 
-A multi-landlord rental invoicing system that supports GST compliance, role-based access (Admin, Manager, Landlord), rate configuration, monthly invoice automation, and GST reporting.
+Collaborative multi-landlord rental invoicing system built with React (Vite) and Node.js (Express) with a central PostgreSQL database.
 
 ---
 
-## 👥 Team Module Ownership & Git Branches
-
-To maintain a clean codebase with **zero merge conflicts**, all team members work on isolated feature modules and push to their designated Git branches:
-
-| Team Member | Feature Module | Scope & Responsibilities | Branch Name |
-| :--- | :--- | :--- | :--- |
-| **Priya** | `auth` | Authentication (JWT), RBAC (Admin, Manager, Landlord), Manager Assignment | `feature/auth` |
-| **Subhashini** | `landlords` | Landlord profiles (PAN/GST status), Properties (Commercial/Residential), Template overrides | `feature/landlords-properties` |
-| **Haridharani** | `tenants` | Tenants (PAN/GSTIN, leases), Rental Rates configuration (effective dates, GST rules) | `feature/tenants-rates` |
-| **Ragul** | `invoices` | Monthly invoice generator, PDF rendering, Template engine, Monthly GST summary reports | `feature/invoices-reports` |
-
----
-
-## 🌳 Repository Architecture
+## 📁 Repository Structure
 
 ```text
-RentalInvoicingApp/
-├── frontend/                     # React + Vite Single Page Application
+main
+│
+├── frontend/
 │   ├── src/
-│   │   ├── components/           # Common components (Navbar, Sidebar, ProtectedRoute, Layout)
-│   │   ├── context/              # AuthContext (user, tokens, permissions)
-│   │   ├── services/             # Axios API client (api.js)
-│   │   └── modules/              # Feature modules (auth, landlords, tenants, invoices)
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── ProtectedRoute.jsx
+│   │   │
+│   │   ├── modules/
+│   │   │   ├── priya/
+│   │   │   ├── subhashini/
+│   │   │   ├── haridharani/
+│   │   │   └── ragul/
+│   │   │
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   │
 │   ├── package.json
 │   └── vite.config.js
 │
-├── backend/                      # Node.js + Express REST API
+├── backend/
 │   ├── src/
-│   │   ├── config/               # Database connection pool (PostgreSQL)
-│   │   ├── middleware/           # JWT auth & error handling
-│   │   └── modules/              # Feature modules (routes, controllers, services)
+│   │   ├── config/
+│   │   │   └── database.js
+│   │   │
+│   │   ├── modules/
+│   │   │   ├── priya/
+│   │   │   ├── subhashini/
+│   │   │   ├── haridharani/
+│   │   │   └── ragul/
+│   │   │
+│   │   ├── app.js
+│   │   └── server.js
+│   │
 │   ├── package.json
 │   └── .env.example
 │
-├── database/                     # Central Database source of truth
-│   ├── schema.sql                # Complete schema DDL (8 tables + relationships)
-│   └── seed.sql                  # Seed data for testing and development
+├── database/
+│   ├── schema.sql
+│   └── seed.sql
 │
-└── docs/                         # Requirements, DB design, and specifications
+├── docs/
+│   ├── requirements/
+│   ├── database/
+│   └── api/
+│
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## 👥 Module Responsibilities
 
-### 1. Central Database Setup
-1. Create a PostgreSQL database (locally or hosted on Supabase / Neon / Render).
-2. Run the schema:
-   ```bash
-   psql -U postgres -d rental_db -f database/schema.sql
-   ```
-3. Run the seed data:
-   ```bash
-   psql -U postgres -d rental_db -f database/seed.sql
-   ```
-
-### 2. Backend Setup
-1. Navigate to `backend/`:
-   ```bash
-   cd backend
-   cp .env.example .env
-   npm install
-   npm run dev
-   ```
-
-### 3. Frontend Setup
-1. Navigate to `frontend/`:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+| Member | Frontend Folder | Backend Folder | Module Responsibility |
+| :--- | :--- | :--- | :--- |
+| **Priya** | `frontend/src/modules/priya/` | `backend/src/modules/priya/` | Authentication & User Management (Login, RBAC) |
+| **Subhashini** | `frontend/src/modules/subhashini/` | `backend/src/modules/subhashini/` | Landlords & Properties Management |
+| **Haridharani** | `frontend/src/modules/haridharani/` | `backend/src/modules/haridharani/` | Tenants & Rental Rates Configuration |
+| **Ragul** | `frontend/src/modules/ragul/` | `backend/src/modules/ragul/` | Invoice Generation, PDF & GST Monthly Reports |
 
 ---
 
-## 🔄 Git Collaboration Workflow
+## 🚀 Setup Instructions
 
-1. Always pull latest `main` before starting work:
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
-2. Create or switch to your feature branch:
-   ```bash
-   git checkout -b feature/<your-feature-name>
-   ```
-3. Work strictly inside your assigned module folder under `frontend/src/modules/` and `backend/src/modules/`.
-4. Push your branch and open a Pull Request (PR) to `main`:
-   ```bash
-   git push -u origin feature/<your-feature-name>
-   ```
+### 1. Database
+Run the central schema and seed scripts in PostgreSQL:
+```bash
+psql -U postgres -d rental_invoicing_db -f database/schema.sql
+psql -U postgres -d rental_invoicing_db -f database/seed.sql
+```
+
+### 2. Backend
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+### 3. Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```

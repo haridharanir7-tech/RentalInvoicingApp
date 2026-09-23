@@ -33,7 +33,7 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Invoices and temp files
+# Generated files
 temp/
 invoices/generated/
 uploads/

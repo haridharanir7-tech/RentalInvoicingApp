@@ -1,26 +1,25 @@
-# API Endpoints Documentation
+# API Documentation
 
-## Base URL
-`/api`
+Endpoints grouped by student module:
 
-### Auth & Users (`/api/auth`) - Priya
-- `POST /api/auth/login`: Authenticate and obtain JWT
-- `GET /api/auth/me`: Get current session profile
-- `GET /api/auth/users`: List users (Admin only)
+### Module 1: Priya (`/api/priya`)
+- `POST /api/priya/login`: User authentication
+- `GET /api/priya/me`: Current session
+- `GET /api/priya/users`: List users (Admin)
 
-### Landlords & Properties (`/api/landlords`, `/api/properties`) - Subhashini
-- `GET /api/landlords`: List landlords (scoped by role)
-- `POST /api/landlords`: Create landlord (Admin only)
-- `GET /api/properties`: List properties (Residential/Commercial)
-- `POST /api/properties`: Create property
+### Module 2: Subhashini (`/api/subhashini`)
+- `GET /api/subhashini/landlords`: Landlords list
+- `POST /api/subhashini/landlords`: Create landlord
+- `GET /api/subhashini/properties`: Properties list
+- `POST /api/subhashini/properties`: Create property
 
-### Tenants & Rental Rates (`/api/tenants`, `/api/rental-rates`) - Haridharani
-- `GET /api/tenants`: List tenants with leases
-- `POST /api/tenants`: Register tenant
-- `GET /api/rental-rates`: List rates and GST applicability
-- `POST /api/rental-rates`: Set rental rate rules
+### Module 3: Haridharani (`/api/haridharani`)
+- `GET /api/haridharani/tenants`: Tenants list
+- `POST /api/haridharani/tenants`: Create tenant
+- `GET /api/haridharani/rental-rates`: Rates list
+- `POST /api/haridharani/rental-rates`: Set rental rate
 
-### Invoices & Reports (`/api/invoices`) - Ragul
-- `GET /api/invoices`: List monthly invoices
-- `POST /api/invoices/generate`: Auto-generate monthly invoice
-- `GET /api/invoices/reports/gst-summary`: GSTR filing summary
+### Module 4: Ragul (`/api/ragul`)
+- `GET /api/ragul/invoices`: Invoices list
+- `POST /api/ragul/invoices/generate`: Generate invoice
+- `GET /api/ragul/reports/gst-summary`: GST monthly summary

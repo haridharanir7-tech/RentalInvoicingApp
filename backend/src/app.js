@@ -1,19 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const errorHandler = require('./middleware/errorHandler');
 
-// Feature Module Routers (1 per team member's domain)
-const authRoutes = require('./modules/auth/auth.routes');
-const landlordRoutes = require('./modules/landlords/landlord.routes');
-const propertyRoutes = require('./modules/landlords/property.routes');
-const tenantRoutes = require('./modules/tenants/tenant.routes');
-const rentalRateRoutes = require('./modules/tenants/rentalRate.routes');
-const invoiceRoutes = require('./modules/invoices/invoice.routes');
+// Student Modules
+const priyaRoutes = require('./modules/priya/auth.routes');
+const subhashiniRoutes = require('./modules/subhashini/landlord.routes');
+const haridharaniRoutes = require('./modules/haridharani/tenant.routes');
+const ragulRoutes = require('./modules/ragul/invoice.routes');
 
 const app = express();
 
-// Middlewares
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
@@ -26,18 +22,28 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Rental Invoicing API is running smoothly.' });
+  res.json({ status: 'ok', message: 'Rental Invoicing Backend running.' });
 });
 
-// Mount Feature Routers
-app.use('/api/auth', authRoutes);                 // Priya
-app.use('/api/landlords', landlordRoutes);         // Subhashini
-app.use('/api/properties', propertyRoutes);       // Subhashini
-app.use('/api/tenants', tenantRoutes);             // Haridharani
-app.use('/api/rental-rates', rentalRateRoutes);   // Haridharani
-app.use('/api/invoices', invoiceRoutes);           // Ragul
+// Student Module Routes
+app.use('/api/priya', priyaRoutes);
+app.use('/api/subhashini', subhashiniRoutes);
+app.use('/api/haridharani', haridharaniRoutes);
+app.use('/api/ragul', ragulRoutes);
 
-// Global Error Handler
-app.use(errorHandler);
+// General Route Aliases (maps directly to student modules)
+app.use('/api/auth', priyaRoutes);
+app.use('/api', subhashiniRoutes);
+app.use('/api', haridharaniRoutes);
+app.use('/api', ragulRoutes);
+
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
+});
 
 module.exports = app;

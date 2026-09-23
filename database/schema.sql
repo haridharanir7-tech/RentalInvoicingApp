@@ -1,9 +1,7 @@
 -- ==========================================================
 -- Rental Invoicing App - Central Database Schema (PostgreSQL)
--- Single Source of Truth for all 4 Feature Modules
 -- ==========================================================
 
--- Drop tables in reverse order of foreign keys if they exist
 DROP TABLE IF EXISTS invoices CASCADE;
 DROP TABLE IF EXISTS rental_rates CASCADE;
 DROP TABLE IF EXISTS tenants CASCADE;
@@ -61,7 +59,6 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add foreign key from landlords to user if needed (linked landlord)
 ALTER TABLE landlords ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE SET NULL;
 
 -- 4. Properties Master
@@ -126,7 +123,7 @@ CREATE TABLE invoices (
     id SERIAL PRIMARY KEY,
     invoice_number VARCHAR(50) NOT NULL UNIQUE,
     invoice_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    billing_period VARCHAR(20) NOT NULL, -- e.g. 'Sep-2026'
+    billing_period VARCHAR(20) NOT NULL,
     landlord_id INT NOT NULL REFERENCES landlords(id) ON DELETE RESTRICT,
     property_id INT NOT NULL REFERENCES properties(id) ON DELETE RESTRICT,
     tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
@@ -144,7 +141,7 @@ CREATE TABLE invoices (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Performance Indexes
+-- Indexes for high performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_landlords_pan ON landlords(pan);
