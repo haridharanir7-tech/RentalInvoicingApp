@@ -25,6 +25,8 @@ async function ensureSchema() {
 
     // In case rentalrate existed already without some columns:
     const rentalRateColumns = [
+      `ALTER TABLE rentalrate ADD COLUMN IF NOT EXISTS landlord_id INT`,
+      `ALTER TABLE rentalrate ALTER COLUMN tenant_id DROP NOT NULL`,
       `ALTER TABLE rentalrate ADD COLUMN IF NOT EXISTS maintenance_charges NUMERIC(12,2) DEFAULT 0.00`,
       `ALTER TABLE rentalrate ADD COLUMN IF NOT EXISTS parking_charges NUMERIC(12,2) DEFAULT 0.00`,
       `ALTER TABLE rentalrate ADD COLUMN IF NOT EXISTS tax_supply_type VARCHAR(50) DEFAULT 'intra_state'`,
@@ -58,6 +60,8 @@ async function ensureSchema() {
     `);
 
     const rateHistoryColumns = [
+      `ALTER TABLE ratehistory ADD COLUMN IF NOT EXISTS landlord_id INT`,
+      `ALTER TABLE ratehistory ALTER COLUMN tenant_id DROP NOT NULL`,
       `ALTER TABLE ratehistory ADD COLUMN IF NOT EXISTS maintenance_charges NUMERIC(12,2) DEFAULT 0.00`,
       `ALTER TABLE ratehistory ADD COLUMN IF NOT EXISTS parking_charges NUMERIC(12,2) DEFAULT 0.00`,
       `ALTER TABLE ratehistory ADD COLUMN IF NOT EXISTS tax_supply_type VARCHAR(50) DEFAULT 'intra_state'`

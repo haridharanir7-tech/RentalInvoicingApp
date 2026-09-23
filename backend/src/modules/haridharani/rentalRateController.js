@@ -1,7 +1,7 @@
 const db = require('../../config/database');
 
 /**
- * Get all rental rates with tenant, property, and landlord info
+ * Get all rental rates with landlord, property, and tenant info
  */
 exports.getRentalRates = async (req, res) => {
   try {
@@ -10,6 +10,7 @@ exports.getRentalRates = async (req, res) => {
         r.rate_id,
         r.property_id,
         r.tenant_id,
+        r.landlord_id,
         r.monthly_rent,
         COALESCE(r.maintenance_charges, 0) AS maintenance_charges,
         COALESCE(r.parking_charges, 0) AS parking_charges,
@@ -22,16 +23,14 @@ exports.getRentalRates = async (req, res) => {
         r.status,
         r.change_reason,
         r.created_at,
-        t.name AS tenant_name,
-        t.pan AS tenant_pan,
-        p.name AS property_name,
-        l.id AS landlord_id,
-        l.name AS landlord_name,
-        l.gst_registered AS landlord_gst_registered
+        COALESCE(l.name, 'Unassigned Landlord') AS landlord_name,
+        COALESCE(l.gst_registered, false) AS landlord_gst_registered,
+        COALESCE(p.name, 'Unassigned Property') AS property_name,
+        COALESCE(t.name, 'N/A') AS tenant_name
       FROM rentalrate r
-      LEFT JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN properties p ON r.property_id = p.id
-      LEFT JOIN landlords l ON p.landlord_id = l.id
+      LEFT JOIN landlords l ON COALESCE(r.landlord_id, p.landlord_id) = l.id
+      LEFT JOIN tenants t ON r.tenant_id = t.id
       ORDER BY r.effective_from DESC, r.rate_id DESC
     `;
     const result = await db.query(query);
@@ -43,10 +42,20 @@ exports.getRentalRates = async (req, res) => {
 };
 
 /**
- * Get active properties and tenants for rate assignment & dropdowns
+ * Get active landlords and properties for rate assignment & dropdowns
  */
 exports.getPropertiesAndTenants = async (req, res) => {
   try {
+    const landlordsQuery = `
+      SELECT id, name, gst_registered, gstin FROM landlords WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
+    `;
+    const landlordsResult = await db.query(landlordsQuery);
+
+    const propertiesQuery = `
+      SELECT id, landlord_id, name, property_type FROM properties WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
+    `;
+    const propertiesResult = await db.query(propertiesQuery);
+
     const tenantsQuery = `
       SELECT 
         t.id AS tenant_id,
@@ -66,21 +75,11 @@ exports.getPropertiesAndTenants = async (req, res) => {
     `;
     const tenantsResult = await db.query(tenantsQuery);
 
-    const landlordsQuery = `
-      SELECT id, name, gst_registered, gstin FROM landlords WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
-    `;
-    const landlordsResult = await db.query(landlordsQuery);
-
-    const propertiesQuery = `
-      SELECT id, landlord_id, name, property_type FROM properties WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
-    `;
-    const propertiesResult = await db.query(propertiesQuery);
-
     res.json({
       success: true,
-      tenants: tenantsResult.rows,
       landlords: landlordsResult.rows,
-      properties: propertiesResult.rows
+      properties: propertiesResult.rows,
+      tenants: tenantsResult.rows
     });
   } catch (error) {
     console.error('Error fetching master data:', error);
@@ -89,7 +88,7 @@ exports.getPropertiesAndTenants = async (req, res) => {
 };
 
 /**
- * Get rate revision history for a specific tenant
+ * Get rate revision history for a specific rate, property, or landlord
  */
 exports.getRateHistory = async (req, res) => {
   const { tenantId } = req.params;
@@ -98,6 +97,7 @@ exports.getRateHistory = async (req, res) => {
       SELECT 
         h.history_id,
         h.rate_id,
+        h.landlord_id,
         h.tenant_id,
         h.property_id,
         h.monthly_rent,
@@ -112,12 +112,14 @@ exports.getRateHistory = async (req, res) => {
         h.status,
         h.change_reason,
         h.created_at,
-        t.name AS tenant_name,
-        p.name AS property_name
+        COALESCE(l.name, 'Unassigned Landlord') AS landlord_name,
+        COALESCE(p.name, 'Unassigned Property') AS property_name,
+        COALESCE(t.name, 'N/A') AS tenant_name
       FROM ratehistory h
-      JOIN tenants t ON h.tenant_id = t.id
-      JOIN properties p ON h.property_id = p.id
-      WHERE h.tenant_id = $1
+      LEFT JOIN landlords l ON h.landlord_id = l.id
+      LEFT JOIN properties p ON h.property_id = p.id
+      LEFT JOIN tenants t ON h.tenant_id = t.id
+      WHERE h.rate_id = $1 OR h.property_id = $1 OR h.landlord_id = $1 OR h.tenant_id = $1
       ORDER BY h.effective_from DESC, h.history_id DESC
     `;
     const result = await db.query(query, [tenantId]);
@@ -134,8 +136,9 @@ exports.getRateHistory = async (req, res) => {
 exports.saveRentalRate = async (req, res) => {
   const {
     rate_id,
-    tenant_id,
+    landlord_id,
     property_id,
+    tenant_id = null,
     monthly_rent,
     maintenance_charges = 0,
     parking_charges = 0,
@@ -147,10 +150,10 @@ exports.saveRentalRate = async (req, res) => {
     change_reason = 'Rate Revision'
   } = req.body;
 
-  if (!tenant_id || !property_id || !monthly_rent || !effective_from) {
+  if (!landlord_id || !property_id || !monthly_rent || !effective_from) {
     return res.status(400).json({
       success: false,
-      error: 'Tenant, property, monthly rent, and effective-from date are required.'
+      error: 'Landlord, property, monthly rent, and effective-from date are required.'
     });
   }
 
@@ -164,18 +167,17 @@ exports.saveRentalRate = async (req, res) => {
   try {
     // -------------------------------------------------------------
     // OVERLAP PREVENTION (Task 5)
-    // Check if any existing active rate for this tenant/property
+    // Check if any existing active rate for this property
     // overlaps with the new [effective_from, effective_to] range
     // -------------------------------------------------------------
     let overlapQuery = `
       SELECT rate_id, TO_CHAR(effective_from, 'YYYY-MM-DD') AS effective_from, TO_CHAR(effective_to, 'YYYY-MM-DD') AS effective_to
       FROM rentalrate
-      WHERE tenant_id = $1 
-        AND property_id = $2
+      WHERE property_id = $1
         AND status = 'Active'
     `;
-    const overlapParams = [tenant_id, property_id];
-    let pIdx = 3;
+    const overlapParams = [property_id];
+    let pIdx = 2;
 
     if (rate_id) {
       overlapQuery += ` AND rate_id != $${pIdx++}`;
@@ -198,7 +200,7 @@ exports.saveRentalRate = async (req, res) => {
       const existing = overlapCheck.rows[0];
       return res.status(400).json({
         success: false,
-        error: `Date overlap detected! An active rental rate (Rate #${existing.rate_id}) is already active from ${existing.effective_from} to ${existing.effective_to || 'Indefinite'}. Please adjust your effective dates or end the existing rate first.`
+        error: `Date overlap detected! An active rental rate (Rate #${existing.rate_id}) is already active from ${existing.effective_from} to ${existing.effective_to || 'Indefinite'} for this property. Please adjust your effective dates or end the existing rate first.`
       });
     }
 
@@ -210,20 +212,26 @@ exports.saveRentalRate = async (req, res) => {
       const updateQuery = `
         UPDATE rentalrate
         SET 
-          monthly_rent = $1,
-          maintenance_charges = $2,
-          parking_charges = $3,
-          additional_charges = $4,
-          tax_supply_type = $5,
-          gst_applicable = $6,
-          gst_rate = $7,
-          effective_from = $8,
-          effective_to = $9,
-          change_reason = $10
-        WHERE rate_id = $11
+          landlord_id = $1,
+          property_id = $2,
+          tenant_id = $3,
+          monthly_rent = $4,
+          maintenance_charges = $5,
+          parking_charges = $6,
+          additional_charges = $7,
+          tax_supply_type = $8,
+          gst_applicable = $9,
+          gst_rate = $10,
+          effective_from = $11,
+          effective_to = $12,
+          change_reason = $13
+        WHERE rate_id = $14
         RETURNING *
       `;
       const updateRes = await db.query(updateQuery, [
+        landlord_id,
+        property_id,
+        tenant_id || null,
         monthly_rent,
         maintenance_charges,
         parking_charges,
@@ -241,16 +249,17 @@ exports.saveRentalRate = async (req, res) => {
       // Insert new rental rate
       const insertQuery = `
         INSERT INTO rentalrate (
-          tenant_id, property_id, monthly_rent, maintenance_charges,
+          landlord_id, property_id, tenant_id, monthly_rent, maintenance_charges,
           parking_charges, additional_charges, tax_supply_type,
           gst_applicable, gst_rate, effective_from, effective_to,
           status, change_reason
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Active', $12)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'Active', $13)
         RETURNING *
       `;
       const insertRes = await db.query(insertQuery, [
-        tenant_id,
+        landlord_id,
         property_id,
+        tenant_id || null,
         monthly_rent,
         maintenance_charges,
         parking_charges,
@@ -268,15 +277,16 @@ exports.saveRentalRate = async (req, res) => {
     // Record in ratehistory for audit & rate revision history (Task 4)
     await db.query(`
       INSERT INTO ratehistory (
-        rate_id, tenant_id, property_id, monthly_rent, maintenance_charges,
+        rate_id, landlord_id, property_id, tenant_id, monthly_rent, maintenance_charges,
         parking_charges, additional_charges, tax_supply_type,
         gst_applicable, gst_rate, effective_from, effective_to,
         status, change_reason
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'Active', $13)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'Active', $14)
     `, [
       savedRate.rate_id,
-      tenant_id,
+      landlord_id,
       property_id,
+      tenant_id || null,
       monthly_rent,
       maintenance_charges,
       parking_charges,
@@ -299,4 +309,3 @@ exports.saveRentalRate = async (req, res) => {
     res.status(500).json({ success: false, error: 'Database error saving rental rate' });
   }
 };
-

@@ -8,18 +8,19 @@ const API_BASE = 'http://localhost:5000/api/haridharani';
 
 export default function RentalRates() {
   const [rates, setRates] = useState([]);
-  const [masterData, setMasterData] = useState({ tenants: [], landlords: [], properties: [] });
+  const [masterData, setMasterData] = useState({ landlords: [], properties: [], tenants: [] });
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyList, setHistoryList] = useState([]);
-  const [historyTenant, setHistoryTenant] = useState(null);
+  const [historyItem, setHistoryItem] = useState(null);
 
-  // Form State matching "Define Rental Rate Revision" modal
+  // Form State: Landlord & Property selection
   const [formData, setFormData] = useState({
     rate_id: null,
-    tenant_id: '',
+    landlord_id: '',
     property_id: '',
+    tenant_id: '',
     effective_from: '2026-10-01',
     effective_to: '2027-09-30',
     monthly_rent: 60000,
@@ -59,7 +60,11 @@ export default function RentalRates() {
     try {
       const res = await axios.get(`${API_BASE}/properties-tenants`);
       if (res.data.success) {
-        setMasterData(res.data);
+        setMasterData({
+          landlords: res.data.landlords || [],
+          properties: res.data.properties || [],
+          tenants: res.data.tenants || []
+        });
       }
     } catch (err) {
       console.error('Failed to load master data', err);
@@ -68,13 +73,20 @@ export default function RentalRates() {
 
   const openNewRateModal = () => {
     fetchMasterData();
-    const firstTenant = masterData.tenants[0];
-    const isLandlordGst = firstTenant ? firstTenant.landlord_gst_registered : true;
+    const firstLandlord = masterData.landlords[0];
+    const isLandlordGst = firstLandlord ? !!firstLandlord.gst_registered : true;
+
+    // Filter properties for this landlord or take the first property
+    const matchingProps = masterData.properties.filter(
+      (p) => String(p.landlord_id) === String(firstLandlord?.id)
+    );
+    const defaultProp = matchingProps[0] || masterData.properties[0];
 
     setFormData({
       rate_id: null,
-      tenant_id: firstTenant ? firstTenant.tenant_id : '',
-      property_id: firstTenant?.property_id || masterData.properties[0]?.id || '',
+      landlord_id: firstLandlord ? firstLandlord.id : '',
+      property_id: defaultProp ? defaultProp.id : '',
+      tenant_id: '',
       effective_from: '2026-10-01',
       effective_to: '2027-09-30',
       monthly_rent: 60000,
@@ -91,26 +103,27 @@ export default function RentalRates() {
     setModalOpen(true);
   };
 
-  const handleTenantChange = (tenantId) => {
-    const t = masterData.tenants.find((item) => String(item.tenant_id) === String(tenantId));
-    if (t) {
-      const isGst = !!t.landlord_gst_registered;
-      setFormData((prev) => ({
-        ...prev,
-        tenant_id: t.tenant_id,
-        property_id: t.property_id || prev.property_id || masterData.properties[0]?.id || '',
-        gst_applicable: isGst,
-        gst_rate: isGst ? 18 : 0
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, tenant_id: tenantId }));
-    }
+  const handleLandlordChange = (landlordId) => {
+    const l = masterData.landlords.find((item) => String(item.id) === String(landlordId));
+    const matchingProps = masterData.properties.filter(
+      (p) => String(p.landlord_id) === String(landlordId)
+    );
+    const chosenProp = matchingProps[0] || masterData.properties[0];
+
+    const isGst = l ? !!l.gst_registered : false;
+    setFormData((prev) => ({
+      ...prev,
+      landlord_id: landlordId,
+      property_id: chosenProp ? chosenProp.id : prev.property_id,
+      gst_applicable: isGst,
+      gst_rate: isGst ? 18 : 0
+    }));
   };
 
-  const openHistoryModal = async (tenant) => {
+  const openHistoryModal = async (rate) => {
     try {
-      setHistoryTenant(tenant);
-      const res = await axios.get(`${API_BASE}/rental-rates/history/${tenant.tenant_id}`);
+      setHistoryItem(rate);
+      const res = await axios.get(`${API_BASE}/rental-rates/history/${rate.rate_id}`);
       if (res.data.success) {
         setHistoryList(res.data.history);
         setHistoryModalOpen(true);
@@ -153,8 +166,8 @@ export default function RentalRates() {
     setFormError('');
     setFormSuccess('');
 
-    if (!formData.tenant_id || !formData.property_id) {
-      setFormError('Please select a tenant and property.');
+    if (!formData.landlord_id || !formData.property_id) {
+      setFormError('Please select a landlord and property.');
       return;
     }
 
@@ -162,8 +175,9 @@ export default function RentalRates() {
       setSubmitting(true);
       const payload = {
         rate_id: formData.rate_id,
-        tenant_id: parseInt(formData.tenant_id, 10),
+        landlord_id: parseInt(formData.landlord_id, 10),
         property_id: parseInt(formData.property_id, 10),
+        tenant_id: formData.tenant_id ? parseInt(formData.tenant_id, 10) : null,
         monthly_rent: baseRentNum,
         maintenance_charges: maintNum,
         parking_charges: parkNum,
@@ -191,9 +205,18 @@ export default function RentalRates() {
     }
   };
 
-  const selectedTenantObj = masterData.tenants.find(
-    (t) => String(t.tenant_id) === String(formData.tenant_id)
+  const selectedLandlordObj = masterData.landlords.find(
+    (l) => String(l.id) === String(formData.landlord_id)
   );
+  const selectedPropertyObj = masterData.properties.find(
+    (p) => String(p.id) === String(formData.property_id)
+  );
+
+  // Available properties for selected landlord (or all)
+  const availableProperties = masterData.properties.filter(
+    (p) => !p.landlord_id || String(p.landlord_id) === String(formData.landlord_id)
+  );
+  const displayProperties = availableProperties.length > 0 ? availableProperties : masterData.properties;
 
   return (
     <div className="hd-container">
@@ -204,7 +227,7 @@ export default function RentalRates() {
         <div>
           <h1 className="hd-title">Rental Rate Configuration</h1>
           <p className="hd-subtitle">
-            Define monthly rent, recurring charges, GST taxation rules, and manage lease rate revisions over time.
+            Define monthly rent, recurring charges, and GST taxation rules per Landlord and Property.
           </p>
         </div>
         <div className="hd-header-actions">
@@ -220,7 +243,7 @@ export default function RentalRates() {
         <table className="hd-table">
           <thead>
             <tr>
-              <th>Tenant & Landlord</th>
+              <th>Landlord</th>
               <th>Property</th>
               <th>Base Monthly Rent</th>
               <th>Maintenance & Parking</th>
@@ -251,17 +274,23 @@ export default function RentalRates() {
                 return (
                   <tr key={rate.rate_id}>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{rate.tenant_name}</div>
+                      <div style={{ fontWeight: 600 }}>{rate.landlord_name}</div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Landlord: {rate.landlord_name}{' '}
                         {rate.landlord_gst_registered ? (
-                          <span style={{ color: '#1d4ed8', fontWeight: 600 }}>(GST Reg)</span>
+                          <span style={{ color: '#1d4ed8', fontWeight: 600 }}>GST Registered</span>
                         ) : (
-                          <span style={{ color: '#b91c1c' }}>(Non-GST)</span>
+                          <span style={{ color: '#b91c1c' }}>Non-GST</span>
                         )}
                       </div>
                     </td>
-                    <td>{rate.property_name}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{rate.property_name}</div>
+                      {rate.tenant_name && rate.tenant_name !== 'N/A' && (
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          Tenant: {rate.tenant_name}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ fontWeight: 600 }}>
                       ₹{parseFloat(rate.monthly_rent).toLocaleString('en-IN')}
                     </td>
@@ -305,7 +334,7 @@ export default function RentalRates() {
       </div>
 
       {/* ============================================================== */}
-      {/* MODAL: Define Rental Rate Revision (Matches user screenshot)   */}
+      {/* MODAL: Define Rental Rate Revision (Landlord & Property Selection) */}
       {/* ============================================================== */}
       {modalOpen && (
         <div className="hd-modal-backdrop">
@@ -318,9 +347,7 @@ export default function RentalRates() {
                 <div>
                   <h3 className="hd-modal-title">Define Rental Rate Revision</h3>
                   <p className="hd-modal-subtitle">
-                    {selectedTenantObj
-                      ? `${selectedTenantObj.tenant_name} • ${selectedTenantObj.property_name} • Active Lease`
-                      : 'Select tenant and configure rental rate'}
+                    {selectedLandlordObj?.name || 'Select Landlord'} • {selectedPropertyObj?.name || 'Select Property'} • Rental Rate
                   </p>
                 </div>
               </div>
@@ -344,20 +371,20 @@ export default function RentalRates() {
                   </div>
                 )}
 
-                {/* Tenant & Property Selection (Row 0) */}
+                {/* Landlord & Property Selection (Row 0) */}
                 <div className="hd-form-grid-2">
                   <div className="hd-form-group">
-                    <label className="hd-form-label">Tenant Selection *</label>
+                    <label className="hd-form-label">Landlord Selection *</label>
                     <select
                       className="hd-select"
-                      value={formData.tenant_id}
-                      onChange={(e) => handleTenantChange(e.target.value)}
+                      value={formData.landlord_id}
+                      onChange={(e) => handleLandlordChange(e.target.value)}
                       required
                     >
-                      <option value="">Select Tenant</option>
-                      {masterData.tenants.map((t) => (
-                        <option key={t.tenant_id} value={t.tenant_id}>
-                          {t.tenant_name} {t.tenant_pan ? `(${t.tenant_pan})` : ''}
+                      <option value="">Select Landlord</option>
+                      {masterData.landlords.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name} {l.gst_registered ? '(GST Registered)' : '(Non-GST)'}
                         </option>
                       ))}
                     </select>
@@ -372,7 +399,7 @@ export default function RentalRates() {
                       required
                     >
                       <option value="">Select Property</option>
-                      {masterData.properties.map((p) => (
+                      {displayProperties.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} ({p.property_type})
                         </option>
@@ -539,7 +566,7 @@ export default function RentalRates() {
                   <input
                     type="text"
                     className="hd-input"
-                    placeholder="e.g. Annual lease renewal, Meter update"
+                    placeholder="e.g. Annual rate revision, new lease term"
                     value={formData.change_reason}
                     onChange={(e) => setFormData({ ...formData, change_reason: e.target.value })}
                   />
@@ -615,7 +642,7 @@ export default function RentalRates() {
       )}
 
       {/* ============================================================== */}
-      {/* MODAL: Rate Revision History (Task 4)                          */}
+      {/* MODAL: Rate Revision History                                    */}
       {/* ============================================================== */}
       {historyModalOpen && (
         <div className="hd-modal-backdrop">
@@ -628,7 +655,7 @@ export default function RentalRates() {
                 <div>
                   <h3 className="hd-modal-title">Rate Revision History</h3>
                   <p className="hd-modal-subtitle">
-                    Tenant: {historyTenant?.tenant_name} • Property: {historyTenant?.property_name}
+                    Landlord: {historyItem?.landlord_name} • Property: {historyItem?.property_name}
                   </p>
                 </div>
               </div>
@@ -640,7 +667,7 @@ export default function RentalRates() {
             <div className="hd-modal-body">
               {historyList.length === 0 ? (
                 <p style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
-                  No historical revisions found for this tenant.
+                  No historical revisions found for this rate.
                 </p>
               ) : (
                 <div className="hd-table-card">
@@ -694,4 +721,3 @@ export default function RentalRates() {
     </div>
   );
 }
-
