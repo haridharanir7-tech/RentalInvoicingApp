@@ -17,8 +17,8 @@ app.get('/api/health', (req, res) => {
 // (Each member will import & mount their router here)
 // ==========================================
 
-// 1. Priya (Auth & Users)
-// app.use('/api/priya', require('./modules/priya/...'));
+// 1. Priya (Access, Dashboard & Audit)
+app.use('/api/priya', require('./modules/priya/routes/priyaRoutes'));
 
 // 2. Subhashini (Landlords & Properties)
 // app.use('/api/subhashini', require('./modules/subhashini/...'));
