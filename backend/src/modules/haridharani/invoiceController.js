@@ -132,9 +132,9 @@ exports.getInvoices = async (req, res) => {
         p.name AS property_name,
         t.name AS tenant_name
       FROM invoices i
-      JOIN landlords l ON i.landlord_id = l.id
-      JOIN properties p ON i.property_id = p.id
-      JOIN tenants t ON i.tenant_id = t.id
+      LEFT JOIN landlords l ON i.landlord_id = l.id
+      LEFT JOIN properties p ON i.property_id = p.id
+      LEFT JOIN tenants t ON i.tenant_id = t.id
       ${whereSql}
       ORDER BY i.invoice_id DESC
     `;
@@ -217,9 +217,9 @@ exports.previewInvoices = async (req, res) => {
         inv.invoice_number AS existing_invoice_number,
         inv.status AS existing_invoice_status
       FROM rentalrate r
-      JOIN tenants t ON r.tenant_id = t.id
-      JOIN properties p ON r.property_id = p.id
-      JOIN landlords l ON p.landlord_id = l.id
+      LEFT JOIN tenants t ON r.tenant_id = t.id
+      LEFT JOIN properties p ON r.property_id = p.id
+      LEFT JOIN landlords l ON p.landlord_id = l.id
       LEFT JOIN invoices inv ON inv.tenant_id = t.id 
                             AND inv.property_id = p.id 
                             AND inv.billing_period = '${billing_period}'

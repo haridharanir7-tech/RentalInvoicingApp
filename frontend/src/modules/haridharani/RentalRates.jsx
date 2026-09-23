@@ -67,14 +67,14 @@ export default function RentalRates() {
   };
 
   const openNewRateModal = () => {
-    // Default to first tenant if available
+    fetchMasterData();
     const firstTenant = masterData.tenants[0];
     const isLandlordGst = firstTenant ? firstTenant.landlord_gst_registered : true;
 
     setFormData({
       rate_id: null,
       tenant_id: firstTenant ? firstTenant.tenant_id : '',
-      property_id: firstTenant ? firstTenant.property_id : '',
+      property_id: firstTenant?.property_id || masterData.properties[0]?.id || '',
       effective_from: '2026-10-01',
       effective_to: '2027-09-30',
       monthly_rent: 60000,
@@ -98,10 +98,12 @@ export default function RentalRates() {
       setFormData((prev) => ({
         ...prev,
         tenant_id: t.tenant_id,
-        property_id: t.property_id,
+        property_id: t.property_id || prev.property_id || masterData.properties[0]?.id || '',
         gst_applicable: isGst,
         gst_rate: isGst ? 18 : 0
       }));
+    } else {
+      setFormData((prev) => ({ ...prev, tenant_id: tenantId }));
     }
   };
 
@@ -342,22 +344,41 @@ export default function RentalRates() {
                   </div>
                 )}
 
-                {/* Tenant / Property Picker if not fixed */}
-                <div className="hd-form-group">
-                  <label className="hd-form-label">Tenant & Property Selection *</label>
-                  <select
-                    className="hd-select"
-                    value={formData.tenant_id}
-                    onChange={(e) => handleTenantChange(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Tenant / Property</option>
-                    {masterData.tenants.map((t) => (
-                      <option key={t.tenant_id} value={t.tenant_id}>
-                        {t.tenant_name} — {t.property_name} (Landlord: {t.landlord_name})
-                      </option>
-                    ))}
-                  </select>
+                {/* Tenant & Property Selection (Row 0) */}
+                <div className="hd-form-grid-2">
+                  <div className="hd-form-group">
+                    <label className="hd-form-label">Tenant Selection *</label>
+                    <select
+                      className="hd-select"
+                      value={formData.tenant_id}
+                      onChange={(e) => handleTenantChange(e.target.value)}
+                      required
+                    >
+                      <option value="">Select Tenant</option>
+                      {masterData.tenants.map((t) => (
+                        <option key={t.tenant_id} value={t.tenant_id}>
+                          {t.tenant_name} {t.tenant_pan ? `(${t.tenant_pan})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="hd-form-group">
+                    <label className="hd-form-label">Property Selection *</label>
+                    <select
+                      className="hd-select"
+                      value={formData.property_id}
+                      onChange={(e) => setFormData({ ...formData, property_id: e.target.value })}
+                      required
+                    >
+                      <option value="">Select Property</option>
+                      {masterData.properties.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.property_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Effective Dates (Row 1) */}

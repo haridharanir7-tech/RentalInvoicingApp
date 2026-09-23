@@ -29,9 +29,9 @@ exports.getRentalRates = async (req, res) => {
         l.name AS landlord_name,
         l.gst_registered AS landlord_gst_registered
       FROM rentalrate r
-      JOIN tenants t ON r.tenant_id = t.id
-      JOIN properties p ON r.property_id = p.id
-      JOIN landlords l ON p.landlord_id = l.id
+      LEFT JOIN tenants t ON r.tenant_id = t.id
+      LEFT JOIN properties p ON r.property_id = p.id
+      LEFT JOIN landlords l ON p.landlord_id = l.id
       ORDER BY r.effective_from DESC, r.rate_id DESC
     `;
     const result = await db.query(query);
@@ -54,15 +54,14 @@ exports.getPropertiesAndTenants = async (req, res) => {
         t.pan AS tenant_pan,
         t.gstin AS tenant_gstin,
         t.property_id,
-        p.name AS property_name,
-        p.property_type,
+        COALESCE(p.name, 'Unassigned Property') AS property_name,
+        COALESCE(p.property_type, 'Commercial') AS property_type,
         l.id AS landlord_id,
-        l.name AS landlord_name,
-        l.gst_registered AS landlord_gst_registered
+        COALESCE(l.name, 'Unassigned Landlord') AS landlord_name,
+        COALESCE(l.gst_registered, false) AS landlord_gst_registered
       FROM tenants t
-      JOIN properties p ON t.property_id = p.id
-      JOIN landlords l ON p.landlord_id = l.id
-      WHERE t.status = 'Active' OR t.status IS NULL
+      LEFT JOIN properties p ON t.property_id = p.id
+      LEFT JOIN landlords l ON p.landlord_id = l.id
       ORDER BY t.name ASC
     `;
     const tenantsResult = await db.query(tenantsQuery);
