@@ -24,7 +24,7 @@ app.get('/api/health', (req, res) => {
 // app.use('/api/subhashini', require('./modules/subhashini/...'));
 
 // 3. Haridharani (Tenants & Rental Rates)
-// app.use('/api/haridharani', require('./modules/haridharani/...'));
+app.use('/api/haridharani', require('./modules/haridharani/routes'));
 
 // 4. Ragul (Invoices & GST Reports)
 // app.use('/api/ragul', require('./modules/ragul/...'));
