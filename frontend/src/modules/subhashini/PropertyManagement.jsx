@@ -196,7 +196,6 @@ export default function PropertyManagement() {
                     onChange={handleChange} 
                     required 
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Prestige Tech Park, Unit 402</span>
                 </div>
                 <div className="form-group flex-1">
                   <label>Landlord / Owner *</label>
@@ -208,7 +207,6 @@ export default function PropertyManagement() {
                       </option>
                     ))}
                   </select>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Select registered property owner</span>
                 </div>
               </div>
 
@@ -222,7 +220,6 @@ export default function PropertyManagement() {
                   onChange={handleChange} 
                   rows="2"
                 />
-                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Complete street address and postal code</span>
               </div>
 
               <div className="flex-row">
@@ -233,7 +230,6 @@ export default function PropertyManagement() {
                     <option value="Residential">Residential</option>
                     <option value="Warehouse">Warehouse</option>
                   </select>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Category of real estate asset</span>
                 </div>
                 <div className="form-group flex-1">
                   <label>Total Area (sq ft)</label>
@@ -248,7 +244,6 @@ export default function PropertyManagement() {
                     value={formData.total_area} 
                     onChange={handleChange} 
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Total built-up area in square feet</span>
                 </div>
               </div>
 

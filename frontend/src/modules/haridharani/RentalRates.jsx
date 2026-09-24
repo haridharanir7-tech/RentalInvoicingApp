@@ -27,15 +27,15 @@ export default function RentalRates() {
     property_id: '',
     tenant_id: '',
     effective_from: '2026-10-01',
-    effective_to: '2027-09-30',
-    monthly_rent: 60000,
-    maintenance_charges: 3000,
-    parking_charges: 2000,
+    effective_to: '',
+    monthly_rent: '',
+    maintenance_charges: '',
+    parking_charges: '',
     tax_supply_type: 'intra_state', // 'intra_state' | 'inter_state'
     gst_rate: 18,
     gst_applicable: true,
     is_custom_gst: false,
-    change_reason: 'Annual rate adjustment'
+    change_reason: ''
   });
 
   const [formError, setFormError] = useState('');
@@ -78,30 +78,21 @@ export default function RentalRates() {
 
   const openNewRateModal = () => {
     fetchMasterData();
-    const firstLandlord = masterData.landlords[0];
-    const isLandlordGst = firstLandlord ? !!firstLandlord.gst_registered : true;
-
-    // Filter properties for this landlord or take the first property
-    const matchingProps = masterData.properties.filter(
-      (p) => String(p.landlord_id) === String(firstLandlord?.id)
-    );
-    const defaultProp = matchingProps[0] || masterData.properties[0];
-
     setFormData({
       rate_id: null,
-      landlord_id: firstLandlord ? firstLandlord.id : '',
-      property_id: defaultProp ? defaultProp.id : '',
+      landlord_id: '',
+      property_id: '',
       tenant_id: '',
       effective_from: '2026-10-01',
-      effective_to: '2027-09-30',
-      monthly_rent: 60000,
-      maintenance_charges: 3000,
-      parking_charges: 2000,
+      effective_to: '',
+      monthly_rent: '',
+      maintenance_charges: '',
+      parking_charges: '',
       tax_supply_type: 'intra_state',
-      gst_rate: isLandlordGst ? 18 : 0,
-      gst_applicable: isLandlordGst,
+      gst_rate: 18,
+      gst_applicable: true,
       is_custom_gst: false,
-      change_reason: 'Define Rental Rate'
+      change_reason: ''
     });
     setFormError('');
     setFormSuccess('');
@@ -110,16 +101,11 @@ export default function RentalRates() {
 
   const handleLandlordChange = (landlordId) => {
     const l = masterData.landlords.find((item) => String(item.id) === String(landlordId));
-    const matchingProps = masterData.properties.filter(
-      (p) => String(p.landlord_id) === String(landlordId)
-    );
-    const chosenProp = matchingProps[0] || masterData.properties[0];
-
     const isGst = l ? !!l.gst_registered : false;
     setFormData((prev) => ({
       ...prev,
       landlord_id: landlordId,
-      property_id: chosenProp ? chosenProp.id : prev.property_id,
+      property_id: '', // Always reset to Select Property so "Select Property" shows first
       gst_applicable: isGst,
       gst_rate: isGst ? 18 : 0
     }));
@@ -172,7 +158,7 @@ export default function RentalRates() {
     setFormSuccess('');
 
     if (!formData.landlord_id || !formData.property_id) {
-      setFormError('Please select a landlord and property.');
+      setFormError('Please select both a landlord and a property.');
       return;
     }
 
@@ -210,18 +196,10 @@ export default function RentalRates() {
     }
   };
 
-  const selectedLandlordObj = masterData.landlords.find(
-    (l) => String(l.id) === String(formData.landlord_id)
-  );
-  const selectedPropertyObj = masterData.properties.find(
-    (p) => String(p.id) === String(formData.property_id)
-  );
-
-  // Available properties for selected landlord (or all)
-  const availableProperties = masterData.properties.filter(
-    (p) => !p.landlord_id || String(p.landlord_id) === String(formData.landlord_id)
-  );
-  const displayProperties = availableProperties.length > 0 ? availableProperties : masterData.properties;
+  // Available properties for selected landlord (or all if none selected)
+  const availableProperties = formData.landlord_id
+    ? masterData.properties.filter((p) => String(p.landlord_id) === String(formData.landlord_id))
+    : masterData.properties;
 
   // Filtered rates logic
   const filteredRates = rates.filter((r) => {
@@ -472,40 +450,35 @@ export default function RentalRates() {
       {/* ============================================================== */}
       {modalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '640px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Define Rental Rate Revision
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  {selectedLandlordObj?.name || 'Select Landlord'} • {selectedPropertyObj?.name || 'Select Property'} • Rental Rate
-                </p>
-              </div>
+          <div className="modal-content" style={{ maxWidth: '560px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+                Define Rental Rate Revision
+              </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748b' }}
               >
-                <X size={20} />
+                &times;
               </button>
             </div>
 
             <form onSubmit={handleSaveRate}>
               {formError && (
-                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} />
+                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '6px', color: '#b91c1c', marginBottom: '14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={15} />
                   <span>{formError}</span>
                 </div>
               )}
               {formSuccess && (
-                <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#15803d', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Check size={16} />
+                <div style={{ padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#15803d', marginBottom: '14px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Check size={15} />
                   <span>{formSuccess}</span>
                 </div>
               )}
 
               {/* Landlord & Property Selection (Row 0) */}
-              <div className="flex-row" style={{ marginBottom: '14px' }}>
+              <div className="flex-row" style={{ marginBottom: '12px' }}>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Landlord Selection *</label>
                   <select
@@ -517,11 +490,10 @@ export default function RentalRates() {
                     <option value="">Select Landlord</option>
                     {masterData.landlords.map((l) => (
                       <option key={l.id} value={l.id}>
-                        {l.name} {l.email ? `(${l.email})` : ''} {l.gst_registered ? '• GST Registered' : '• Non-GST'}
+                        {l.name} {l.email ? `(${l.email})` : ''}
                       </option>
                     ))}
                   </select>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Select registered property landlord entity</span>
                 </div>
 
                 <div className="form-group flex-1" style={{ margin: 0 }}>
@@ -533,18 +505,17 @@ export default function RentalRates() {
                     required
                   >
                     <option value="">Select Property</option>
-                    {displayProperties.map((p) => (
+                    {availableProperties.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.property_type})
                       </option>
                     ))}
                   </select>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Associated commercial or residential property</span>
                 </div>
               </div>
 
               {/* Effective Dates (Row 1) */}
-              <div className="flex-row" style={{ marginBottom: '14px' }}>
+              <div className="flex-row" style={{ marginBottom: '12px' }}>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Effective From Date *</label>
                   <input
@@ -554,7 +525,6 @@ export default function RentalRates() {
                     onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
                     required
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Start date of lease / revision</span>
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Effective To Date</label>
@@ -564,12 +534,11 @@ export default function RentalRates() {
                     value={formData.effective_to}
                     onChange={(e) => setFormData({ ...formData, effective_to: e.target.value })}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Optional lease expiry date</span>
                 </div>
               </div>
 
               {/* Base Monthly Rent & Maintenance (Row 2) */}
-              <div className="flex-row" style={{ marginBottom: '14px' }}>
+              <div className="flex-row" style={{ marginBottom: '12px' }}>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Base Monthly Rent (₹) *</label>
                   <input
@@ -588,7 +557,6 @@ export default function RentalRates() {
                     }}
                     required
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. 60000 (Base rent before maintenance & GST)</span>
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Maintenance Charges (₹)</label>
@@ -607,12 +575,11 @@ export default function RentalRates() {
                       setFormData({ ...formData, maintenance_charges: val });
                     }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. 3000 (Common area maintenance charges)</span>
                 </div>
               </div>
 
               {/* Parking Charges & Tax Supply Type (Row 3) */}
-              <div className="flex-row" style={{ marginBottom: '14px' }}>
+              <div className="flex-row" style={{ marginBottom: '12px' }}>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Parking Charges (₹)</label>
                   <input
@@ -630,74 +597,72 @@ export default function RentalRates() {
                       setFormData({ ...formData, parking_charges: val });
                     }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. 2000 (Reserved parking slot fee)</span>
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Tax Supply Type</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <button
                       type="button"
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
                         border: formData.tax_supply_type === 'intra_state' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                         background: formData.tax_supply_type === 'intra_state' ? '#eff6ff' : '#ffffff',
                         color: formData.tax_supply_type === 'intra_state' ? '#1d4ed8' : '#334155',
                         fontWeight: formData.tax_supply_type === 'intra_state' ? 600 : 500,
                         cursor: 'pointer',
+                        fontSize: '0.8rem',
                         textAlign: 'center',
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minHeight: '52px',
-                        gap: '2px',
+                        gap: '4px',
+                        height: '38px',
                         transition: 'all 0.15s ease'
                       }}
                       onClick={() => setFormData({ ...formData, tax_supply_type: 'intra_state' })}
                     >
-                      <span style={{ fontSize: '0.84rem' }}>Intra-State</span>
-                      <span style={{ fontSize: '0.74rem', opacity: 0.85, whiteSpace: 'nowrap' }}>(CGST + SGST)</span>
+                      <span>Intra-State</span>
+                      <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>(CGST+SGST)</span>
                     </button>
                     <button
                       type="button"
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
                         border: formData.tax_supply_type === 'inter_state' ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                         background: formData.tax_supply_type === 'inter_state' ? '#eff6ff' : '#ffffff',
                         color: formData.tax_supply_type === 'inter_state' ? '#1d4ed8' : '#334155',
                         fontWeight: formData.tax_supply_type === 'inter_state' ? 600 : 500,
                         cursor: 'pointer',
+                        fontSize: '0.8rem',
                         textAlign: 'center',
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minHeight: '52px',
-                        gap: '2px',
+                        gap: '4px',
+                        height: '38px',
                         transition: 'all 0.15s ease'
                       }}
                       onClick={() => setFormData({ ...formData, tax_supply_type: 'inter_state' })}
                     >
-                      <span style={{ fontSize: '0.84rem' }}>Inter-State</span>
-                      <span style={{ fontSize: '0.74rem', opacity: 0.85, whiteSpace: 'nowrap' }}>(IGST)</span>
+                      <span>Inter-State</span>
+                      <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>(IGST)</span>
                     </button>
                   </div>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Select supply state taxation structure</span>
                 </div>
               </div>
 
               {/* GST Applicable Selector (Row 4) */}
-              <div className="form-group" style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <label className="form-label" style={{ margin: 0 }}>GST Applicable (Commercial Leasing)</label>
-                  <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.78rem', color: '#2563eb', fontWeight: 600 }}>
                     Selected: {formData.gst_applicable ? `${formData.gst_rate}%` : '0% (Non-GST)'}
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {[
                     { label: '18% (Standard)', rate: 18, applicable: true },
                     { label: '12%', rate: 12, applicable: true },
@@ -713,13 +678,13 @@ export default function RentalRates() {
                         key={opt.label}
                         type="button"
                         style={{
-                          padding: '7px 14px',
-                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
                           border: isSelected ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                           background: isSelected ? '#eff6ff' : '#ffffff',
                           color: isSelected ? '#1d4ed8' : '#334155',
                           fontWeight: isSelected ? 600 : 500,
-                          fontSize: '0.82rem',
+                          fontSize: '0.8rem',
                           cursor: 'pointer'
                         }}
                         onClick={() =>
@@ -738,13 +703,13 @@ export default function RentalRates() {
                   <button
                     type="button"
                     style={{
-                      padding: '7px 14px',
-                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
                       border: formData.is_custom_gst ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                       background: formData.is_custom_gst ? '#eff6ff' : '#ffffff',
                       color: formData.is_custom_gst ? '#1d4ed8' : '#334155',
                       fontWeight: formData.is_custom_gst ? 600 : 500,
-                      fontSize: '0.82rem',
+                      fontSize: '0.8rem',
                       cursor: 'pointer'
                     }}
                     onClick={() => setFormData({ ...formData, is_custom_gst: true, gst_applicable: true })}
@@ -754,7 +719,7 @@ export default function RentalRates() {
                 </div>
 
                 {formData.is_custom_gst && (
-                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
                       type="number"
                       step="0.01"
@@ -766,7 +731,7 @@ export default function RentalRates() {
                         const val = Math.max(0, parseFloat(e.target.value) || 0);
                         setFormData({ ...formData, gst_rate: val });
                       }}
-                      style={{ maxWidth: '180px' }}
+                      style={{ maxWidth: '160px' }}
                     />
                     <span style={{ fontSize: '0.85rem', color: '#64748b' }}>%</span>
                   </div>
@@ -774,7 +739,7 @@ export default function RentalRates() {
               </div>
 
               {/* Revision Reason */}
-              <div className="form-group" style={{ marginBottom: '16px' }}>
+              <div className="form-group" style={{ marginBottom: '14px' }}>
                 <label className="form-label">Revision Reason / Remarks</label>
                 <input
                   type="text"
@@ -783,56 +748,15 @@ export default function RentalRates() {
                   value={formData.change_reason}
                   onChange={(e) => setFormData({ ...formData, change_reason: e.target.value })}
                 />
-                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Recorded in revision history and audit log</span>
               </div>
 
-              {/* Calculation Summary Card */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569', marginBottom: '6px' }}>
-                  <span>Base Monthly Rent:</span>
-                  <span style={{ fontWeight: 600 }}>₹{baseRentNum.toLocaleString('en-IN')}</span>
+              {/* Compact Calculation Summary Card */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                  Taxable Subtotal: <strong>₹{subtotal.toLocaleString('en-IN')}</strong> {formData.gst_applicable && gstRateNum > 0 ? `• GST (${gstRateNum}%): ₹${totalGstAmount.toLocaleString('en-IN')}` : ''}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569', marginBottom: '6px' }}>
-                  <span>Maintenance Charges:</span>
-                  <span style={{ fontWeight: 600 }}>₹{maintNum.toLocaleString('en-IN')}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#475569', marginBottom: '6px' }}>
-                  <span>Parking Charges:</span>
-                  <span style={{ fontWeight: 600 }}>₹{parkNum.toLocaleString('en-IN')}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#0f172a', fontWeight: 600, borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginBottom: '6px' }}>
-                  <span>Taxable Subtotal:</span>
-                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
-                </div>
-
-                {formData.gst_applicable && gstRateNum > 0 ? (
-                  isInterState ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#2563eb', marginBottom: '6px' }}>
-                      <span>IGST ({gstRateNum}%):</span>
-                      <span style={{ fontWeight: 600 }}>₹{igstAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#2563eb', marginBottom: '4px' }}>
-                        <span>CGST ({gstRateNum / 2}%):</span>
-                        <span style={{ fontWeight: 600 }}>₹{cgstAmount.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#2563eb', marginBottom: '6px' }}>
-                        <span>SGST ({gstRateNum / 2}%):</span>
-                        <span style={{ fontWeight: 600 }}>₹{sgstAmount.toLocaleString('en-IN')}</span>
-                      </div>
-                    </>
-                  )
-                ) : (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b', marginBottom: '6px' }}>
-                    <span>GST Component:</span>
-                    <span>₹0.00 (Non-GST / Exempt)</span>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', borderTop: '1.5px solid #cbd5e1', paddingTop: '8px' }}>
-                  <span>Total Monthly Payable:</span>
-                  <span>₹{grandTotal.toLocaleString('en-IN')}</span>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af' }}>
+                  Total: ₹{grandTotal.toLocaleString('en-IN')}/mo
                 </div>
               </div>
 
@@ -859,21 +783,16 @@ export default function RentalRates() {
       {/* ============================================================== */}
       {historyModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '750px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Rate Revision History
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  Landlord: {historyItem?.landlord_name} • Property: {historyItem?.property_name}
-                </p>
-              </div>
+          <div className="modal-content" style={{ maxWidth: '750px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                Rate Revision History
+              </h3>
               <button
                 onClick={() => setHistoryModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748b' }}
               >
-                <X size={20} />
+                &times;
               </button>
             </div>
 
@@ -923,7 +842,7 @@ export default function RentalRates() {
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <button className="btn btn-secondary" onClick={() => setHistoryModalOpen(false)}>
                 Close
               </button>
