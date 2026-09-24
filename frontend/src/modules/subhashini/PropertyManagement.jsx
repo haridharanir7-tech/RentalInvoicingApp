@@ -30,8 +30,7 @@ export default function PropertyManagement() {
 
   const fetchLandlordsForDropdown = async () => {
     try {
-      // Get all active landlords for the dropdown (no pagination)
-      const res = await fetch('http://localhost:5000/api/master-data/landlords?limit=1000&status=active');
+      const res = await fetch('/api/master-data/landlords?limit=1000&status=active');
       if (res.ok) {
         const data = await res.json();
         setLandlords(data.data || []);
@@ -43,14 +42,14 @@ export default function PropertyManagement() {
 
   const fetchProperties = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/properties?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const res = await fetch(`/api/master-data/properties?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
       if (!res.ok) throw new Error('Failed to fetch properties');
       const data = await res.json();
-      setProperties(data.data);
-      setTotalPages(data.pagination.totalPages);
-      setTotalRecords(data.pagination.total);
+      setProperties(data.data || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching properties:', err);
     }
   };
 
@@ -73,7 +72,13 @@ export default function PropertyManagement() {
   };
 
   const handleEdit = (property) => {
-    setFormData(property);
+    setFormData({
+      landlord_id: property.landlord_id || '',
+      name: property.name || '',
+      address: property.address || '',
+      property_type: property.property_type || 'Commercial',
+      total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : ''
+    });
     setEditingId(property.id);
     setShowForm(true);
     window.scrollTo(0, 0);
@@ -83,7 +88,7 @@ export default function PropertyManagement() {
     if (!window.confirm("Are you sure you want to delete this property?")) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/properties/${id}`, {
+      const res = await fetch(`/api/master-data/properties/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete property');
@@ -109,14 +114,22 @@ export default function PropertyManagement() {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/master-data/properties/${editingId}` 
-        : 'http://localhost:5000/api/master-data/properties';
+        ? `/api/master-data/properties/${editingId}` 
+        : '/api/master-data/properties';
       const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        landlord_id: parseInt(formData.landlord_id, 10),
+        name: formData.name.trim(),
+        address: formData.address || '',
+        property_type: formData.property_type || 'Commercial',
+        total_area: formData.total_area && formData.total_area !== '' ? parseFloat(formData.total_area) : null
+      };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       if (!res.ok) {
@@ -132,7 +145,7 @@ export default function PropertyManagement() {
       setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
       setEditingId(null);
       fetchProperties();
-      setTimeout(() => setShowForm(false), 1500); // Hide form after success
+      setTimeout(() => setShowForm(false), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -143,7 +156,10 @@ export default function PropertyManagement() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Property Management</h2>
+        <div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Property Management</h2>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Manage commercial & residential real estate units and landlords</p>
+        </div>
         <button className="btn btn-primary" onClick={() => {
           setShowForm(true);
           setEditingId(null);

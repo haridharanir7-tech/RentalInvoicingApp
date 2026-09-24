@@ -11,7 +11,7 @@ export default function OccupancyReport() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Stats (these might only reflect current page now, but we can compute roughly or leave as is)
+  // Stats
   const [stats, setStats] = useState({ total: 0, occupied: 0, vacant: 0, rate: 0 });
 
   useEffect(() => {
@@ -21,20 +21,17 @@ export default function OccupancyReport() {
   const fetchReport = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/reports/occupancy?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const res = await fetch(`/api/master-data/reports/occupancy?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
       if (res.ok) {
         const data = await res.json();
-        setReportData(data.data);
-        setTotalPages(data.pagination.totalPages);
-        setTotalRecords(data.pagination.total);
+        setReportData(data.data || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalRecords(data.pagination?.total || 0);
 
-        // Simple statistics for current view
-        const totalProperties = data.pagination.total;
-        const occupiedCount = data.data.filter(r => r.occupancy_status === 'Occupied' || r.occupancy_status === 'Notice Period').length;
-        const vacantCount = data.data.filter(r => r.occupancy_status === 'Vacant').length;
-        // The rate here is just for the current page since we don't have global stats API yet, 
-        // but it gives an idea.
-        const occupancyRate = data.data.length ? Math.round((occupiedCount / data.data.length) * 100) : 0;
+        const totalProperties = data.pagination?.total || 0;
+        const occupiedCount = (data.data || []).filter(r => r.occupancy_status === 'Occupied' || r.occupancy_status === 'Notice Period').length;
+        const vacantCount = (data.data || []).filter(r => r.occupancy_status === 'Vacant').length;
+        const occupancyRate = data.data && data.data.length ? Math.round((occupiedCount / data.data.length) * 100) : 0;
         
         setStats({ total: totalProperties, occupied: occupiedCount, vacant: vacantCount, rate: occupancyRate });
       }
@@ -61,7 +58,10 @@ export default function OccupancyReport() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Property Occupancy Summary Report</h2>
+        <div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Property Occupancy Summary Report</h2>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Real-time vacancy tracking and lease occupancy statistics</p>
+        </div>
         <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>Refresh Data</button>
       </div>
 

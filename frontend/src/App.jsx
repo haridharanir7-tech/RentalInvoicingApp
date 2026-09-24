@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
-import ModulePlaceholder from './components/ModulePlaceholder';
 import SubhashiniLayout from './modules/subhashini/index';
+import PropertyManagement from './modules/subhashini/PropertyManagement';
+import TenantManagement from './modules/subhashini/TenantManagement';
+import OccupancyReport from './modules/subhashini/OccupancyReport';
 import RagulModule from './modules/ragul';
 
 // Priya Auth & Admin Components
@@ -96,11 +98,7 @@ export default function App() {
               path="/admin/properties"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Property Master"
-                    teammateName="Subhashini"
-                    description="Commercial & residential property portfolio, unit configurations, and floor area measurements."
-                  />
+                  <PropertyManagement />
                 </AppLayout>
               }
             />
@@ -110,11 +108,7 @@ export default function App() {
               path="/admin/tenants"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Tenant Master"
-                    teammateName="Subhashini"
-                    description="Tenant onboarding, lease contracts, PAN/GSTIN registration, and deposit history."
-                  />
+                  <TenantManagement />
                 </AppLayout>
               }
             />
@@ -164,11 +158,7 @@ export default function App() {
               path="/admin/occupancy-report"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Occupancy Report"
-                    teammateName="Subhashini"
-                    description="Portfolio occupancy percentage, vacancy tracking, and unit utilization analysis."
-                  />
+                  <OccupancyReport />
                 </AppLayout>
               }
             />
@@ -226,30 +216,22 @@ export default function App() {
               }
             />
 
-            {/* 2. My Properties */}
+            {/* 2. My Properties (Subhashini) */}
             <Route
               path="/landlord/properties"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="My Properties"
-                    teammateName="Subhashini"
-                    description="Real-time list of all commercial and residential properties registered under your landlord account."
-                  />
+                  <PropertyManagement />
                 </AppLayout>
               }
             />
 
-            {/* 3. My Tenants */}
+            {/* 3. My Tenants (Subhashini) */}
             <Route
               path="/landlord/tenants"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="My Tenants"
-                    teammateName="Subhashini"
-                    description="Tenants currently leasing your properties, active leases, and contact details."
-                  />
+                  <TenantManagement />
                 </AppLayout>
               }
             />
@@ -294,16 +276,12 @@ export default function App() {
               }
             />
 
-            {/* 8. Occupancy Report */}
+            {/* 8. Occupancy Report (Subhashini) */}
             <Route
               path="/landlord/occupancy-report"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Occupancy Report"
-                    teammateName="Subhashini"
-                    description="Unit occupancy and vacancy statistics for your properties."
-                  />
+                  <OccupancyReport />
                 </AppLayout>
               }
             />

@@ -4,7 +4,7 @@ import { Edit, Trash2 } from 'lucide-react';
 export default function LandlordManagement() {
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
-    name: '', pan: '', gstin: '', contact_details: '', 
+    name: '', email: '', pan: '', gstin: '', contact_details: '', 
     billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
   });
   const [loading, setLoading] = useState(false);
@@ -26,14 +26,14 @@ export default function LandlordManagement() {
 
   const fetchLandlords = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/landlords?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const res = await fetch(`/api/master-data/landlords?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
       if (!res.ok) throw new Error('Failed to fetch landlords');
       const data = await res.json();
-      setLandlords(data.data);
-      setTotalPages(data.pagination.totalPages);
-      setTotalRecords(data.pagination.total);
+      setLandlords(data.data || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching landlords:', err);
     }
   };
 
@@ -59,7 +59,16 @@ export default function LandlordManagement() {
   };
 
   const handleEdit = (landlord) => {
-    setFormData(landlord);
+    setFormData({
+      name: landlord.name || '',
+      email: landlord.email || '',
+      pan: landlord.pan || '',
+      gstin: landlord.gstin || '',
+      contact_details: landlord.contact_details || '',
+      billing_address: landlord.billing_address || '',
+      gst_registered: !!landlord.gst_registered,
+      default_invoice_template: landlord.default_invoice_template || 'Template A (Standard)'
+    });
     setEditingId(landlord.id);
     setShowForm(true);
     window.scrollTo(0, 0);
@@ -69,7 +78,7 @@ export default function LandlordManagement() {
     if (!window.confirm("Are you sure you want to delete this landlord?")) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/landlords/${id}`, {
+      const res = await fetch(`/api/master-data/landlords/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete landlord');
@@ -82,7 +91,6 @@ export default function LandlordManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Client-side Validation
     if (!formData.name.trim()) {
       return setError('Name is required');
     }
@@ -105,30 +113,37 @@ export default function LandlordManagement() {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/master-data/landlords/${editingId}` 
-        : 'http://localhost:5000/api/master-data/landlords';
+        ? `/api/master-data/landlords/${editingId}` 
+        : '/api/master-data/landlords';
       const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email ? formData.email.trim() : null,
+        pan: formData.pan ? formData.pan.toUpperCase() : '',
+        gstin: formData.gstin ? formData.gstin.toUpperCase() : '',
+        contact_details: formData.contact_details || '',
+        billing_address: formData.billing_address || '',
+        gst_registered: !!formData.gst_registered,
+        default_invoice_template: formData.default_invoice_template || 'Template A (Standard)'
+      };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          pan: formData.pan ? formData.pan.toUpperCase() : '',
-          gstin: formData.gstin ? formData.gstin.toUpperCase() : ''
-        })
+        body: JSON.stringify(payload)
       });
       
       if (!res.ok) throw new Error(editingId ? 'Failed to update landlord' : 'Failed to create landlord');
       
       setSuccess(editingId ? 'Landlord updated successfully!' : 'Landlord created successfully!');
       setFormData({
-        name: '', pan: '', gstin: '', contact_details: '', 
+        name: '', email: '', pan: '', gstin: '', contact_details: '', 
         billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
       });
       setEditingId(null);
       fetchLandlords();
-      setTimeout(() => setShowForm(false), 1500); // Hide form after success
+      setTimeout(() => setShowForm(false), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -139,7 +154,10 @@ export default function LandlordManagement() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Landlord / Owner Management</h2>
+        <div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Landlord / Owner Management</h2>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Register and manage landlord entities, PAN/GSTIN profiles, and default templates</p>
+        </div>
         <button className="btn btn-primary" onClick={() => {
           setShowForm(true);
           setEditingId(null);

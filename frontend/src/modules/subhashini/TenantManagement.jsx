@@ -31,26 +31,26 @@ export default function TenantManagement() {
 
   const fetchPropertiesForDropdown = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/master-data/properties?limit=1000&status=active');
+      const res = await fetch('/api/master-data/properties?limit=1000&status=active');
       if (res.ok) {
         const data = await res.json();
         setProperties(data.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching properties:', err);
     }
   };
 
   const fetchTenants = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/tenants?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const res = await fetch(`/api/master-data/tenants?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
       if (!res.ok) throw new Error('Failed to fetch tenants');
       const data = await res.json();
-      setTenants(data.data);
-      setTotalPages(data.pagination.totalPages);
-      setTotalRecords(data.pagination.total);
+      setTenants(data.data || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching tenants:', err);
     }
   };
 
@@ -73,7 +73,6 @@ export default function TenantManagement() {
   };
 
   const handleEdit = (tenant) => {
-    // For date fields, we need to format them to YYYY-MM-DD for the input type="date"
     const formattedTenant = { ...tenant };
     if (formattedTenant.lease_start_date) {
       formattedTenant.lease_start_date = new Date(formattedTenant.lease_start_date).toISOString().split('T')[0];
@@ -82,7 +81,16 @@ export default function TenantManagement() {
       formattedTenant.lease_end_date = new Date(formattedTenant.lease_end_date).toISOString().split('T')[0];
     }
     
-    setFormData(formattedTenant);
+    setFormData({
+      property_id: formattedTenant.property_id || '',
+      name: formattedTenant.name || '',
+      pan: formattedTenant.pan || '',
+      gstin: formattedTenant.gstin || '',
+      contact_details: formattedTenant.contact_details || '',
+      lease_start_date: formattedTenant.lease_start_date || '',
+      lease_end_date: formattedTenant.lease_end_date || '',
+      status: formattedTenant.status || 'Active'
+    });
     setEditingId(tenant.id);
     setShowForm(true);
     window.scrollTo(0, 0);
@@ -92,7 +100,7 @@ export default function TenantManagement() {
     if (!window.confirm("Are you sure you want to delete this tenant?")) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/tenants/${id}`, {
+      const res = await fetch(`/api/master-data/tenants/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete tenant');
@@ -105,7 +113,6 @@ export default function TenantManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Client-side Validation
     if (!formData.name.trim()) {
       return setError('Tenant Name is required');
     }
@@ -133,18 +140,25 @@ export default function TenantManagement() {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/master-data/tenants/${editingId}` 
-        : 'http://localhost:5000/api/master-data/tenants';
+        ? `/api/master-data/tenants/${editingId}` 
+        : '/api/master-data/tenants';
       const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        property_id: parseInt(formData.property_id, 10),
+        name: formData.name.trim(),
+        pan: formData.pan ? formData.pan.toUpperCase() : '',
+        gstin: formData.gstin ? formData.gstin.toUpperCase() : '',
+        contact_details: formData.contact_details || '',
+        lease_start_date: formData.lease_start_date && formData.lease_start_date !== '' ? formData.lease_start_date : null,
+        lease_end_date: formData.lease_end_date && formData.lease_end_date !== '' ? formData.lease_end_date : null,
+        status: formData.status || 'Active'
+      };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          pan: formData.pan ? formData.pan.toUpperCase() : '',
-          gstin: formData.gstin ? formData.gstin.toUpperCase() : ''
-        })
+        body: JSON.stringify(payload)
       });
       
       if (!res.ok) {
@@ -152,9 +166,7 @@ export default function TenantManagement() {
         try {
           const errData = await res.json();
           if (errData.error) errMessage = errData.error;
-        } catch (e) {
-          // ignore JSON parse error
-        }
+        } catch (e) {}
         throw new Error(errMessage);
       }
       
@@ -165,7 +177,7 @@ export default function TenantManagement() {
       });
       setEditingId(null);
       fetchTenants();
-      setTimeout(() => setShowForm(false), 1500); // Hide form after success
+      setTimeout(() => setShowForm(false), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -176,7 +188,10 @@ export default function TenantManagement() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Tenant Management</h2>
+        <div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Tenant Management</h2>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Manage tenant profiles, lease agreements, and tenancy statuses</p>
+        </div>
         <button className="btn btn-primary" onClick={() => {
           setShowForm(true);
           setEditingId(null);
