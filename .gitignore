@@ -62,3 +62,7 @@ tmp/
 uploads/
 invoices/generated/
 *.pdf
+*.zip
+*.tar.gz
+scratch/
+
