@@ -278,8 +278,7 @@ export default function TenantManagement() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h3 style={{ margin: 0 }}>Existing Tenants</h3>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
             <input 
@@ -288,7 +287,7 @@ export default function TenantManagement() {
               placeholder="Search tenant, property..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '200px' }}
+              style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
             <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
@@ -341,12 +340,48 @@ export default function TenantManagement() {
                   </span>
                 </td>
                 <td>
-                  <button onClick={() => handleEdit(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }} title="Edit">
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                  <div style={{ display: 'inline-flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleEdit(t)}
+                      title="Edit"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #dbeafe',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      title="Delete"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #fee2e2',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

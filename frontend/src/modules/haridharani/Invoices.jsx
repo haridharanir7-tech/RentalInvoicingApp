@@ -239,14 +239,12 @@ export default function Invoices() {
 
   return (
     <div className="hd-container">
-      <HaridharaniNav />
-
-      {/* Header Bar matching image media_1790159326915.jpg */}
+      {/* Header Bar */}
       <div className="hd-header">
         <div>
-          <h1 className="hd-title">Invoice Register & Status Repository</h1>
+          <h1 className="hd-title">Invoices</h1>
           <p className="hd-subtitle">
-            Listing of all generated invoices filterable by period, landlord, property, or status with totals and Excel export
+            Overview of all generated rental invoices and statuses.
           </p>
         </div>
         <div className="hd-header-actions">

@@ -16,7 +16,9 @@ import {
   Mail,
   FileText,
   Copy,
-  Check
+  Check,
+  Plus,
+  X
 } from 'lucide-react';
 
 export default function AdminLandlords() {
@@ -31,6 +33,18 @@ export default function AdminLandlords() {
   const [selectedLandlord, setSelectedLandlord] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addingLandlord, setAddingLandlord] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    name: '',
+    email: '',
+    pan: '',
+    gstin: '',
+    contact_details: '',
+    billing_address: '',
+    gst_registered: false,
+    default_invoice_template: 'Template A (Standard)'
+  });
 
   // Grant Access Form
   const [accessEmail, setAccessEmail] = useState('');
@@ -38,6 +52,39 @@ export default function AdminLandlords() {
   const [generatedTempPass, setGeneratedTempPass] = useState('');
   const [copied, setCopied] = useState(false);
   const [submittingAccess, setSubmittingAccess] = useState(false);
+
+  const handleAddLandlordSubmit = async (e) => {
+    e.preventDefault();
+    if (!addFormData.name.trim()) {
+      setError('Landlord name is required.');
+      return;
+    }
+    setAddingLandlord(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/master-data/landlords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addFormData)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create landlord');
+      }
+      setSuccessMsg(`Landlord "${addFormData.name}" added successfully.`);
+      setAddModalOpen(false);
+      setAddFormData({
+        name: '', email: '', pan: '', gstin: '', contact_details: '',
+        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
+      });
+      fetchLandlords();
+    } catch (err) {
+      setError(err.message || 'Failed to add landlord.');
+    } finally {
+      setAddingLandlord(false);
+    }
+  };
 
   const fetchLandlords = async () => {
     setLoading(true);
@@ -49,7 +96,7 @@ export default function AdminLandlords() {
       }
     } catch (err) {
       console.error('Failed to load landlords:', err);
-      setError(err.response?.data?.message || 'Failed to retrieve landlords from Supabase.');
+      setError(err.response?.data?.message || 'Failed to retrieve landlords.');
     } finally {
       setLoading(false);
     }
@@ -151,18 +198,33 @@ export default function AdminLandlords() {
         gap: '16px',
         marginBottom: '24px'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-              ADMIN ACCESS CONTROL
-            </span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Landlord Directory & Access Management
+            Landlords
           </h1>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-            Connected directly to Subhashini's `landlords` table in Supabase PostgreSQL
-          </p>
+          <button
+            onClick={() => {
+              setAddModalOpen(true);
+              setError('');
+              setSuccessMsg('');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              background: '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={16} />
+            Add Landlord
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -325,7 +387,7 @@ export default function AdminLandlords() {
               {loading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    Loading landlords from Supabase...
+                    Loading landlords...
                   </td>
                 </tr>
               ) : filteredLandlords.length === 0 ? (
@@ -783,6 +845,258 @@ export default function AdminLandlords() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Landlord Modal */}
+      {addModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '540px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Add New Landlord
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                  Create a new landlord record in the database
+                </p>
+              </div>
+              <button
+                onClick={() => setAddModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddLandlordSubmit}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Landlord / Entity Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={addFormData.name}
+                  onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                  placeholder="e.g. Ramesh Kumar"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={addFormData.email}
+                    onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                    placeholder="landlord@example.com"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.contact_details}
+                    onChange={(e) => setAddFormData({ ...addFormData, contact_details: e.target.value })}
+                    placeholder="+91 9876543210"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.pan}
+                    onChange={(e) => setAddFormData({ ...addFormData, pan: e.target.value.toUpperCase() })}
+                    placeholder="ABCDE1234F"
+                    maxLength={10}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    GSTIN
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.gstin}
+                    onChange={(e) => setAddFormData({ ...addFormData, gstin: e.target.value.toUpperCase() })}
+                    placeholder="33AAAAA0000A1Z5"
+                    maxLength={15}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={addFormData.gst_registered}
+                    onChange={(e) => setAddFormData({ ...addFormData, gst_registered: e.target.checked })}
+                  />
+                  GST Registered Entity
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Billing Address
+                </label>
+                <textarea
+                  value={addFormData.billing_address}
+                  onChange={(e) => setAddFormData({ ...addFormData, billing_address: e.target.value })}
+                  placeholder="Street, City, State, PIN"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Default Invoice Template
+                </label>
+                <select
+                  value={addFormData.default_invoice_template}
+                  onChange={(e) => setAddFormData({ ...addFormData, default_invoice_template: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="Template A (Standard)">Template A (Standard)</option>
+                  <option value="Template B (Compact)">Template B (Compact)</option>
+                  <option value="Template C (Corporate)">Template C (Corporate)</option>
+                  <option value="Template D (Modern Minimal)">Template D (Modern Minimal)</option>
+                  <option value="Template E (Detailed GST Breakdown)">Template E (Detailed GST Breakdown)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAddModalOpen(false)}
+                  style={{
+                    padding: '9px 16px',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingLandlord}
+                  style={{
+                    padding: '9px 20px',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: addingLandlord ? 'not-allowed' : 'pointer',
+                    fontSize: '0.84rem'
+                  }}
+                >
+                  {addingLandlord ? 'Saving...' : 'Add Landlord'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

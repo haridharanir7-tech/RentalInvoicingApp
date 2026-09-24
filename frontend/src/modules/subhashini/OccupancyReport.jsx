@@ -59,8 +59,8 @@ export default function OccupancyReport() {
     <div>
       <div className="page-header">
         <div>
-          <h2 className="page-title">Property Occupancy Summary Report</h2>
-          <p className="page-subtitle">Real-time vacancy tracking and lease occupancy statistics</p>
+          <h2 className="page-title">Occupancy Report</h2>
+          <p className="page-subtitle">Vacancy tracking and lease occupancy statistics</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>Refresh Data</button>

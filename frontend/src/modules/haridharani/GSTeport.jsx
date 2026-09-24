@@ -104,14 +104,12 @@ export default function GSTReport() {
 
   return (
     <div className="hd-container">
-      <HaridharaniNav />
-
       {/* Header */}
       <div className="hd-header">
         <div>
-          <h1 className="hd-title">Monthly GST Summary Report</h1>
+          <h1 className="hd-title">GST Report</h1>
           <p className="hd-subtitle">
-            Comprehensive tax breakdown (CGST, SGST, IGST) grouped by Landlord and Billing Period for GST return filing.
+            Tax breakdown (CGST, SGST, IGST) grouped by landlord and billing period.
           </p>
         </div>
         <div className="hd-header-actions">

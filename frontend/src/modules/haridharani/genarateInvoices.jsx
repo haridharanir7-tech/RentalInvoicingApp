@@ -134,24 +134,13 @@ export default function GenerateInvoices() {
 
   return (
     <div className="hd-container">
-      <HaridharaniNav />
-
       {/* Header */}
       <div className="hd-header">
         <div>
           <h1 className="hd-title">Generate Invoices</h1>
           <p className="hd-subtitle">
-            Select billing period and properties to auto-calculate base rent, recurring charges, and GST with sequential invoice numbering.
+            Generate monthly rental invoices for properties and tenants.
           </p>
-        </div>
-        <div className="hd-header-actions">
-          <button
-            className="hd-btn-secondary"
-            onClick={() => navigate('/haridharani/invoices')}
-          >
-            <span>View Invoices Register</span>
-            <ArrowRight size={16} />
-          </button>
         </div>
       </div>
 

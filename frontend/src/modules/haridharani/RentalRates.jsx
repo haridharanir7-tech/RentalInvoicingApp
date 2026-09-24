@@ -220,20 +220,18 @@ export default function RentalRates() {
 
   return (
     <div className="hd-container">
-      <HaridharaniNav />
-
       {/* Header */}
       <div className="hd-header">
         <div>
-          <h1 className="hd-title">Rental Rate Configuration</h1>
+          <h1 className="hd-title">Rental Rates</h1>
           <p className="hd-subtitle">
-            Define monthly rent, recurring charges, and GST taxation rules per Landlord and Property.
+            Configure monthly rent, recurring charges, and GST taxation rules per property.
           </p>
         </div>
         <div className="hd-header-actions">
           <button className="hd-btn-primary" onClick={openNewRateModal}>
             <Plus size={16} />
-            <span>Define Rental Rate Revision</span>
+            <span>+ Add Rental Rate</span>
           </button>
         </div>
       </div>

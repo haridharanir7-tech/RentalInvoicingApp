@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, User, LogOut, Shield } from 'lucide-react';
+import { User, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '../modules/priya/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,20 +14,7 @@ export default function Navbar() {
 
   return (
     <header className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 700, color: '#1e293b' }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '8px',
-          background: '#eff6ff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Building2 size={20} color="#2563eb" />
-        </div>
-        <span style={{ fontSize: '1rem' }}>Rental Invoicing App</span>
-      </div>
+      <div></div>
 
       {isAuthenticated && user ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
