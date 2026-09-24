@@ -66,3 +66,7 @@ backups/
 **/backups/
 invoices/generated/
 *.pdf
+*.zip
+*.tar.gz
+scratch/
+

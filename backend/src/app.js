@@ -26,7 +26,11 @@ app.use('/api/master-data', require('./modules/subhashini/index'));
 // 3. Haridharani (Tenants & Rental Rates)
 app.use('/api/haridharani', require('./modules/haridharani/routes'));
 
-// 4. Ragul (Invoices & GST Reports)
-// app.use('/api/ragul', require('./modules/ragul/...'));
+// 4. Ragul (Invoice Templates & PDF Engine)
+app.use('/api/ragul', require('./modules/ragul'));
+app.use('/api/templates', (req, res, next) => {
+  req.url = '/templates' + (req.url === '/' ? '' : req.url);
+  require('./modules/ragul')(req, res, next);
+});
 
 module.exports = app;

@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import ModulePlaceholder from './components/ModulePlaceholder';
 import SubhashiniLayout from './modules/subhashini/index';
+import RagulModule from './modules/ragul';
 
 // Priya Auth & Admin Components
 import { AuthProvider, useAuth } from './modules/priya/context/AuthContext';
@@ -153,11 +154,7 @@ export default function App() {
               path="/admin/invoice-template"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Invoice Template Designer"
-                    teammateName="Ragul"
-                    description="Visual template designer, company logo customization, and PDF rendering engine."
-                  />
+                  <RagulModule />
                 </AppLayout>
               }
             />
@@ -277,16 +274,12 @@ export default function App() {
               }
             />
 
-            {/* 6. Invoice Template */}
+            {/* 6. Invoice Template (Ragul) */}
             <Route
               path="/landlord/invoice-template"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Invoice Template"
-                    teammateName="Ragul"
-                    description="Preview and choose the template design for invoices issued to your tenants."
-                  />
+                  <RagulModule />
                 </AppLayout>
               }
             />
@@ -317,7 +310,7 @@ export default function App() {
           </Route>
 
           {/* ==================================================== */}
-          {/* HARIDHARANI DEDICATED ROUTES & TEAMMATE ROUTES        */}
+          {/* DEDICATED TEAMMATE ROUTES                            */}
           {/* ==================================================== */}
           <Route element={<ProtectedRoute />}>
             {/* Haridharani Direct Sub-routes */}
@@ -336,7 +329,7 @@ export default function App() {
             <Route path="/priya/audit-log" element={<AppLayout><MasterDataAudit /></AppLayout>} />
             <Route path="/priya/backups" element={<AppLayout><DataBackup /></AppLayout>} />
 
-            {/* Teammate module routes */}
+            {/* Subhashini Module Route */}
             <Route
               path="/subhashini/*"
               element={
@@ -345,15 +338,13 @@ export default function App() {
                 </AppLayout>
               }
             />
+
+            {/* Ragul Module Route */}
             <Route
               path="/ragul/*"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Ragul - Templates & PDFs"
-                    teammateName="Ragul"
-                    description="Invoice Template Designer, Logo Upload, and Bulk PDF Generation."
-                  />
+                  <RagulModule />
                 </AppLayout>
               }
             />
