@@ -1,232 +1,359 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
+import ModulePlaceholder from './components/ModulePlaceholder';
+import SubhashiniLayout from './modules/subhashini/index';
 import RagulModule from './modules/ragul';
-import { ShieldCheck, Building2, Users, Receipt, CheckCircle, ArrowRight } from 'lucide-react';
 
-function HomeDashboard() {
-  const [backendStatus, setBackendStatus] = useState({ online: false, checking: true, message: '' });
+// Priya Auth & Admin Components
+import { AuthProvider, useAuth } from './modules/priya/context/AuthContext';
+import Login from './modules/priya/pages/Login';
+import ForgotPassword from './modules/priya/pages/ForgotPassword';
+import ResetPassword from './modules/priya/pages/ResetPassword';
+import AdminDashboard from './modules/priya/pages/AdminDashboard';
+import LandlordDashboard from './modules/priya/pages/LandlordDashboard';
+import AdminLandlords from './modules/priya/pages/AdminLandlords';
+import InvoiceRegister from './modules/priya/pages/InvoiceRegister';
+import UserManagement from './modules/priya/pages/UserManagement';
+import MasterDataAudit from './modules/priya/pages/MasterDataAudit';
+import InvoiceOverrideLog from './modules/priya/pages/InvoiceOverrideLog';
+import DataBackup from './modules/priya/pages/DataBackup';
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => {
-        setBackendStatus({ online: true, checking: false, message: data.message || 'API Online' });
-      })
-      .catch((err) => {
-        setBackendStatus({ online: false, checking: false, message: 'Could not connect to backend API' });
-      });
-  }, []);
+// Haridharani Components (Rates, Invoice Generation, Register & GST Reports)
+import RentalRates from './modules/haridharani/RentalRates';
+import GenerateInvoices from './modules/haridharani/genarateInvoices';
+import Invoices from './modules/haridharani/Invoices';
+import GSTReport from './modules/haridharani/GSTeport';
 
+function AppLayout({ children }) {
   return (
-    <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-          Rental Invoicing System
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
-          Multi-tenant landlord rental billing, automated GST invoicing, and custom template engine.
-        </p>
-      </div>
-
-      <div
-        className="card"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: backendStatus.online ? '#f0fdf4' : '#fef2f2',
-          borderColor: backendStatus.online ? '#bbf7d0' : '#fecaca',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <CheckCircle size={22} color={backendStatus.online ? '#16a34a' : '#dc2626'} />
-          <div>
-            <div style={{ fontWeight: 600, color: backendStatus.online ? '#166534' : '#991b1b' }}>
-              Backend Health: {backendStatus.checking ? 'Checking...' : backendStatus.online ? 'Online (Port 5000)' : 'Offline'}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: backendStatus.online ? '#15803d' : '#b91c1c' }}>
-              {backendStatus.message}
-            </div>
-          </div>
-        </div>
-        <span className={backendStatus.online ? 'badge badge-active' : 'badge badge-inactive'}>
-          {backendStatus.online ? 'API Ready' : 'Connecting'}
-        </span>
-      </div>
-
-      <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1e293b', margin: '24px 0 16px' }}>
-        Assigned Team Modules
-      </h2>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
-        {/* Module Ragul Card */}
-        <div className="card" style={{ borderColor: '#2563eb', borderWidth: '2px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ background: '#dbeafe', padding: '8px', borderRadius: '8px' }}>
-              <Receipt size={22} color="#2563eb" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#1e293b' }}>Ragul's Module</div>
-              <div style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 600 }}>Invoice Templates & PDF</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-            Invoice template customization, landlord logo uploads, custom color themes, live preview, and PDF generator.
-          </p>
-          <Link to="/ragul" className="btn" style={{ width: '100%', justifyContent: 'center' }}>
-            Open Templates Module <ArrowRight size={16} />
-          </Link>
-        </div>
-
-        {/* Priya Card */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '8px' }}>
-              <ShieldCheck size={22} color="#475569" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#1e293b' }}>Priya's Module</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Access, Dashboard & Audit</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-            User authentication, role-based access control (RBAC), audit logging, and dashboard KPIs.
-          </p>
-          <Link to="/priya" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-            View Module Info <ArrowRight size={16} />
-          </Link>
-        </div>
-
-        {/* Subhashini Card */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '8px' }}>
-              <Building2 size={22} color="#475569" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#1e293b' }}>Subhashini's Module</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Master Data Management</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-            Landlord Master records, PAN/GSTIN configuration, Property units, and Tenant lease agreements.
-          </p>
-          <Link to="/subhashini" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-            View Module Info <ArrowRight size={16} />
-          </Link>
-        </div>
-
-        {/* Haridharani Card */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ background: '#f1f5f9', padding: '8px', borderRadius: '8px' }}>
-              <Users size={22} color="#475569" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#1e293b' }}>Haridharani's Module</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Rental Rates & Invoicing Engine</div>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
-            Rental rate configuration, GST auto-calculation, sequential invoice numbering, and monthly reports.
-          </p>
-          <Link to="/haridharani" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-            View Module Info <ArrowRight size={16} />
-          </Link>
-        </div>
+    <div className="app-container">
+      <Sidebar />
+      <div className="main-wrapper">
+        <Navbar />
+        <main className="content-area">
+          {children}
+        </main>
       </div>
     </div>
   );
 }
 
-function TeammateModulePlaceholder({ title, author, scope, icon: Icon }) {
-  return (
-    <div className="card" style={{ padding: '32px', textAlign: 'center', maxWidth: '640px', margin: '40px auto' }}>
-      <div
-        style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: '#eff6ff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 16px',
-        }}
-      >
-        <Icon size={28} color="#2563eb" />
-      </div>
-      <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>{title}</h2>
-      <div style={{ display: 'inline-block', padding: '4px 12px', background: '#f1f5f9', borderRadius: '16px', fontSize: '0.85rem', color: '#475569', marginBottom: '16px' }}>
-        Assigned to: <strong>{author}</strong>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '24px' }}>
-        {scope}
-      </p>
-      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-        <Link to="/" className="btn btn-secondary">
-          ← Back to Dashboard
-        </Link>
-      </div>
-    </div>
-  );
+function RootRedirect() {
+  const { isAuthenticated, isAdmin, isLandlord, loading } = useAuth();
+  if (loading) {
+    return <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>Loading...</div>;
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
+  if (isLandlord) return <Navigate to="/landlord/dashboard" replace />;
+  return <Navigate to="/login" replace />;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
-        <Sidebar />
-        <div className="main-wrapper">
-          <Navbar />
-          <main className="content-area">
-            <Routes>
-              <Route path="/" element={<HomeDashboard />} />
-              <Route path="/ragul/*" element={<RagulModule />} />
-              <Route
-                path="/priya"
-                element={
-                  <TeammateModulePlaceholder
-                    title="Access, Dashboard & Audit Module"
-                    author="Priya"
-                    scope="Login, RBAC, Password Reset, User Management, Scope Manager, Dashboard Widgets, and Audit Trail."
-                    icon={ShieldCheck}
+      <AuthProvider>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Root dynamic redirect */}
+          <Route path="/" element={<RootRedirect />} />
+
+          {/* ==================================================== */}
+          {/* ADMIN ROUTES (Protected with 'Admin' role check)     */}
+          {/* ==================================================== */}
+          <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            
+            {/* 1. Admin Dashboard */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AppLayout>
+                  <AdminDashboard />
+                </AppLayout>
+              }
+            />
+
+            {/* 2. Admin Landlords Management & Approvals */}
+            <Route
+              path="/admin/landlords"
+              element={
+                <AppLayout>
+                  <AdminLandlords />
+                </AppLayout>
+              }
+            />
+
+            {/* 3. Property Master (Subhashini) */}
+            <Route
+              path="/admin/properties"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="Property Master"
+                    teammateName="Subhashini"
+                    description="Commercial & residential property portfolio, unit configurations, and floor area measurements."
                   />
-                }
-              />
-              <Route
-                path="/subhashini"
-                element={
-                  <TeammateModulePlaceholder
-                    title="Master Data Management Module"
-                    author="Subhashini"
-                    scope="Landlord Master (PAN/GSTIN), Property Master (Units, Types), and Tenant Master (Leases, Status)."
-                    icon={Building2}
+                </AppLayout>
+              }
+            />
+
+            {/* 4. Tenant Master (Subhashini) */}
+            <Route
+              path="/admin/tenants"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="Tenant Master"
+                    teammateName="Subhashini"
+                    description="Tenant onboarding, lease contracts, PAN/GSTIN registration, and deposit history."
                   />
-                }
-              />
-              <Route
-                path="/haridharani"
-                element={
-                  <TeammateModulePlaceholder
-                    title="Rental Rates & Invoicing Engine"
-                    author="Haridharani"
-                    scope="Rental Rate Configuration, Sequential Invoice Numbering, Rent + GST Auto-calculation, and GST Reports."
-                    icon={Users}
+                </AppLayout>
+              }
+            />
+
+            {/* 5. Rental Rates (Haridharani) */}
+            <Route
+              path="/admin/rental-rates"
+              element={
+                <AppLayout>
+                  <RentalRates />
+                </AppLayout>
+              }
+            />
+
+            {/* 6. Generate Invoice (Haridharani) */}
+            <Route
+              path="/admin/generate-invoice"
+              element={
+                <AppLayout>
+                  <GenerateInvoices />
+                </AppLayout>
+              }
+            />
+
+            {/* 7. Invoices Register (Haridharani) */}
+            <Route
+              path="/admin/invoices"
+              element={
+                <AppLayout>
+                  <Invoices />
+                </AppLayout>
+              }
+            />
+
+            {/* 8. Invoice Template Designer (Ragul) */}
+            <Route
+              path="/admin/invoice-template"
+              element={
+                <AppLayout>
+                  <RagulModule />
+                </AppLayout>
+              }
+            />
+
+            {/* 9. Occupancy Report (Subhashini) */}
+            <Route
+              path="/admin/occupancy-report"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="Occupancy Report"
+                    teammateName="Subhashini"
+                    description="Portfolio occupancy percentage, vacancy tracking, and unit utilization analysis."
                   />
-                }
-              />
-              <Route element={<ProtectedRoute />}>
-                {/* Protected routes */}
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </div>
+                </AppLayout>
+              }
+            />
+
+            {/* 10. GST Report (Haridharani) */}
+            <Route
+              path="/admin/gst-report"
+              element={
+                <AppLayout>
+                  <GSTReport />
+                </AppLayout>
+              }
+            />
+
+            {/* Admin Utility & Governance Routes */}
+            <Route
+              path="/admin/users"
+              element={
+                <AppLayout>
+                  <UserManagement />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/admin/audit-log"
+              element={
+                <AppLayout>
+                  <MasterDataAudit />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/admin/backups"
+              element={
+                <AppLayout>
+                  <DataBackup />
+                </AppLayout>
+              }
+            />
+          </Route>
+
+          {/* ==================================================== */}
+          {/* LANDLORD ROUTES (Protected with 'Landlord' role check) */}
+          {/* ==================================================== */}
+          <Route element={<ProtectedRoute allowedRoles={['Landlord']} />}>
+            <Route path="/landlord" element={<Navigate to="/landlord/dashboard" replace />} />
+            
+            {/* 1. Landlord Dashboard */}
+            <Route
+              path="/landlord/dashboard"
+              element={
+                <AppLayout>
+                  <LandlordDashboard />
+                </AppLayout>
+              }
+            />
+
+            {/* 2. My Properties */}
+            <Route
+              path="/landlord/properties"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="My Properties"
+                    teammateName="Subhashini"
+                    description="Real-time list of all commercial and residential properties registered under your landlord account."
+                  />
+                </AppLayout>
+              }
+            />
+
+            {/* 3. My Tenants */}
+            <Route
+              path="/landlord/tenants"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="My Tenants"
+                    teammateName="Subhashini"
+                    description="Tenants currently leasing your properties, active leases, and contact details."
+                  />
+                </AppLayout>
+              }
+            />
+
+            {/* 4. Invoices */}
+            <Route
+              path="/landlord/invoices"
+              element={
+                <AppLayout>
+                  <Invoices />
+                </AppLayout>
+              }
+            />
+
+            {/* 5. Generate Invoice */}
+            <Route
+              path="/landlord/generate-invoice"
+              element={
+                <AppLayout>
+                  <GenerateInvoices />
+                </AppLayout>
+              }
+            />
+
+            {/* 6. Invoice Template (Ragul) */}
+            <Route
+              path="/landlord/invoice-template"
+              element={
+                <AppLayout>
+                  <RagulModule />
+                </AppLayout>
+              }
+            />
+
+            {/* 7. GST Report */}
+            <Route
+              path="/landlord/gst-report"
+              element={
+                <AppLayout>
+                  <GSTReport />
+                </AppLayout>
+              }
+            />
+
+            {/* 8. Occupancy Report */}
+            <Route
+              path="/landlord/occupancy-report"
+              element={
+                <AppLayout>
+                  <ModulePlaceholder
+                    moduleName="Occupancy Report"
+                    teammateName="Subhashini"
+                    description="Unit occupancy and vacancy statistics for your properties."
+                  />
+                </AppLayout>
+              }
+            />
+          </Route>
+
+          {/* ==================================================== */}
+          {/* DEDICATED TEAMMATE ROUTES                            */}
+          {/* ==================================================== */}
+          <Route element={<ProtectedRoute />}>
+            {/* Haridharani Direct Sub-routes */}
+            <Route path="/haridharani" element={<AppLayout><RentalRates /></AppLayout>} />
+            <Route path="/haridharani/rates" element={<AppLayout><RentalRates /></AppLayout>} />
+            <Route path="/haridharani/generate" element={<AppLayout><GenerateInvoices /></AppLayout>} />
+            <Route path="/haridharani/invoices" element={<AppLayout><Invoices /></AppLayout>} />
+            <Route path="/haridharani/gst-report" element={<AppLayout><GSTReport /></AppLayout>} />
+
+            {/* Priya Legacy / Direct Routes */}
+            <Route path="/priya" element={<RootRedirect />} />
+            <Route path="/priya/dashboard" element={<RootRedirect />} />
+            <Route path="/priya/invoice-register" element={<AppLayout><InvoiceRegister /></AppLayout>} />
+            <Route path="/priya/invoice-overrides" element={<AppLayout><InvoiceOverrideLog /></AppLayout>} />
+            <Route path="/priya/users" element={<AppLayout><UserManagement /></AppLayout>} />
+            <Route path="/priya/audit-log" element={<AppLayout><MasterDataAudit /></AppLayout>} />
+            <Route path="/priya/backups" element={<AppLayout><DataBackup /></AppLayout>} />
+
+            {/* Subhashini Module Route */}
+            <Route
+              path="/subhashini/*"
+              element={
+                <AppLayout>
+                  <SubhashiniLayout />
+                </AppLayout>
+              }
+            />
+
+            {/* Ragul Module Route */}
+            <Route
+              path="/ragul/*"
+              element={
+                <AppLayout>
+                  <RagulModule />
+                </AppLayout>
+              }
+            />
+          </Route>
+
+          {/* Catch-all fallback */}
+          <Route path="*" element={<RootRedirect />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

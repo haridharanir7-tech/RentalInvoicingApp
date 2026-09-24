@@ -3,6 +3,8 @@
 # ============================================
 node_modules/
 **/node_modules/
+package-lock.json
+**/package-lock.json
 .pnp
 .pnp.js
 
@@ -60,6 +62,8 @@ desktop.ini
 temp/
 tmp/
 uploads/
+backups/
+**/backups/
 invoices/generated/
 *.pdf
 *.zip

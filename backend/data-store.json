@@ -1,0 +1,797 @@
+{
+  "invoice_templates": [
+    {
+      "id": 1,
+      "template_name": "Standard Corporate Blue",
+      "business_name": "Nexus Property Management Services",
+      "header_color": "#2563eb",
+      "accent_color": "#1d4ed8",
+      "address": "Suite 401, Tech Park, Chennai, Tamil Nadu 600096",
+      "footer_text": "Bank: HDFC Bank | A/C: 50200012345678 | IFSC: HDFC0000240 | Please quote invoice number during NEFT/RTGS transfer.",
+      "is_default": true,
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "template_name": "Emerald Modern",
+      "business_name": "Prestige Commercial Estates",
+      "header_color": "#059669",
+      "accent_color": "#047857",
+      "address": "Level 2, Commerce Square, Bengaluru, Karnataka 560001",
+      "footer_text": "Bank: ICICI Bank | A/C: 000205012345 | IFSC: ICIC0000002 | Payment terms: Net 15 days.",
+      "is_default": false,
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "landlords": [
+    {
+      "id": 1,
+      "name": "Greenwood Estates Pvt Ltd",
+      "pan": "AAACG1234F",
+      "gst_registered": true,
+      "gstin": "33AAACG1234F1Z5",
+      "phone": "+91 98401 23456",
+      "email": "accounts@greenwood.com",
+      "billing_address": "No. 12, Anna Salai, Guindy, Chennai, Tamil Nadu 600032",
+      "default_template_id": 1,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Apex Realty Ventures",
+      "pan": "AABCA5678G",
+      "gst_registered": true,
+      "gstin": "29AABCA5678G1Z9",
+      "phone": "+91 98801 87654",
+      "email": "finance@apexrealty.in",
+      "billing_address": "Plot 45, Outer Ring Road, Marathahalli, Bengaluru, Karnataka 560037",
+      "default_template_id": 2,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "name": "Skyline Properties (Individual Owner)",
+      "pan": "ABCDE1234H",
+      "gst_registered": false,
+      "gstin": null,
+      "phone": "+91 94441 11223",
+      "email": "owner@skylineprops.com",
+      "billing_address": "Flat 3B, Marina Towers, Santhome, Chennai, Tamil Nadu 600004",
+      "default_template_id": 1,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "full_name": "System Administrator (Priya)",
+      "email": "admin@rentalapp.com",
+      "password_hash": "$2a$10$kYJ8Ub4KESiD01mS8D/D/O.zgSFjZxfnpAAhna3P451Ts2usHdjFy",
+      "role": "Admin",
+      "landlord_id": null,
+      "status": "Active",
+      "last_login": "2026-09-23T10:53:25.803Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-09-23T10:53:25.804Z",
+      "reset_token": null,
+      "reset_token_expiry": null
+    },
+    {
+      "id": 2,
+      "full_name": "Greenwood Landlord Admin",
+      "email": "landlord1@greenwood.com",
+      "password_hash": "$2a$10$Dw/yJvtoZ3/RVvBH3PzvyOCATd4fVycN/IuqddZtXh/XK34df74su",
+      "role": "Landlord",
+      "landlord_id": 1,
+      "status": "Active",
+      "last_login": "2026-09-23T11:11:53.092Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-09-23T11:11:53.092Z"
+    },
+    {
+      "id": 3,
+      "full_name": "Apex Realty Landlord Admin",
+      "email": "landlord2@apex.com",
+      "password_hash": "$2a$10$SZeh/jQLiW4IiShCJFzB4eZ4h2.qFPTYpE08DRTl2VcJJ.3rsc6S6",
+      "role": "Landlord",
+      "landlord_id": 2,
+      "status": "Active",
+      "last_login": "2026-09-21T10:27:26.755Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "full_name": "Skyline Owner Admin",
+      "email": "landlord3@skyline.com",
+      "password_hash": "$2a$10$69eL2ouq3Aq9wss7Xlw2SOxCWISNfY//wfMG/.MMxci8Axw7817ya",
+      "role": "Landlord",
+      "landlord_id": 3,
+      "status": "Active",
+      "last_login": "2026-09-18T10:27:26.825Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "full_name": "Deactivated Staff Account",
+      "email": "inactive@rentalapp.com",
+      "password_hash": "$2a$10$gRULH0Nt01QUEGKfvRF0I.m30sHBWsYyLxdAs3dDlcb7Sndxal66u",
+      "role": "Admin",
+      "landlord_id": null,
+      "status": "Inactive",
+      "last_login": "2026-08-24T10:27:26.897Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "full_name": "Test Corp Landlord",
+      "email": "test_landlord_1790159247455@testcorp.com",
+      "password_hash": "$2a$10$lXzcacbYVxwKOmAa6NKu4eC4ZbwBgJv6DF/OlCjnMbOdGTC4kPvFa",
+      "role": "Landlord",
+      "landlord_id": 2,
+      "status": "Active",
+      "last_login": null,
+      "created_at": "2026-09-23T10:27:27.535Z",
+      "updated_at": "2026-09-23T10:27:27.623Z"
+    },
+    {
+      "id": 7,
+      "full_name": "Test Corp Landlord",
+      "email": "test_landlord_1790159829166@testcorp.com",
+      "password_hash": "$2a$10$X7lDzYfiIG207IhRK9arWubeUiTPt/ICH0UMgy6a2KyezETRw1IQW",
+      "role": "Landlord",
+      "landlord_id": 2,
+      "status": "Active",
+      "last_login": null,
+      "created_at": "2026-09-23T10:37:09.243Z",
+      "updated_at": "2026-09-23T10:37:09.332Z"
+    },
+    {
+      "id": "usr_1790185153746_dr3l7",
+      "full_name": "Admin One",
+      "email": "admin1@rentalapp.com",
+      "password_hash": "$2a$10$zQeMbx9dSftjC3VKVtZzfuF0lXHhNzeKRH2DZ3jAI1f8AAWEE8c4S",
+      "role": "Admin",
+      "landlord_id": null,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:13.746Z"
+    },
+    {
+      "id": "usr_1790185153824_q8d2l",
+      "full_name": "Admin Two",
+      "email": "admin2@rentalapp.com",
+      "password_hash": "$2a$10$Vx7WtTg8o/SYb.iiua7DwOkndT9HBNQ.zdBt8515QkMDZChwy.PWu",
+      "role": "Admin",
+      "landlord_id": null,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:13.824Z"
+    },
+    {
+      "id": "usr_1790185153904_1z56r",
+      "full_name": "Admin Three",
+      "email": "admin3@rentalapp.com",
+      "password_hash": "$2a$10$HjLDqPrM0WZfeKCb6D/VEueC2ZmgTqxvAJFTwRO4VthgDHkaiEE3a",
+      "role": "Admin",
+      "landlord_id": null,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:13.904Z"
+    },
+    {
+      "id": "usr_1790185154053_tsagv",
+      "full_name": "karan",
+      "email": "karan@gmail.com",
+      "password_hash": "$2a$10$kO/CeTT9KsVol0XyaPDIEOOOxm2mmZ3icEp1o7PGP0DJUhDsUVlOS",
+      "role": "Landlord",
+      "landlord_id": 13,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.053Z"
+    },
+    {
+      "id": "usr_1790185154124_sn9w2",
+      "full_name": "Ramesh Kumar",
+      "email": "rameshkumar@gmail.com",
+      "password_hash": "$2a$10$akznW/WL8.2ISNE0mhGVwuO8Y0n/r2wbJXSzoo7NxjCy5OmdOaHQu",
+      "role": "Landlord",
+      "landlord_id": 12,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.124Z"
+    },
+    {
+      "id": "usr_1790185154200_wh383",
+      "full_name": "Ramesh",
+      "email": "ramesh@gmail.com",
+      "password_hash": "$2a$10$KX4d3c7oUzn3VaURq.zDvOEykoRWM/fit9NwPwqR7KBsBz8n6eZwW",
+      "role": "Landlord",
+      "landlord_id": 11,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.200Z"
+    },
+    {
+      "id": "usr_1790185154273_16ibd",
+      "full_name": "Ragav",
+      "email": "ragav@gmail.com",
+      "password_hash": "$2a$10$DIBmxFGeGzqSZsx.MTQdWOEvK7D/DsKVbZuFHPib74xWbda5L0VnK",
+      "role": "Landlord",
+      "landlord_id": 10,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.273Z"
+    },
+    {
+      "id": "usr_1790185154344_spkj0",
+      "full_name": "Santhi",
+      "email": "santhi@gmail.com",
+      "password_hash": "$2a$10$pJvsUUaLK/HfIDFtg5dNQO5ysh5h5bIx6VA6l8HCZTv5XUx1XDC2i",
+      "role": "Landlord",
+      "landlord_id": 9,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.344Z"
+    },
+    {
+      "id": "usr_1790185154412_zsv2e",
+      "full_name": "Subhashini",
+      "email": "subhashini@gmail.com",
+      "password_hash": "$2a$10$hi31VEQe3Cy6k.vFa2Fgs.C5iDIAj42MALrfo5ZgxysQBMwLqvQmK",
+      "role": "Landlord",
+      "landlord_id": 8,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.412Z"
+    },
+    {
+      "id": "usr_1790185154482_hnesn",
+      "full_name": "Shanu",
+      "email": "shanu@gmail.com",
+      "password_hash": "$2a$10$pKEW.dkodDtUMKHXQ4SPZejEwlZnHe9RinpiZQN2je4aNFULfR7Ja",
+      "role": "Landlord",
+      "landlord_id": 7,
+      "status": "Active",
+      "created_at": "2026-09-23T17:39:14.482Z"
+    }
+  ],
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "Greenwood Tower A - Unit 301",
+      "address": "3rd Floor, Greenwood Tech Park, Guindy, Chennai",
+      "property_type": "Commercial",
+      "area_sqft": 3500,
+      "landlord_id": 1,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "property_name": "Greenwood Tower A - Unit 302",
+      "address": "3rd Floor, Greenwood Tech Park, Guindy, Chennai",
+      "property_type": "Commercial",
+      "area_sqft": 2800,
+      "landlord_id": 1,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "property_name": "Apex Business Bay - Bay 10",
+      "address": "Plot 45, ORR, Marathahalli, Bengaluru",
+      "property_type": "Commercial",
+      "area_sqft": 5200,
+      "landlord_id": 2,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "property_name": "Apex Business Bay - Bay 11",
+      "address": "Plot 45, ORR, Marathahalli, Bengaluru",
+      "property_type": "Commercial",
+      "area_sqft": 4100,
+      "landlord_id": 2,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "property_name": "Skyline Heritage Villa",
+      "address": "14 Bishop Gardens, R.A. Puram, Chennai",
+      "property_type": "Residential",
+      "area_sqft": 2400,
+      "landlord_id": 3,
+      "status": "Active",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "tenants": [
+    {
+      "id": 1,
+      "tenant_name": "InnoTech Solutions Ltd",
+      "pan": "AAACI9999K",
+      "gstin": "33AAACI9999K1Z2",
+      "property_id": 1,
+      "contact_details": "Prem Kumar (Facility Mgr)",
+      "phone": "+91 98409 11111",
+      "email": "billing@innotech.com",
+      "lease_start_date": "2026-01-01",
+      "lease_end_date": "2027-12-31",
+      "security_deposit": 300000,
+      "status": "Active"
+    },
+    {
+      "id": 2,
+      "tenant_name": "CloudByte Systems LLP",
+      "pan": "AABCC8888M",
+      "gstin": "33AABCC8888M1Z8",
+      "property_id": 2,
+      "contact_details": "Sneha Rao (Accounts)",
+      "phone": "+91 98409 22222",
+      "email": "finance@cloudbyte.io",
+      "lease_start_date": "2026-03-01",
+      "lease_end_date": "2028-02-28",
+      "security_deposit": 240000,
+      "status": "Active"
+    },
+    {
+      "id": 3,
+      "tenant_name": "DataCore Analytics Pvt Ltd",
+      "pan": "AAACD7777N",
+      "gstin": "29AAACD7777N1Z4",
+      "property_id": 3,
+      "contact_details": "Karthik S (Admin)",
+      "phone": "+91 98801 33333",
+      "email": "admin@datacore.com",
+      "lease_start_date": "2025-06-01",
+      "lease_end_date": "2027-05-31",
+      "security_deposit": 450000,
+      "status": "Active"
+    },
+    {
+      "id": 4,
+      "tenant_name": "VenturePulse Media",
+      "pan": "AABCV6666P",
+      "gstin": "29AABCV6666P1Z1",
+      "property_id": 4,
+      "contact_details": "Anita Roy",
+      "phone": "+91 98801 44444",
+      "email": "anita@venturepulse.com",
+      "lease_start_date": "2026-04-01",
+      "lease_end_date": "2027-03-31",
+      "security_deposit": 350000,
+      "status": "Active"
+    },
+    {
+      "id": 5,
+      "tenant_name": "Dr. Ramesh Sundaram",
+      "pan": "AAAPS5555Q",
+      "gstin": null,
+      "property_id": 5,
+      "contact_details": "Personal Residence",
+      "phone": "+91 94441 55555",
+      "email": "dr.ramesh@sundaram.org",
+      "lease_start_date": "2026-01-01",
+      "lease_end_date": "2026-12-31",
+      "security_deposit": 120000,
+      "status": "Active"
+    }
+  ],
+  "rental_rates": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "tenant_id": 1,
+      "monthly_rent": 150000,
+      "additional_charges": 15000,
+      "gst_applicable": true,
+      "gst_rate": 18,
+      "effective_from": "2026-01-01",
+      "effective_to": null
+    },
+    {
+      "id": 2,
+      "property_id": 2,
+      "tenant_id": 2,
+      "monthly_rent": 120000,
+      "additional_charges": 12000,
+      "gst_applicable": true,
+      "gst_rate": 18,
+      "effective_from": "2026-03-01",
+      "effective_to": null
+    },
+    {
+      "id": 3,
+      "property_id": 3,
+      "tenant_id": 3,
+      "monthly_rent": 225000,
+      "additional_charges": 25000,
+      "gst_applicable": true,
+      "gst_rate": 18,
+      "effective_from": "2025-06-01",
+      "effective_to": null
+    },
+    {
+      "id": 4,
+      "property_id": 4,
+      "tenant_id": 4,
+      "monthly_rent": 180000,
+      "additional_charges": 18000,
+      "gst_applicable": true,
+      "gst_rate": 18,
+      "effective_from": "2026-04-01",
+      "effective_to": null
+    },
+    {
+      "id": 5,
+      "property_id": 5,
+      "tenant_id": 5,
+      "monthly_rent": 60000,
+      "additional_charges": 5000,
+      "gst_applicable": false,
+      "gst_rate": 0,
+      "effective_from": "2026-01-01",
+      "effective_to": null
+    }
+  ],
+  "invoices": [
+    {
+      "id": 1,
+      "invoice_number": "INV/GW/2026-27/00001",
+      "invoice_date": "2026-09-01",
+      "billing_period": "Sep-2026",
+      "landlord_id": 1,
+      "property_id": 1,
+      "tenant_id": 1,
+      "rate_id": 1,
+      "rent_amount": 150000,
+      "additional_charges": 15000,
+      "gst_amount": 29700,
+      "total_amount": 194700,
+      "status": "Sent",
+      "template_id": 1,
+      "pdf_path": null,
+      "generated_by": 1,
+      "generated_on": "2026-09-01T10:00:00.000Z",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "invoice_number": "INV/GW/2026-27/00002",
+      "invoice_date": "2026-09-01",
+      "billing_period": "Sep-2026",
+      "landlord_id": 1,
+      "property_id": 2,
+      "tenant_id": 2,
+      "rate_id": 2,
+      "rent_amount": 120000,
+      "additional_charges": 12000,
+      "gst_amount": 23760,
+      "total_amount": 155760,
+      "status": "Generated",
+      "template_id": 1,
+      "pdf_path": null,
+      "generated_by": 1,
+      "generated_on": "2026-09-01T11:00:00.000Z",
+      "created_at": "2026-09-01T11:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "invoice_number": "INV/AP/2026-27/00001",
+      "invoice_date": "2026-09-01",
+      "billing_period": "Sep-2026",
+      "landlord_id": 2,
+      "property_id": 3,
+      "tenant_id": 3,
+      "rate_id": 3,
+      "rent_amount": 225000,
+      "additional_charges": 25000,
+      "gst_amount": 45000,
+      "total_amount": 295000,
+      "status": "Sent",
+      "template_id": 2,
+      "pdf_path": null,
+      "generated_by": 1,
+      "generated_on": "2026-09-01T11:30:00.000Z",
+      "created_at": "2026-09-01T11:30:00.000Z"
+    },
+    {
+      "id": 4,
+      "invoice_number": "INV/AP/2026-27/00002",
+      "invoice_date": "2026-09-05",
+      "billing_period": "Sep-2026",
+      "landlord_id": 2,
+      "property_id": 4,
+      "tenant_id": 4,
+      "rate_id": 4,
+      "rent_amount": 180000,
+      "additional_charges": 19000,
+      "gst_amount": 35640,
+      "total_amount": 234820,
+      "status": "Draft",
+      "template_id": 2,
+      "pdf_path": null,
+      "generated_by": null,
+      "generated_on": null,
+      "created_at": "2026-09-05T09:00:00.000Z",
+      "updated_at": "2026-09-23T10:37:09.355Z"
+    },
+    {
+      "id": 5,
+      "invoice_number": "INV/SK/2026-27/00001",
+      "invoice_date": "2026-09-05",
+      "billing_period": "Sep-2026",
+      "landlord_id": 3,
+      "property_id": 5,
+      "tenant_id": 5,
+      "rate_id": 5,
+      "rent_amount": 60000,
+      "additional_charges": 5000,
+      "gst_amount": 0,
+      "total_amount": 65000,
+      "status": "Draft",
+      "template_id": 1,
+      "pdf_path": null,
+      "generated_by": null,
+      "generated_on": null,
+      "created_at": "2026-09-05T10:00:00.000Z"
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": 11,
+      "entity_type": "INVOICE_OVERRIDE",
+      "entity_id": "INV/AP/2026-27/00002",
+      "action": "OVERRIDE",
+      "old_values": {
+        "rent_amount": 180000,
+        "additional_charges": 19000,
+        "gst_amount": 35640,
+        "total_amount": 234820
+      },
+      "new_values": {
+        "additional_charges": 19000,
+        "total_amount": 234820
+      },
+      "reason": "Corrected water maintenance meter billing as per tenant agreement",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:37:09.356Z"
+    },
+    {
+      "id": 10,
+      "entity_type": "USER_STATUS",
+      "entity_id": "7",
+      "action": "STATUS_CHANGE",
+      "old_values": {
+        "status": "Inactive"
+      },
+      "new_values": {
+        "status": "Active"
+      },
+      "reason": "Account status updated to Active by admin System Administrator (Priya)",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:37:09.334Z"
+    },
+    {
+      "id": 9,
+      "entity_type": "USER_STATUS",
+      "entity_id": "7",
+      "action": "STATUS_CHANGE",
+      "old_values": {
+        "status": "Active"
+      },
+      "new_values": {
+        "status": "Inactive"
+      },
+      "reason": "Account status updated to Inactive by admin System Administrator (Priya)",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:37:09.250Z"
+    },
+    {
+      "id": 8,
+      "entity_type": "USER_ACCOUNT",
+      "entity_id": "7",
+      "action": "CREATE",
+      "old_values": null,
+      "new_values": {
+        "id": 7,
+        "full_name": "Test Corp Landlord",
+        "email": "test_landlord_1790159829166@testcorp.com",
+        "role": "Landlord",
+        "landlord_id": 2
+      },
+      "reason": "Admin created new user account",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:37:09.244Z"
+    },
+    {
+      "id": 7,
+      "entity_type": "INVOICE_OVERRIDE",
+      "entity_id": "INV/AP/2026-27/00002",
+      "action": "OVERRIDE",
+      "old_values": {
+        "rent_amount": 180000,
+        "additional_charges": 18000,
+        "gst_amount": 35640,
+        "total_amount": 233640
+      },
+      "new_values": {
+        "additional_charges": 19000,
+        "total_amount": 234820
+      },
+      "reason": "Corrected water maintenance meter billing as per tenant agreement",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:27:27.647Z"
+    },
+    {
+      "id": 6,
+      "entity_type": "USER_STATUS",
+      "entity_id": "6",
+      "action": "STATUS_CHANGE",
+      "old_values": {
+        "status": "Inactive"
+      },
+      "new_values": {
+        "status": "Active"
+      },
+      "reason": "Account status updated to Active by admin System Administrator (Priya)",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:27:27.624Z"
+    },
+    {
+      "id": 5,
+      "entity_type": "USER_STATUS",
+      "entity_id": "6",
+      "action": "STATUS_CHANGE",
+      "old_values": {
+        "status": "Active"
+      },
+      "new_values": {
+        "status": "Inactive"
+      },
+      "reason": "Account status updated to Inactive by admin System Administrator (Priya)",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:27:27.542Z"
+    },
+    {
+      "id": 4,
+      "entity_type": "USER_ACCOUNT",
+      "entity_id": "6",
+      "action": "CREATE",
+      "old_values": null,
+      "new_values": {
+        "id": 6,
+        "full_name": "Test Corp Landlord",
+        "email": "test_landlord_1790159247455@testcorp.com",
+        "role": "Landlord",
+        "landlord_id": 2
+      },
+      "reason": "Admin created new user account",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-23T10:27:27.536Z"
+    },
+    {
+      "id": 1,
+      "entity_type": "LANDLORD_GST",
+      "entity_id": "1",
+      "action": "UPDATE",
+      "old_values": {
+        "gst_registered": false,
+        "gstin": null
+      },
+      "new_values": {
+        "gst_registered": true,
+        "gstin": "33AAACG1234F1Z5"
+      },
+      "reason": "GST registration certificate received from tax consultant",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-07-25T10:27:26.897Z"
+    },
+    {
+      "id": 2,
+      "entity_type": "RENTAL_RATE",
+      "entity_id": "1",
+      "action": "UPDATE",
+      "old_values": {
+        "monthly_rent": 140000,
+        "additional_charges": 12000
+      },
+      "new_values": {
+        "monthly_rent": 150000,
+        "additional_charges": 15000
+      },
+      "reason": "Annual 7% contractual rent escalation clause applied",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-08-09T10:27:26.897Z"
+    },
+    {
+      "id": 3,
+      "entity_type": "INVOICE_OVERRIDE",
+      "entity_id": "INV/AP/2026-27/00002",
+      "action": "OVERRIDE",
+      "old_values": {
+        "additional_charges": 22000,
+        "total_amount": 238360
+      },
+      "new_values": {
+        "additional_charges": 18000,
+        "total_amount": 233640
+      },
+      "reason": "Power backup diesel expense adjusted after meter reconciliation",
+      "performed_by": 1,
+      "performed_by_name": "System Administrator (Priya)",
+      "created_at": "2026-09-20T10:27:26.897Z"
+    }
+  ],
+  "data_backups": [
+    {
+      "id": 3,
+      "backup_name": "backup_rental_app_2026-09-23T10-37-09-361Z.json",
+      "backup_type": "Manual Admin Snapshot",
+      "file_path": "backups/backup_rental_app_2026-09-23T10-37-09-361Z.json",
+      "file_size_bytes": 21638,
+      "record_counts": {
+        "users": 7,
+        "landlords": 3,
+        "properties": 5,
+        "tenants": 5,
+        "rental_rates": 5,
+        "invoices": 5,
+        "audit_logs": 11
+      },
+      "status": "Completed",
+      "created_by": 1,
+      "created_at": "2026-09-23T10:37:09.364Z"
+    },
+    {
+      "id": 2,
+      "backup_name": "backup_rental_app_2026-09-23T10-27-27-653Z.json",
+      "backup_type": "Manual Admin Snapshot",
+      "file_path": "backups/backup_rental_app_2026-09-23T10-27-27-653Z.json",
+      "file_size_bytes": 18404,
+      "record_counts": {
+        "users": 6,
+        "landlords": 3,
+        "properties": 5,
+        "tenants": 5,
+        "rental_rates": 5,
+        "invoices": 5,
+        "audit_logs": 7
+      },
+      "status": "Completed",
+      "created_by": 1,
+      "created_at": "2026-09-23T10:27:27.655Z"
+    },
+    {
+      "id": 1,
+      "backup_name": "backup_system_init_20260920.json",
+      "backup_type": "Full",
+      "file_path": "backups/backup_system_init_20260920.json",
+      "file_size_bytes": 14520,
+      "record_counts": {
+        "users": 5,
+        "landlords": 3,
+        "properties": 5,
+        "tenants": 5,
+        "invoices": 5,
+        "audit_logs": 3
+      },
+      "status": "Verified",
+      "created_by": 1,
+      "created_at": "2026-09-20T10:27:26.897Z"
+    }
+  ],
+  "manager_assignments": []
+}

@@ -17,14 +17,14 @@ app.get('/api/health', (req, res) => {
 // (Each member will import & mount their router here)
 // ==========================================
 
-// 1. Priya (Auth & Users)
-// app.use('/api/priya', require('./modules/priya/...'));
+// 1. Priya (Access, Dashboard & Audit)
+app.use('/api/priya', require('./modules/priya/routes/priyaRoutes'));
 
 // 2. Subhashini (Landlords & Properties)
-// app.use('/api/subhashini', require('./modules/subhashini/...'));
+app.use('/api/master-data', require('./modules/subhashini/index'));
 
 // 3. Haridharani (Tenants & Rental Rates)
-// app.use('/api/haridharani', require('./modules/haridharani/...'));
+app.use('/api/haridharani', require('./modules/haridharani/routes'));
 
 // 4. Ragul (Invoice Templates & PDF Engine)
 app.use('/api/ragul', require('./modules/ragul'));
