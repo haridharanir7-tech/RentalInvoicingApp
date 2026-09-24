@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Building2, Lock, Mail, AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('ragul@gmail.com');
+  const [password, setPassword] = useState('Ragul@123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -189,6 +189,30 @@ export default function Login() {
             Quick Demo Logins (1-Click Fill):
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => handleDemoFill('ragul@gmail.com', 'Ragul@123')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 12px',
+                background: '#eff6ff',
+                border: '1.5px solid #3b82f6',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                textAlign: 'left'
+              }}
+            >
+              <div>
+                <strong style={{ color: '#1d4ed8' }}>Ragul (Admin - Full Access)</strong>
+                <div style={{ color: '#2563eb', fontSize: '0.75rem' }}>ragul@gmail.com</div>
+              </div>
+              <span style={{ background: '#2563eb', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
+                Admin
+              </span>
+            </button>
             <button
               type="button"
               onClick={() => handleDemoFill('admin@rentalapp.com', 'Admin@123')}
