@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
-
+import SubhashiniLayout from './modules/subhashini/index';
 export default function App() {
   return (
     <BrowserRouter>
@@ -16,6 +16,7 @@ export default function App() {
               <Route path="/" element={<h2>Welcome to Rental Invoicing App</h2>} />
               <Route element={<ProtectedRoute />}>
                 {/* Team members will register their module routes here */}
+                <Route path="/subhashini/*" element={<SubhashiniLayout />} />
               </Route>
             </Routes>
           </main>
