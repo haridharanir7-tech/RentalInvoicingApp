@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import ModulePlaceholder from './components/ModulePlaceholder';
+import SubhashiniLayout from './modules/subhashini/index';
 
 import { AuthProvider, useAuth } from './modules/priya/context/AuthContext';
 import Login from './modules/priya/pages/Login';
@@ -343,11 +344,7 @@ export default function App() {
               path="/subhashini/*"
               element={
                 <AppLayout>
-                  <ModulePlaceholder
-                    moduleName="Subhashini - Master Data"
-                    teammateName="Subhashini"
-                    description="Landlords, Properties, Tenants, and Occupancy Reports."
-                  />
+                  <SubhashiniLayout />
                 </AppLayout>
               }
             />
