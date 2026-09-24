@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart3, FileSpreadsheet, User, Calendar, Download } from 'lucide-react';
-import HaridharaniNav from './HaridharaniNav';
-import './haridharani.css';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -21,12 +19,17 @@ export default function GSTReport() {
   const [landlords, setLandlords] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   useEffect(() => {
     fetchFilters();
   }, []);
 
   useEffect(() => {
     fetchReport();
+    setPage(1);
   }, [monthFilter, landlordFilter]);
 
   const fetchFilters = async () => {
@@ -50,8 +53,8 @@ export default function GSTReport() {
         }
       });
       if (res.data.success) {
-        setReportData(res.data.data);
-        setTotals(res.data.totals);
+        setReportData(res.data.data || []);
+        setTotals(res.data.totals || { taxableValue: 0, cgst: 0, sgst: 0, igst: 0, totalGst: 0 });
       }
     } catch (err) {
       console.error('Failed to load GST report', err);
@@ -102,97 +105,100 @@ export default function GSTReport() {
     document.body.removeChild(link);
   };
 
+  const totalPages = Math.ceil(reportData.length / pageSize) || 1;
+  const paginatedReportData = reportData.slice((page - 1) * pageSize, page * pageSize);
+
   return (
-    <div className="hd-container">
+    <div className="card">
       {/* Header */}
-      <div className="hd-header">
+      <div className="page-header">
         <div>
-          <h1 className="hd-title">GST Report</h1>
-          <p className="hd-subtitle">
-            Tax breakdown (CGST, SGST, IGST) grouped by landlord and billing period.
+          <h2 className="page-title">GST Report</h2>
+          <p className="page-subtitle">
+            Tax breakdown (CGST, SGST, IGST) grouped by landlord and billing period
           </p>
         </div>
-        <div className="hd-header-actions">
-          <button className="hd-btn-primary" onClick={handleExportCSV}>
-            <Download size={16} />
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={handleExportCSV}>
+            <Download size={15} />
             <span>Export GST Report (.csv)</span>
           </button>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="hd-filter-bar">
-        <div className="hd-filter-group">
-          <div className="hd-filter-item">
-            <label className="hd-filter-label">
-              <Calendar size={13} />
-              <span>Billing Period</span>
-            </label>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="filter-bar" style={{ margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>Period:</span>
             <input
               type="month"
-              className="hd-input"
+              className="form-input"
               value={monthFilter === 'all' ? '' : monthFilter}
               onChange={(e) => setMonthFilter(e.target.value || 'all')}
+              style={{ width: '160px' }}
             />
           </div>
 
-          <div className="hd-filter-item">
-            <label className="hd-filter-label">
-              <User size={13} />
-              <span>Landlord</span>
-            </label>
-            <select
-              className="hd-select"
-              value={landlordFilter}
-              onChange={(e) => setLandlordFilter(e.target.value)}
-            >
-              <option value="all">All Landlords</option>
-              {landlords.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+          <select
+            className="form-input"
+            value={landlordFilter}
+            onChange={(e) => setLandlordFilter(e.target.value)}
+            style={{ width: '200px' }}
+          >
+            <option value="all">All Landlords</option>
+            {landlords.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
 
-        <button className="hd-btn-secondary" onClick={() => { setMonthFilter('all'); setLandlordFilter('all'); }}>
-          Reset Filters
-        </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setMonthFilter('all');
+              setLandlordFilter('all');
+            }}
+            style={{ background: '#f1f5f9' }}
+          >
+            Reset Filters
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="hd-kpi-grid">
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total Taxable Value</div>
-          <div className="hd-kpi-value">₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
-          <div className="hd-kpi-desc">Rent & recurring charges</div>
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-title">Total Taxable Value</div>
+          <div className="kpi-value">₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc">Rent & recurring charges</div>
         </div>
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total CGST (Central)</div>
-          <div className="hd-kpi-value">₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
-          <div className="hd-kpi-desc">Intra-state central share</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Total CGST (Central)</div>
+          <div className="kpi-value">₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc">Intra-state central share</div>
         </div>
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total SGST (State)</div>
-          <div className="hd-kpi-value">₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
-          <div className="hd-kpi-desc">Intra-state state share</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Total SGST (State)</div>
+          <div className="kpi-value">₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc">Intra-state state share</div>
         </div>
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total IGST (Integrated)</div>
-          <div className="hd-kpi-value">₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
-          <div className="hd-kpi-desc">Inter-state integrated tax</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Total IGST (Integrated)</div>
+          <div className="kpi-value">₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc">Inter-state integrated tax</div>
         </div>
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total GST Liability</div>
-          <div className="hd-kpi-value">₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
-          <div className="hd-kpi-desc">Cumulative tax collected</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Total GST Liability</div>
+          <div className="kpi-value">₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc">Cumulative tax collected</div>
         </div>
       </div>
 
       {/* Report Table */}
-      <div className="hd-table-card">
-        <table className="hd-table">
+      <div className="table-container">
+        <table>
           <thead>
             <tr>
               <th>Landlord</th>
@@ -210,7 +216,7 @@ export default function GSTReport() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="10" style={{ textAlign: 'center', padding: '36px' }}>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Compiling GST report...
                 </td>
               </tr>
@@ -221,7 +227,7 @@ export default function GSTReport() {
                 </td>
               </tr>
             ) : (
-              reportData.map((row, idx) => (
+              paginatedReportData.map((row, idx) => (
                 <tr key={`${row.landlord_id}-${row.billing_period}-${idx}`}>
                   <td style={{ fontWeight: 600 }}>{row.landlord_name}</td>
                   <td>
@@ -249,7 +255,33 @@ export default function GSTReport() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination container */}
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {reportData.length > 0 ? (page - 1) * pageSize + 1 : 0} to{' '}
+          {Math.min(page * pageSize, reportData.length)} of {reportData.length} tax record
+          {reportData.length !== 1 ? 's' : ''}
+        </div>
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="page-btn"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <button
+              className="page-btn"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

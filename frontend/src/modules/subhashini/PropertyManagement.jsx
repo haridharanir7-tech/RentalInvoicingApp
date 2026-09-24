@@ -187,22 +187,42 @@ export default function PropertyManagement() {
               <div className="flex-row">
                 <div className="form-group flex-1">
                   <label>Property Name *</label>
-                  <input type="text" className="form-input" name="name" value={formData.name} onChange={handleChange} required />
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    name="name" 
+                    placeholder="e.g. Skyline Towers, Block B"
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Prestige Tech Park, Unit 402</span>
                 </div>
                 <div className="form-group flex-1">
                   <label>Landlord / Owner *</label>
                   <select className="form-input" name="landlord_id" value={formData.landlord_id} onChange={handleChange} required>
                     <option value="">Select Landlord</option>
                     {landlords.map(l => (
-                      <option key={l.id} value={l.id}>{l.name}</option>
+                      <option key={l.id} value={l.id}>
+                        {l.name} {l.email || l.landlord_email ? `(${l.email || l.landlord_email})` : ''}
+                      </option>
                     ))}
                   </select>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Select registered property owner</span>
                 </div>
               </div>
 
               <div className="form-group">
                 <label>Address</label>
-                <textarea className="form-input" name="address" value={formData.address} onChange={handleChange} rows="2"></textarea>
+                <textarea 
+                  className="form-input" 
+                  name="address" 
+                  placeholder="e.g. Plot No. 12, Outer Ring Road, Marathahalli, Bengaluru 560037"
+                  value={formData.address} 
+                  onChange={handleChange} 
+                  rows="2"
+                />
+                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Complete street address and postal code</span>
               </div>
 
               <div className="flex-row">
@@ -213,10 +233,22 @@ export default function PropertyManagement() {
                     <option value="Residential">Residential</option>
                     <option value="Warehouse">Warehouse</option>
                   </select>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Category of real estate asset</span>
                 </div>
                 <div className="form-group flex-1">
                   <label>Total Area (sq ft)</label>
-                  <input type="number" step="0.01" className="form-input" name="total_area" value={formData.total_area} onChange={handleChange} />
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0"
+                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'Subtract') e.preventDefault(); }}
+                    placeholder="e.g. 2400"
+                    className="form-input" 
+                    name="total_area" 
+                    value={formData.total_area} 
+                    onChange={handleChange} 
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>e.g. Total built-up area in square feet</span>
                 </div>
               </div>
 

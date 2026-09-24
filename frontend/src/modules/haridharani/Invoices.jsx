@@ -10,10 +10,11 @@ import {
   CheckCircle2,
   Edit3,
   AlertCircle,
-  X
+  X,
+  CheckCircle,
+  Clock,
+  Send
 } from 'lucide-react';
-import HaridharaniNav from './HaridharaniNav';
-import './haridharani.css';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -32,6 +33,10 @@ export default function Invoices() {
   const [landlordFilter, setLandlordFilter] = useState('All Landlords');
   const [propertyFilter, setPropertyFilter] = useState('All Properties');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [landlords, setLandlords] = useState([]);
@@ -85,11 +90,11 @@ export default function Invoices() {
 
       const res = await axios.get(`${API_BASE}/invoices`, { params });
       if (res.data.success) {
-        setInvoices(res.data.invoices);
-        setKpis(res.data.kpis);
+        setInvoices(res.data.invoices || []);
+        setKpis(res.data.kpis || {});
 
         // Extract unique billing periods
-        const periods = Array.from(new Set(res.data.invoices.map((i) => i.billing_period))).filter(Boolean);
+        const periods = Array.from(new Set((res.data.invoices || []).map((i) => i.billing_period))).filter(Boolean);
         setAvailablePeriods(periods);
       }
     } catch (err) {
@@ -100,7 +105,7 @@ export default function Invoices() {
     }
   };
 
-  // Status Change Workflow (Task 9: Draft > Generated > Sent)
+  // Status Change Workflow (Draft > Generated > Sent)
   const handleStatusChange = async (invoiceId, newStatus) => {
     try {
       setActionSuccess('');
@@ -121,59 +126,49 @@ export default function Invoices() {
     }
   };
 
-  // Open Correct / Regenerate Draft Modal (Task 10)
-  const openCorrectModal = (inv) => {
-    if (inv.status !== 'Draft') {
-      setActionError(`Cannot edit finalized invoice. Only Draft invoices can be corrected.`);
-      return;
-    }
-
-    setSelectedInvoice(inv);
+  // Open correction modal for Draft invoices
+  const openCorrectModal = (invoice) => {
+    setSelectedInvoice(invoice);
     setCorrectionForm({
-      rent_amount: inv.rent_amount,
-      maintenance_charges: inv.maintenance_charges,
-      parking_charges: inv.parking_charges,
-      gst_rate: inv.gst_rate,
-      gst_applicable: parseFloat(inv.gst_rate) > 0,
-      tax_supply_type: inv.tax_supply_type || 'intra_state',
+      rent_amount: invoice.rent_amount,
+      maintenance_charges: invoice.maintenance_charges || 0,
+      parking_charges: invoice.parking_charges || 0,
+      gst_rate: invoice.gst_rate || 18,
+      gst_applicable: invoice.gst_amount > 0,
+      tax_supply_type: invoice.tax_supply_type || 'intra_state',
       change_reason: ''
     });
     setCorrectModalOpen(true);
   };
 
+  // Save corrected draft invoice
   const handleSaveCorrection = async (e) => {
     e.preventDefault();
-    if (!correctionForm.change_reason || correctionForm.change_reason.trim() === '') {
-      alert('A mandatory Change Reason is required for audit trail tracking.');
+    if (!correctionForm.change_reason.trim()) {
+      alert('A change reason is mandatory for audit logging compliance.');
       return;
     }
 
     try {
       setCorrecting(true);
-      const res = await axios.put(`${API_BASE}/invoices/${selectedInvoice.invoice_id}/correct`, {
-        rent_amount: parseFloat(correctionForm.rent_amount) || 0,
-        maintenance_charges: parseFloat(correctionForm.maintenance_charges) || 0,
-        parking_charges: parseFloat(correctionForm.parking_charges) || 0,
-        gst_applicable: correctionForm.gst_applicable,
-        gst_rate: parseFloat(correctionForm.gst_rate) || 0,
-        tax_supply_type: correctionForm.tax_supply_type,
-        change_reason: correctionForm.change_reason
-      });
-
+      const res = await axios.put(
+        `${API_BASE}/invoices/${selectedInvoice.invoice_id}/correct-draft`,
+        correctionForm
+      );
       if (res.data.success) {
-        setActionSuccess('Draft invoice corrected successfully and logged to audit trail.');
+        setActionSuccess(`Draft invoice ${selectedInvoice.invoice_number} successfully corrected and audited.`);
         setCorrectModalOpen(false);
         fetchInvoices();
-        setTimeout(() => setActionSuccess(''), 3500);
+        setTimeout(() => setActionSuccess(''), 3000);
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to correct invoice.');
+      setActionError(err.response?.data?.error || 'Failed to correct invoice.');
     } finally {
       setCorrecting(false);
     }
   };
 
-  // Export to CSV
+  // Export CSV
   const handleExportCSV = () => {
     if (invoices.length === 0) {
       alert('No invoices to export.');
@@ -191,12 +186,12 @@ export default function Invoices() {
       'Maintenance',
       'Parking',
       'Taxable Amount',
-      'Supply Type',
-      'GST Rate %',
+      'Tax Supply Type',
+      'GST Rate',
       'CGST',
       'SGST',
       'IGST',
-      'Total GST',
+      'GST Total',
       'Total Amount',
       'Status'
     ];
@@ -232,175 +227,179 @@ export default function Invoices() {
     document.body.removeChild(link);
   };
 
-  // Print Register
   const handlePrint = () => {
     window.print();
   };
 
+  const totalPages = Math.ceil(invoices.length / pageSize) || 1;
+  const paginatedInvoices = invoices.slice((page - 1) * pageSize, page * pageSize);
+
   return (
-    <div className="hd-container">
+    <div className="card">
       {/* Header Bar */}
-      <div className="hd-header">
+      <div className="page-header">
         <div>
-          <h1 className="hd-title">Invoices</h1>
-          <p className="hd-subtitle">
-            Overview of all generated rental invoices and statuses.
+          <h2 className="page-title">Invoices</h2>
+          <p className="page-subtitle">
+            Overview of all generated rental invoices, payment statuses, and audit records
           </p>
         </div>
-        <div className="hd-header-actions">
-          <button className="hd-btn-secondary" onClick={handleExportCSV}>
-            <FileText size={16} />
-            <span>Export Register (.csv)</span>
+        <div className="page-actions">
+          <button className="btn btn-secondary" onClick={handleExportCSV}>
+            <FileText size={15} />
+            <span>Export CSV</span>
           </button>
-          <button className="hd-btn-primary" onClick={handlePrint}>
-            <Printer size={16} />
+          <button className="btn btn-primary" onClick={handlePrint}>
+            <Printer size={15} />
             <span>Print Register</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Row matching mockup */}
-      <div className="hd-filter-bar">
-        <div className="hd-filter-group">
-          {/* Billing Period Dropdown */}
-          <div className="hd-filter-item">
-            <label className="hd-filter-label">
-              <Calendar size={13} />
-              <span>Billing Period</span>
-            </label>
-            <select
-              className="hd-select"
-              value={periodFilter}
-              onChange={(e) => setPeriodFilter(e.target.value)}
-            >
-              <option value="All Periods">All Periods</option>
-              {availablePeriods.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Landlord Dropdown */}
-          <div className="hd-filter-item">
-            <label className="hd-filter-label">
-              <User size={13} />
-              <span>Landlord</span>
-            </label>
-            <select
-              className="hd-select"
-              value={landlordFilter}
-              onChange={(e) => setLandlordFilter(e.target.value)}
-            >
-              <option value="All Landlords">All Landlords</option>
-              {landlords.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Property Dropdown */}
-          <div className="hd-filter-item">
-            <label className="hd-filter-label">
-              <Building size={13} />
-              <span>Property</span>
-            </label>
-            <select
-              className="hd-select"
-              value={propertyFilter}
-              onChange={(e) => setPropertyFilter(e.target.value)}
-            >
-              <option value="All Properties">All Properties</option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Status Filter Buttons matching mockup */}
-        <div className="hd-filter-item">
-          <label className="hd-filter-label">
-            <Filter size={13} />
-            <span>Status Filter</span>
-          </label>
-          <div className="hd-status-filter-pills">
-            {['All', 'Draft', 'Generated', 'Sent'].map((st) => (
-              <button
-                key={st}
-                className={`hd-pill-btn ${statusFilter === st ? 'active' : ''}`}
-                onClick={() => setStatusFilter(st)}
-              >
-                {st}
-              </button>
+      {/* Filter Row matching Landlord & Property modules */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="filter-bar" style={{ margin: 0 }}>
+          <select
+            className="form-input"
+            value={periodFilter}
+            onChange={(e) => {
+              setPeriodFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ width: '160px' }}
+          >
+            <option value="All Periods">All Periods</option>
+            {availablePeriods.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
             ))}
-          </div>
+          </select>
+
+          <select
+            className="form-input"
+            value={landlordFilter}
+            onChange={(e) => {
+              setLandlordFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ width: '180px' }}
+          >
+            <option value="All Landlords">All Landlords</option>
+            {landlords.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="form-input"
+            value={propertyFilter}
+            onChange={(e) => {
+              setPropertyFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ width: '180px' }}
+          >
+            <option value="All Properties">All Properties</option>
+            {properties.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="form-input"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ width: '140px' }}
+          >
+            <option value="All">All Statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Generated">Generated</option>
+            <option value="Sent">Sent</option>
+          </select>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setPeriodFilter('All Periods');
+              setLandlordFilter('All Landlords');
+              setPropertyFilter('All Properties');
+              setStatusFilter('All');
+              setPage(1);
+            }}
+            style={{ background: '#f1f5f9' }}
+          >
+            Clear
+          </button>
         </div>
       </div>
 
       {/* Notifications */}
       {actionSuccess && (
-        <div className="hd-alert-success" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#15803d', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <CheckCircle2 size={16} />
           <span>{actionSuccess}</span>
         </div>
       )}
       {actionError && (
-        <div className="hd-alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', color: '#b91c1c', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={16} />
           <span>{actionError}</span>
         </div>
       )}
 
-      {/* 5 KPI Metric Summary Cards matching image media_1790159326915.jpg */}
-      <div className="hd-kpi-grid">
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Matching Invoices</div>
-          <div className="hd-kpi-value">{kpis.matchingInvoices}</div>
-          <div className="hd-kpi-desc">Filtered records</div>
+      {/* 5 KPI Metric Summary Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-title">Matching Invoices</div>
+          <div className="kpi-value">{kpis.matchingInvoices || 0}</div>
+          <div className="kpi-desc">Filtered records</div>
         </div>
 
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total Base Rent</div>
-          <div className="hd-kpi-value">
-            ₹{Math.round(kpis.totalBaseRent).toLocaleString('en-IN')}
+        <div className="kpi-card">
+          <div className="kpi-title">Total Base Rent</div>
+          <div className="kpi-value">
+            ₹{Math.round(kpis.totalBaseRent || 0).toLocaleString('en-IN')}
           </div>
-          <div className="hd-kpi-desc">Sum of base rent</div>
+          <div className="kpi-desc">Sum of base rent</div>
         </div>
 
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Maintenance & Parking</div>
-          <div className="hd-kpi-value">
-            ₹{Math.round(kpis.maintenanceParking).toLocaleString('en-IN')}
+        <div className="kpi-card">
+          <div className="kpi-title">Maintenance & Parking</div>
+          <div className="kpi-value">
+            ₹{Math.round(kpis.maintenanceParking || 0).toLocaleString('en-IN')}
           </div>
-          <div className="hd-kpi-desc">Additional charges</div>
+          <div className="kpi-desc">Additional charges</div>
         </div>
 
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total GST</div>
-          <div className="hd-kpi-value">
-            ₹{Math.round(kpis.totalGst).toLocaleString('en-IN')}
+        <div className="kpi-card">
+          <div className="kpi-title">Total GST</div>
+          <div className="kpi-value">
+            ₹{Math.round(kpis.totalGst || 0).toLocaleString('en-IN')}
           </div>
-          <div className="hd-kpi-desc">Tax component</div>
+          <div className="kpi-desc">Tax component</div>
         </div>
 
-        <div className="hd-kpi-card">
-          <div className="hd-kpi-title">Total Invoiced Amount</div>
-          <div className="hd-kpi-value">
-            ₹{Math.round(kpis.totalInvoicedAmount).toLocaleString('en-IN')}
+        <div className="kpi-card">
+          <div className="kpi-title">Total Invoiced Amount</div>
+          <div className="kpi-value">
+            ₹{Math.round(kpis.totalInvoicedAmount || 0).toLocaleString('en-IN')}
           </div>
-          <div className="hd-kpi-desc">Grand total value</div>
+          <div className="kpi-desc">Grand total value</div>
         </div>
       </div>
 
-      {/* Invoices Table matching mockup */}
-      <div className="hd-table-card">
-        <table className="hd-table">
+      {/* Invoices Table */}
+      <div className="table-container">
+        <table>
           <thead>
             <tr>
               <th>Invoice No</th>
@@ -412,25 +411,25 @@ export default function Invoices() {
               <th>Charges</th>
               <th>GST</th>
               <th>Total Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '36px' }}>
+                <td colSpan="11" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Loading invoices...
                 </td>
               </tr>
             ) : invoices.length === 0 ? (
               <tr>
                 <td colSpan="11" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
-                  No matching invoices found. Generate invoices from the "Generate Invoices" tab.
+                  No matching invoices found. Generate invoices from the "Generate Invoice" tab.
                 </td>
               </tr>
             ) : (
-              invoices.map((inv) => {
+              paginatedInvoices.map((inv) => {
                 const charges =
                   (parseFloat(inv.maintenance_charges) || 0) + (parseFloat(inv.parking_charges) || 0) ||
                   parseFloat(inv.additional_charges) ||
@@ -439,50 +438,63 @@ export default function Invoices() {
                 return (
                   <tr key={inv.invoice_id}>
                     <td>
-                      <span className="hd-badge-inv">{inv.invoice_number}</span>
+                      <span style={{ fontWeight: 700, color: '#2563eb', fontFamily: 'monospace' }}>
+                        {inv.invoice_number}
+                      </span>
                     </td>
                     <td>{inv.invoice_date}</td>
                     <td>{inv.billing_period}</td>
-                    <td>{inv.landlord_name}</td>
+                    <td style={{ fontWeight: 600 }}>{inv.landlord_name}</td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{inv.tenant_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{inv.property_name}</div>
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name}</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{inv.property_name}</div>
                     </td>
-                    <td>₹{parseFloat(inv.rent_amount).toLocaleString('en-IN')}</td>
+                    <td style={{ fontWeight: 500 }}>
+                      ₹{parseFloat(inv.rent_amount).toLocaleString('en-IN')}
+                    </td>
                     <td>₹{charges.toLocaleString('en-IN')}</td>
-                    <td>₹{parseFloat(inv.gst_amount).toLocaleString('en-IN')}</td>
+                    <td>
+                      {inv.gst_amount > 0 ? (
+                        <div>
+                          <div>₹{parseFloat(inv.gst_amount).toLocaleString('en-IN')}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{inv.gst_rate}%</div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>0%</span>
+                      )}
+                    </td>
                     <td style={{ fontWeight: 700, color: '#1e40af' }}>
                       ₹{parseFloat(inv.total_amount).toLocaleString('en-IN')}
                     </td>
-                    <td>
-                      {/* Status Dropdown (Task 9: Draft > Generated > Sent) */}
+                    <td style={{ textAlign: 'center' }}>
                       <select
                         value={inv.status}
                         onChange={(e) => handleStatusChange(inv.invoice_id, e.target.value)}
                         style={{
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
                           fontWeight: 600,
+                          padding: '4px 8px',
+                          borderRadius: '6px',
                           cursor: 'pointer',
+                          outline: 'none',
                           border:
                             inv.status === 'Draft'
                               ? '1px solid #fed7aa'
                               : inv.status === 'Generated'
                               ? '1px solid #bfdbfe'
-                              : '1px solid #e2e8f0',
+                              : '1px solid #bbf7d0',
                           background:
                             inv.status === 'Draft'
                               ? '#fff7ed'
                               : inv.status === 'Generated'
                               ? '#eff6ff'
-                              : '#f8fafc',
+                              : '#f0fdf4',
                           color:
                             inv.status === 'Draft'
                               ? '#c2410c'
                               : inv.status === 'Generated'
                               ? '#1d4ed8'
-                              : '#475569'
+                              : '#15803d'
                         }}
                       >
                         <option value="Draft">Draft</option>
@@ -490,15 +502,15 @@ export default function Invoices() {
                         <option value="Sent">Sent</option>
                       </select>
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       {inv.status === 'Draft' ? (
                         <button
-                          className="hd-btn-secondary"
-                          style={{ padding: '4px 8px', fontSize: '0.78rem' }}
+                          className="btn btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           onClick={() => openCorrectModal(inv)}
                           title="Correct draft invoice before finalization"
                         >
-                          <Edit3 size={13} />
+                          <Edit3 size={12} />
                           <span>Correct</span>
                         </button>
                       ) : (
@@ -513,106 +525,154 @@ export default function Invoices() {
         </table>
       </div>
 
+      {/* Pagination container */}
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {invoices.length > 0 ? (page - 1) * pageSize + 1 : 0} to{' '}
+          {Math.min(page * pageSize, invoices.length)} of {invoices.length} invoice
+          {invoices.length !== 1 ? 's' : ''}
+        </div>
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="page-btn"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <button
+              className="page-btn"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ============================================================== */}
-      {/* MODAL: Correct Draft Invoice with Audit Trail (Task 10)         */}
+      {/* MODAL: Correct Draft Invoice with Audit Trail                   */}
       {/* ============================================================== */}
       {correctModalOpen && selectedInvoice && (
-        <div className="hd-modal-backdrop">
-          <div className="hd-modal">
-            <div className="hd-modal-header">
-              <div className="hd-modal-title-group">
-                <div className="hd-modal-icon">
-                  <Edit3 size={20} />
-                </div>
-                <div>
-                  <h3 className="hd-modal-title">Correct Draft Invoice</h3>
-                  <p className="hd-modal-subtitle">
-                    {selectedInvoice.invoice_number} • {selectedInvoice.tenant_name} • {selectedInvoice.billing_period}
-                  </p>
-                </div>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Correct Draft Invoice
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                  {selectedInvoice.invoice_number} • {selectedInvoice.tenant_name} • {selectedInvoice.billing_period}
+                </p>
               </div>
-              <button className="hd-modal-close" onClick={() => setCorrectModalOpen(false)}>
-                <X size={18} />
+              <button
+                onClick={() => setCorrectModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSaveCorrection}>
-              <div className="hd-modal-body">
-                <div style={{ fontSize: '0.82rem', color: '#475569', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <strong>Audit Compliance Notice:</strong> Per invoicing policy, only Draft invoices can be corrected. All adjustments are permanently stamped in the audit trail with the provided change reason.
-                </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                <strong>Audit Compliance Notice:</strong> Per invoicing policy, only Draft invoices can be corrected. All adjustments are permanently stamped in the audit trail with the provided change reason.
+              </div>
 
-                <div className="hd-form-grid-2">
-                  <div className="hd-form-group">
-                    <label className="hd-form-label">Rent Amount (₹) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="hd-input"
-                      value={correctionForm.rent_amount}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, rent_amount: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="hd-form-group">
-                    <label className="hd-form-label">Maintenance Charges (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="hd-input"
-                      value={correctionForm.maintenance_charges}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, maintenance_charges: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="hd-form-grid-2">
-                  <div className="hd-form-group">
-                    <label className="hd-form-label">Parking Charges (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="hd-input"
-                      value={correctionForm.parking_charges}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, parking_charges: e.target.value })}
-                    />
-                  </div>
-                  <div className="hd-form-group">
-                    <label className="hd-form-label">Tax Supply Type</label>
-                    <select
-                      className="hd-select"
-                      value={correctionForm.tax_supply_type}
-                      onChange={(e) => setCorrectionForm({ ...correctionForm, tax_supply_type: e.target.value })}
-                    >
-                      <option value="intra_state">Intra-State (CGST + SGST)</option>
-                      <option value="inter_state">Inter-State (IGST)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="hd-form-group">
-                  <label className="hd-form-label">Mandatory Change Reason for Audit Log *</label>
+              <div className="flex-row" style={{ marginBottom: '14px' }}>
+                <div className="form-group flex-1" style={{ margin: 0 }}>
+                  <label className="form-label">Rent Amount (₹) *</label>
                   <input
-                    type="text"
-                    className="hd-input"
-                    placeholder="e.g. Utility meter reading reconciliation, rate revision"
-                    value={correctionForm.change_reason}
-                    onChange={(e) => setCorrectionForm({ ...correctionForm, change_reason: e.target.value })}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'Subtract') e.preventDefault(); }}
+                    placeholder="e.g. 50000"
+                    className="form-input"
+                    value={correctionForm.rent_amount}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
+                      setCorrectionForm({ ...correctionForm, rent_amount: val });
+                    }}
                     required
                   />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Base monthly rental amount</span>
+                </div>
+                <div className="form-group flex-1" style={{ margin: 0 }}>
+                  <label className="form-label">Maintenance Charges (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'Subtract') e.preventDefault(); }}
+                    placeholder="e.g. 3000"
+                    className="form-input"
+                    value={correctionForm.maintenance_charges}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
+                      setCorrectionForm({ ...correctionForm, maintenance_charges: val });
+                    }}
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Monthly maintenance fee</span>
                 </div>
               </div>
 
-              <div className="hd-modal-footer">
+              <div className="flex-row" style={{ marginBottom: '14px' }}>
+                <div className="form-group flex-1" style={{ margin: 0 }}>
+                  <label className="form-label">Parking Charges (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'Subtract') e.preventDefault(); }}
+                    placeholder="e.g. 2000"
+                    className="form-input"
+                    value={correctionForm.parking_charges}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
+                      setCorrectionForm({ ...correctionForm, parking_charges: val });
+                    }}
+                  />
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Parking slot charges</span>
+                </div>
+                <div className="form-group flex-1" style={{ margin: 0 }}>
+                  <label className="form-label">Tax Supply Type</label>
+                  <select
+                    className="form-input"
+                    value={correctionForm.tax_supply_type}
+                    onChange={(e) => setCorrectionForm({ ...correctionForm, tax_supply_type: e.target.value })}
+                  >
+                    <option value="intra_state">Intra-State (CGST + SGST)</option>
+                    <option value="inter_state">Inter-State (IGST)</option>
+                  </select>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Tax category applied</span>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label className="form-label">Mandatory Change Reason for Audit Log *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Utility meter reading reconciliation, rate revision"
+                  value={correctionForm.change_reason}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, change_reason: e.target.value })}
+                  required
+                />
+                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Logged in master data audit trails</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
                   type="button"
-                  className="hd-btn-secondary"
+                  className="btn btn-secondary"
                   onClick={() => setCorrectModalOpen(false)}
                   disabled={correcting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="hd-btn-primary" disabled={correcting}>
+                <button type="submit" className="btn btn-primary" disabled={correcting}>
                   {correcting ? 'Saving & Auditing...' : 'Save & Log Audit'}
                 </button>
               </div>
@@ -623,4 +683,3 @@ export default function Invoices() {
     </div>
   );
 }
-

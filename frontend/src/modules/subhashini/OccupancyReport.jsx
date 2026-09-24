@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CheckCircle, Clock, XCircle, RefreshCw } from 'lucide-react';
 
 export default function OccupancyReport() {
   const [reportData, setReportData] = useState([]);
@@ -21,7 +22,7 @@ export default function OccupancyReport() {
   const fetchReport = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/master-data/reports/occupancy?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
+      const res = await fetch(`/api/master-data/reports/occupancy?page=${overridePage}&limit=10&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
       if (res.ok) {
         const data = await res.json();
         setReportData(data.data || []);
@@ -56,41 +57,44 @@ export default function OccupancyReport() {
   };
 
   return (
-    <div>
+    <div className="card">
       <div className="page-header">
         <div>
           <h2 className="page-title">Occupancy Report</h2>
           <p className="page-subtitle">Vacancy tracking and lease occupancy statistics</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>Refresh Data</button>
+          <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>
+            <RefreshCw size={14} />
+            <span>Refresh Data</span>
+          </button>
         </div>
       </div>
 
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-title">Total Properties</div>
-          <div className="kpi-value" style={{ color: '#2563eb' }}>{stats.total}</div>
+          <div className="kpi-value">{stats.total}</div>
           <div className="kpi-desc">Total units in database</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-title">Occupied Units</div>
-          <div className="kpi-value" style={{ color: '#16a34a' }}>{stats.occupied}</div>
+          <div className="kpi-value">{stats.occupied}</div>
           <div className="kpi-desc">Active lease contracts</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-title">Vacant Units</div>
-          <div className="kpi-value" style={{ color: '#dc2626' }}>{stats.vacant}</div>
+          <div className="kpi-value">{stats.vacant}</div>
           <div className="kpi-desc">Available for tenancy</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-title">Occupancy Rate</div>
-          <div className="kpi-value" style={{ color: '#d97706' }}>{stats.rate}%</div>
-          <div className="kpi-desc">Current page ratio</div>
+          <div className="kpi-value">{stats.rate}%</div>
+          <div className="kpi-desc">Current leased ratio</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
             <input 
@@ -120,44 +124,62 @@ export default function OccupancyReport() {
 
       <div className="table-container">
         {loading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>Loading report...</div>
+          <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>Loading report...</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>Property Name</th>
                 <th>Landlord</th>
-                <th>Occupancy Status</th>
+                <th style={{ textAlign: 'center', width: '160px' }}>Occupancy Status</th>
                 <th>Current Tenant</th>
                 <th>Lease Details</th>
               </tr>
             </thead>
             <tbody>
-              {reportData.map(row => (
-                <tr key={row.property_id}>
-                  <td>
-                    <div style={{ fontWeight: 500 }}>{row.property_name}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{row.property_type || '-'}</div>
-                  </td>
-                  <td>{row.landlord_name || '-'}</td>
-                  <td>
-                    <span className={`badge ${
-                      row.occupancy_status === 'Occupied' ? 'badge-active' : 
-                      row.occupancy_status === 'Notice Period' ? 'badge' : 'badge-inactive'
-                    }`} style={row.occupancy_status === 'Notice Period' ? { backgroundColor: '#fef08a', color: '#854d0e' } : {}}>
-                      {row.occupancy_status}
-                    </span>
-                  </td>
-                  <td>{row.tenant_name || '-'}</td>
-                  <td>
-                    {row.lease_start_date ? new Date(row.lease_start_date).toLocaleDateString() : '-'} 
-                    {row.lease_end_date ? ` to ${new Date(row.lease_end_date).toLocaleDateString()}` : ''}
-                  </td>
-                </tr>
-              ))}
+              {reportData.map(row => {
+                const status = row.occupancy_status;
+                const isOccupied = status === 'Occupied';
+                const isNotice = status === 'Notice Period';
+
+                return (
+                  <tr key={row.property_id}>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.property_name}</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{row.property_type || '-'}</div>
+                    </td>
+                    <td style={{ fontWeight: 500 }}>{row.landlord_name || '-'}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isOccupied && (
+                        <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={13} />
+                          Occupied
+                        </span>
+                      )}
+                      {isNotice && (
+                        <span className="badge badge-warning" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={13} />
+                          Notice Period
+                        </span>
+                      )}
+                      {!isOccupied && !isNotice && (
+                        <span className="badge badge-inactive" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <XCircle size={13} />
+                          {status || 'Vacant'}
+                        </span>
+                      )}
+                    </td>
+                    <td>{row.tenant_name || '-'}</td>
+                    <td style={{ fontSize: '0.84rem', color: '#334155' }}>
+                      {row.lease_start_date ? new Date(row.lease_start_date).toLocaleDateString() : '-'} 
+                      {row.lease_end_date ? ` to ${new Date(row.lease_end_date).toLocaleDateString()}` : ''}
+                    </td>
+                  </tr>
+                );
+              })}
               {reportData.length === 0 && (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No data available for report.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>No data available for report.</td>
                 </tr>
               )}
             </tbody>

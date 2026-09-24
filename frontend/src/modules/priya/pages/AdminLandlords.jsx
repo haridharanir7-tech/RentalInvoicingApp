@@ -28,6 +28,8 @@ export default function AdminLandlords() {
   const [successMsg, setSuccessMsg] = useState('');
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL'); // ALL, PENDING, ACTIVE, INACTIVE
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   // Modal States
   const [selectedLandlord, setSelectedLandlord] = useState(null);
@@ -185,6 +187,9 @@ export default function AdminLandlords() {
     return matchesSearch;
   });
 
+  const totalPages = Math.ceil(filteredLandlords.length / pageSize) || 1;
+  const paginatedLandlords = filteredLandlords.slice((page - 1) * pageSize, page * pageSize);
+
   const pendingCount = landlords.filter((l) => (l.status || '').toUpperCase() === 'PENDING').length;
 
   return (
@@ -254,15 +259,15 @@ export default function AdminLandlords() {
               className="form-input" 
               placeholder="Search landlord, email, PAN..." 
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               style={{ width: '220px' }}
             />
-            <button type="button" className="btn btn-secondary" onClick={() => setSearch('')} style={{ background: '#f1f5f9' }}>Clear</button>
+            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
             value={filterTab} 
-            onChange={(e) => setFilterTab(e.target.value)}
+            onChange={(e) => { setFilterTab(e.target.value); setPage(1); }}
             style={{ width: '150px' }}
           >
             <option value="ALL">All Statuses ({landlords.length})</option>
@@ -301,7 +306,7 @@ export default function AdminLandlords() {
                   </td>
                 </tr>
               ) : (
-                filteredLandlords.map((l) => {
+                paginatedLandlords.map((l) => {
                   const statusUpper = (l.status || '').toUpperCase();
                   const isPending = statusUpper === 'PENDING';
                   const isActive = statusUpper === 'ACTIVE';
@@ -498,8 +503,26 @@ export default function AdminLandlords() {
         {/* Pagination container matching other modules */}
         <div className="pagination-container">
           <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-            Showing {filteredLandlords.length} landlord{filteredLandlords.length !== 1 ? 's' : ''} ({landlords.length} total)
+            Showing {filteredLandlords.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredLandlords.length)} of {filteredLandlords.length} landlord{filteredLandlords.length !== 1 ? 's' : ''} ({landlords.length} total)
           </div>
+          {totalPages > 1 && (
+            <div className="pagination-controls">
+              <button 
+                className="page-btn" 
+                disabled={page <= 1} 
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <button 
+                className="page-btn" 
+                disabled={page >= totalPages} 
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
 
       {/* Modal 1: View Landlord Details */}
