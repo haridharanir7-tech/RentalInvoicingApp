@@ -188,64 +188,22 @@ export default function AdminLandlords() {
   const pendingCount = landlords.filter((l) => (l.status || '').toUpperCase() === 'PENDING').length;
 
   return (
-    <div style={{ maxWidth: '1380px', margin: '0 auto', padding: '10px 0 40px 0' }}>
-      {/* Top Header */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Landlords
-          </h1>
+    <div className="card">
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Landlords</h2>
+          <p className="page-subtitle">Manage landlord profiles, tax credentials, and access</p>
+        </div>
+        <div className="page-actions">
           <button
+            className="btn btn-primary"
             onClick={() => {
               setAddModalOpen(true);
               setError('');
               setSuccessMsg('');
             }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              background: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
           >
-            <Plus size={16} />
-            Add Landlord
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={fetchLandlords}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              color: '#334155',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <RefreshCw size={14} />
-            Refresh
+            + Add Landlord
           </button>
         </div>
       </div>
@@ -287,102 +245,48 @@ export default function AdminLandlords() {
         </div>
       )}
 
-      {/* Controls: Filter Tabs & Search */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '14px',
-        marginBottom: '20px',
-        background: '#ffffff',
-        padding: '16px 20px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-      }}>
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {[
-            { id: 'ALL', label: 'All Landlords', count: landlords.length },
-            { id: 'PENDING', label: 'Pending Approvals', count: pendingCount, highlight: pendingCount > 0 },
-            { id: 'ACTIVE', label: 'Active', count: landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length },
-            { id: 'INACTIVE', label: 'Inactive', count: landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilterTab(tab.id)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '8px',
-                border: filterTab === tab.id ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                background: filterTab === tab.id ? '#eff6ff' : '#ffffff',
-                color: filterTab === tab.id ? '#1d4ed8' : '#64748b',
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>{tab.label}</span>
-              <span style={{
-                background: tab.highlight ? '#fef3c7' : filterTab === tab.id ? '#dbeafe' : '#f1f5f9',
-                color: tab.highlight ? '#d97706' : filterTab === tab.id ? '#1e40af' : '#64748b',
-                padding: '1px 6px',
-                borderRadius: '9999px',
-                fontSize: '0.72rem',
-                fontWeight: 700
-              }}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Search Input */}
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '10px' }} />
-          <input
-            type="text"
-            placeholder="Search by name, email, PAN..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 36px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.85rem',
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
+      {/* Filter / Search Bar matching Property & Tenant modules */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="filter-bar" style={{ margin: 0 }}>
+          <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search landlord, email, PAN..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '220px' }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={() => setSearch('')} style={{ background: '#f1f5f9' }}>Clear</button>
+          </form>
+          <select 
+            className="form-input" 
+            value={filterTab} 
+            onChange={(e) => setFilterTab(e.target.value)}
+            style={{ width: '150px' }}
+          >
+            <option value="ALL">All Statuses ({landlords.length})</option>
+            <option value="ACTIVE">Active ({landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length})</option>
+            <option value="PENDING">Pending ({pendingCount})</option>
+            <option value="INACTIVE">Inactive ({landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length})</option>
+          </select>
         </div>
       </div>
 
-      {/* Landlords Table */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>ID</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Landlord Name</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Contact Info</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Tax Details</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Properties</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Account Status</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Admin Actions</th>
-              </tr>
-            </thead>
+      {/* Landlords Table Container */}
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Landlord Name</th>
+              <th>Contact Info</th>
+              <th>Tax Details</th>
+              <th style={{ textAlign: 'center', width: '110px' }}>Properties</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '220px' }}>Actions</th>
+            </tr>
+          </thead>
             <tbody>
               {loading ? (
                 <tr>
@@ -463,25 +367,25 @@ export default function AdminLandlords() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                           {/* Pending -> Grant Access / Approve */}
                           {isPending && (
                             <button
                               onClick={() => handleStatusChange(l.id, 'ACTIVE')}
                               title="Approve & Grant Login Access"
                               style={{
-                                padding: '5px 12px',
-                                background: '#16a34a',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.76rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
+                                display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px'
+                                gap: '4px',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #fef08a',
+                                background: '#fefce8',
+                                color: '#a16207',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
                               }}
                             >
                               <ShieldCheck size={13} />
@@ -495,16 +399,20 @@ export default function AdminLandlords() {
                               onClick={() => handleStatusChange(l.id, 'INACTIVE')}
                               title="Deactivate account access"
                               style={{
-                                padding: '5px 10px',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                border: '1px solid #fecaca',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
                                 borderRadius: '6px',
-                                fontSize: '0.76rem',
+                                border: '1px solid #fee2e2',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                fontSize: '0.78rem',
                                 fontWeight: 600,
                                 cursor: 'pointer'
                               }}
                             >
+                              <XCircle size={13} />
                               Deactivate
                             </button>
                           )}
@@ -515,16 +423,20 @@ export default function AdminLandlords() {
                               onClick={() => handleStatusChange(l.id, 'ACTIVE')}
                               title="Reactivate account"
                               style={{
-                                padding: '5px 10px',
-                                background: '#ecfdf5',
-                                color: '#047857',
-                                border: '1px solid #a7f3d0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
                                 borderRadius: '6px',
-                                fontSize: '0.76rem',
+                                border: '1px solid #dcfce7',
+                                background: '#f0fdf4',
+                                color: '#15803d',
+                                fontSize: '0.78rem',
                                 fontWeight: 600,
                                 cursor: 'pointer'
                               }}
                             >
+                              <CheckCircle size={13} />
                               Activate
                             </button>
                           )}
@@ -534,17 +446,17 @@ export default function AdminLandlords() {
                             onClick={() => openAccessModal(l)}
                             title="Manage Login Credentials"
                             style={{
-                              padding: '5px 8px',
-                              background: '#f1f5f9',
-                              color: '#334155',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '6px',
-                              fontSize: '0.76rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              gap: '4px',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid #dbeafe',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
                             }}
                           >
                             <KeyRound size={13} />
@@ -559,11 +471,15 @@ export default function AdminLandlords() {
                             }}
                             title="View Full Profile"
                             style={{
-                              padding: '5px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0',
                               background: '#f8fafc',
                               color: '#475569',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '6px',
                               cursor: 'pointer'
                             }}
                           >
@@ -578,7 +494,13 @@ export default function AdminLandlords() {
             </tbody>
           </table>
         </div>
-      </div>
+
+        {/* Pagination container matching other modules */}
+        <div className="pagination-container">
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            Showing {filteredLandlords.length} landlord{filteredLandlords.length !== 1 ? 's' : ''} ({landlords.length} total)
+          </div>
+        </div>
 
       {/* Modal 1: View Landlord Details */}
       {viewModalOpen && selectedLandlord && (

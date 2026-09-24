@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export default function TenantManagement() {
   const [tenants, setTenants] = useState([]);
@@ -314,8 +314,8 @@ export default function TenantManagement() {
               <th>Tenant Name</th>
               <th>Property</th>
               <th>Lease Period</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -331,23 +331,26 @@ export default function TenantManagement() {
                   {t.lease_start_date ? new Date(t.lease_start_date).toLocaleDateString() : '-'} 
                   {t.lease_end_date ? ` to ${new Date(t.lease_end_date).toLocaleDateString()}` : ''}
                 </td>
-                <td>
+                <td style={{ textAlign: 'center' }}>
                   <span className={`badge ${
                     t.status === 'Active' ? 'badge-active' : 
-                    t.status === 'Notice Period' ? 'badge' : 'badge-inactive'
-                  }`} style={t.status === 'Notice Period' ? { backgroundColor: '#fef08a', color: '#854d0e' } : {}}>
+                    t.status === 'Notice Period' ? 'badge-warning' : 'badge-inactive'
+                  }`}>
+                    {t.status === 'Active' && <CheckCircle size={13} />}
+                    {t.status === 'Notice Period' && <Clock size={13} />}
+                    {(t.status === 'Vacated' || t.status === 'Inactive') && <XCircle size={13} />}
                     {t.status}
                   </span>
                 </td>
-                <td>
-                  <div style={{ display: 'inline-flex', gap: '8px' }}>
+                <td style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     <button
                       onClick={() => handleEdit(t)}
                       title="Edit"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                         padding: '6px 12px',
                         borderRadius: '6px',
                         border: '1px solid #dbeafe',
@@ -367,7 +370,7 @@ export default function TenantManagement() {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                         padding: '6px 12px',
                         borderRadius: '6px',
                         border: '1px solid #fee2e2',

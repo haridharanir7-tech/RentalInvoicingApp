@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function PropertyManagement() {
   const [properties, setProperties] = useState([]);
@@ -266,8 +266,8 @@ export default function PropertyManagement() {
               <th>Property Name</th>
               <th>Type & Area</th>
               <th>Landlord</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -283,20 +283,21 @@ export default function PropertyManagement() {
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{p.total_area ? `${p.total_area} sq ft` : ''}</div>
                 </td>
                 <td>{p.landlord_name || 'N/A'}</td>
-                <td>
+                <td style={{ textAlign: 'center' }}>
                   <span className={p.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                    {p.is_active ? <CheckCircle size={13} /> : <XCircle size={13} />}
                     {p.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td>
-                  <div style={{ display: 'inline-flex', gap: '8px' }}>
+                <td style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     <button
                       onClick={() => handleEdit(p)}
                       title="Edit"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                         padding: '6px 12px',
                         borderRadius: '6px',
                         border: '1px solid #dbeafe',
@@ -316,7 +317,7 @@ export default function PropertyManagement() {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                         padding: '6px 12px',
                         borderRadius: '6px',
                         border: '1px solid #fee2e2',
