@@ -60,5 +60,7 @@ desktop.ini
 temp/
 tmp/
 uploads/
+backups/
+**/backups/
 invoices/generated/
 *.pdf
