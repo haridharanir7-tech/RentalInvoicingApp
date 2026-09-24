@@ -57,30 +57,36 @@ export default function OccupancyReport() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Property Occupancy Summary Report</h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Real-time vacancy tracking and lease occupancy statistics</p>
+          <h2 className="page-title">Property Occupancy Summary Report</h2>
+          <p className="page-subtitle">Real-time vacancy tracking and lease occupancy statistics</p>
         </div>
-        <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>Refresh Data</button>
+        <div className="page-actions">
+          <button className="btn btn-secondary" onClick={() => { setPage(1); fetchReport(); }}>Refresh Data</button>
+        </div>
       </div>
 
-      <div className="flex-row" style={{ marginBottom: '25px' }}>
-        <div className="card flex-1" style={{ textAlign: 'center', padding: '15px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)' }}>{stats.total}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Total Properties Found</div>
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-title">Total Properties</div>
+          <div className="kpi-value" style={{ color: '#2563eb' }}>{stats.total}</div>
+          <div className="kpi-desc">Total units in database</div>
         </div>
-        <div className="card flex-1" style={{ textAlign: 'center', padding: '15px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#15803d' }}>{stats.occupied}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Occupied (This Page)</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Occupied Units</div>
+          <div className="kpi-value" style={{ color: '#16a34a' }}>{stats.occupied}</div>
+          <div className="kpi-desc">Active lease contracts</div>
         </div>
-        <div className="card flex-1" style={{ textAlign: 'center', padding: '15px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#b91c1c' }}>{stats.vacant}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Vacant (This Page)</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Vacant Units</div>
+          <div className="kpi-value" style={{ color: '#dc2626' }}>{stats.vacant}</div>
+          <div className="kpi-desc">Available for tenancy</div>
         </div>
-        <div className="card flex-1" style={{ textAlign: 'center', padding: '15px' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#854d0e' }}>{stats.rate}%</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Page Occupancy Rate</div>
+        <div className="kpi-card">
+          <div className="kpi-title">Occupancy Rate</div>
+          <div className="kpi-value" style={{ color: '#d97706' }}>{stats.rate}%</div>
+          <div className="kpi-desc">Current page ratio</div>
         </div>
       </div>
 

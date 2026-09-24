@@ -187,20 +187,22 @@ export default function TenantManagement() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Tenant Management</h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Manage tenant profiles, lease agreements, and tenancy statuses</p>
+          <h2 className="page-title">Tenant Management</h2>
+          <p className="page-subtitle">Manage tenant profiles, lease agreements, and tenancy statuses</p>
         </div>
-        <button className="btn btn-primary" onClick={() => {
-          setShowForm(true);
-          setEditingId(null);
-          setFormData({ property_id: '', name: '', pan: '', gstin: '', contact_details: '', lease_start_date: '', lease_end_date: '', status: 'Active' });
-          setSuccess('');
-          setError('');
-        }}>
-          + Add Tenant
-        </button>
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={() => {
+            setShowForm(true);
+            setEditingId(null);
+            setFormData({ property_id: '', name: '', pan: '', gstin: '', contact_details: '', lease_start_date: '', lease_end_date: '', status: 'Active' });
+            setSuccess('');
+            setError('');
+          }}>
+            + Add Tenant
+          </button>
+        </div>
       </div>
 
       {showForm && (

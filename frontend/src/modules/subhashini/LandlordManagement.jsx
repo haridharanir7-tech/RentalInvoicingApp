@@ -153,20 +153,22 @@ export default function LandlordManagement() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Landlord / Owner Management</h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Register and manage landlord entities, PAN/GSTIN profiles, and default templates</p>
+          <h2 className="page-title">Landlord / Owner Management</h2>
+          <p className="page-subtitle">Register and manage landlord entities, PAN/GSTIN profiles, and default templates</p>
         </div>
-        <button className="btn btn-primary" onClick={() => {
-          setShowForm(true);
-          setEditingId(null);
-          setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)' });
-          setSuccess('');
-          setError('');
-        }}>
-          + Add Landlord
-        </button>
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={() => {
+            setShowForm(true);
+            setEditingId(null);
+            setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)' });
+            setSuccess('');
+            setError('');
+          }}>
+            + Add Landlord
+          </button>
+        </div>
       </div>
 
       {showForm && (

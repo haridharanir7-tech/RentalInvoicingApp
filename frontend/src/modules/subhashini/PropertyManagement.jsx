@@ -155,20 +155,22 @@ export default function PropertyManagement() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="page-header">
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Property Management</h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0' }}>Manage commercial & residential real estate units and landlords</p>
+          <h2 className="page-title">Property Management</h2>
+          <p className="page-subtitle">Manage commercial & residential real estate units and landlords</p>
         </div>
-        <button className="btn btn-primary" onClick={() => {
-          setShowForm(true);
-          setEditingId(null);
-          setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
-          setSuccess('');
-          setError('');
-        }}>
-          + Add Property
-        </button>
+        <div className="page-actions">
+          <button className="btn btn-primary" onClick={() => {
+            setShowForm(true);
+            setEditingId(null);
+            setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+            setSuccess('');
+            setError('');
+          }}>
+            + Add Property
+          </button>
+        </div>
       </div>
 
       {showForm && (
