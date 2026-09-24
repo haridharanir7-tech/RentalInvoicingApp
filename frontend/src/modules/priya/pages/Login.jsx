@@ -191,7 +191,32 @@ export default function Login() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
               type="button"
-              onClick={() => handleDemoFill('admin1@rentalapp.com', 'Admin@123')}
+              onClick={() => handleDemoFill('admin@rentalapp.com', 'Admin@123')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                textAlign: 'left'
+              }}
+            >
+              <div>
+                <strong style={{ color: '#1e293b' }}>Primary Administrator</strong>
+                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>admin@rentalapp.com</div>
+              </div>
+              <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
+                Admin
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDemoFill('admin1@rentalapp.com', 'Admin1#Rental801')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
