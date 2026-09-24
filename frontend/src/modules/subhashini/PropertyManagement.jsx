@@ -95,6 +95,14 @@ export default function PropertyManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      return setError('Property Name is required');
+    }
+    if (!formData.landlord_id) {
+      return setError('Landlord is required');
+    }
+
     setLoading(true);
     setError(null);
     setSuccess('');
@@ -111,7 +119,14 @@ export default function PropertyManagement() {
         body: JSON.stringify(formData)
       });
       
-      if (!res.ok) throw new Error(editingId ? 'Failed to update property' : 'Failed to create property');
+      if (!res.ok) {
+        let errMessage = editingId ? 'Failed to update property' : 'Failed to create property';
+        try {
+          const errData = await res.json();
+          if (errData.error) errMessage = errData.error;
+        } catch (e) {}
+        throw new Error(errMessage);
+      }
       
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
       setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });

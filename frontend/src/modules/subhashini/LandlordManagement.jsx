@@ -81,15 +81,27 @@ export default function LandlordManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Client-side Validation
+    if (!formData.name.trim()) {
+      return setError('Name is required');
+    }
+    
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
+      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    }
+
+    if (formData.gst_registered && !formData.gstin) {
+      return setError('GSTIN is required when GST Registered is checked');
+    }
+
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
+      return setError('Invalid GSTIN format');
+    }
+
     setLoading(true);
     setError(null);
     setSuccess('');
-
-    if (formData.gst_registered && !formData.gstin) {
-      setError('GSTIN is required if GST Registered is checked');
-      setLoading(false);
-      return;
-    }
 
     try {
       const url = editingId 
@@ -100,7 +112,11 @@ export default function LandlordManagement() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          pan: formData.pan ? formData.pan.toUpperCase() : '',
+          gstin: formData.gstin ? formData.gstin.toUpperCase() : ''
+        })
       });
       
       if (!res.ok) throw new Error(editingId ? 'Failed to update landlord' : 'Failed to create landlord');
@@ -127,7 +143,7 @@ export default function LandlordManagement() {
         <button className="btn btn-primary" onClick={() => {
           setShowForm(true);
           setEditingId(null);
-          setFormData({ name: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)' });
+          setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)' });
           setSuccess('');
           setError('');
         }}>
@@ -152,25 +168,31 @@ export default function LandlordManagement() {
                   <input type="text" className="form-input" name="name" value={formData.name} onChange={handleChange} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>PAN</label>
-                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} />
+                  <label>Email ID</label>
+                  <input type="email" className="form-input" name="email" value={formData.email || ''} onChange={handleChange} />
                 </div>
               </div>
 
-              <div className="flex-row" style={{ alignItems: 'center' }}>
+              <div className="flex-row">
+                <div className="form-group flex-1">
+                  <label>PAN</label>
+                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} />
+                </div>
                 <div className="form-group flex-1" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
                   <input type="checkbox" name="gst_registered" checked={formData.gst_registered} onChange={handleChange} />
                   <label style={{ marginBottom: 0 }}>GST Registered</label>
                 </div>
-                <div className="form-group flex-1">
-                  <label>GSTIN</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} />
-                </div>
               </div>
 
-              <div className="form-group">
-                <label>Contact Details</label>
-                <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} />
+              <div className="flex-row">
+                <div className="form-group flex-1">
+                  <label>GSTIN {formData.gst_registered && '*'}</label>
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} required={formData.gst_registered} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
+                </div>
+                <div className="form-group flex-1">
+                  <label>Contact Details</label>
+                  <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} />
+                </div>
               </div>
 
               <div className="form-group">
@@ -231,7 +253,7 @@ export default function LandlordManagement() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
+              <th>Name & Email</th>
               <th>PAN / GSTIN</th>
               <th>Status</th>
               <th>Actions</th>
@@ -241,7 +263,10 @@ export default function LandlordManagement() {
             {landlords.map(l => (
               <tr key={l.id}>
                 <td>{l.id}</td>
-                <td style={{ fontWeight: 500 }}>{l.name}</td>
+                <td style={{ fontWeight: 500 }}>
+                  <div>{l.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{l.email}</div>
+                </td>
                 <td>
                   <div>{l.pan || 'N/A'}</div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{l.gstin || 'No GST'}</div>

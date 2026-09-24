@@ -2,7 +2,7 @@ const db = require('../../config/database');
 
 exports.createLandlord = async (req, res) => {
     try {
-        const { name, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template } = req.body;
+        const { name, email, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template } = req.body;
         
         // Validation for GSTIN if gst_registered is true
         if (gst_registered && !gstin) {
@@ -10,10 +10,10 @@ exports.createLandlord = async (req, res) => {
         }
 
         const query = `
-            INSERT INTO landlords (name, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
+            INSERT INTO landlords (name, email, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
         `;
-        const values = [name, pan, gstin, contact_details, billing_address, is_active !== false, gst_registered || false, default_invoice_template];
+        const values = [name, email, pan, gstin, contact_details, billing_address, is_active !== false, gst_registered || false, default_invoice_template];
         
         const result = await db.query(query, values);
         res.status(201).json(result.rows[0]);
@@ -25,7 +25,7 @@ exports.createLandlord = async (req, res) => {
 exports.updateLandlord = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template } = req.body;
+        const { name, email, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template } = req.body;
 
         if (gst_registered && !gstin) {
             return res.status(400).json({ error: 'GSTIN is mandatory when GST Registered is true.' });
@@ -33,10 +33,10 @@ exports.updateLandlord = async (req, res) => {
 
         const query = `
             UPDATE landlords
-            SET name = $1, pan = $2, gstin = $3, contact_details = $4, billing_address = $5, is_active = $6, gst_registered = $7, default_invoice_template = $8, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $9 RETURNING *;
+            SET name = $1, email = $2, pan = $3, gstin = $4, contact_details = $5, billing_address = $6, is_active = $7, gst_registered = $8, default_invoice_template = $9, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $10 RETURNING *;
         `;
-        const values = [name, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template, id];
+        const values = [name, email, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template, id];
 
         const result = await db.query(query, values);
         if (result.rows.length === 0) {

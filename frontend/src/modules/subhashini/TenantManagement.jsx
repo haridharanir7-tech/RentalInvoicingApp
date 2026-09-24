@@ -104,17 +104,32 @@ export default function TenantManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess('');
+    
+    // Client-side Validation
+    if (!formData.name.trim()) {
+      return setError('Tenant Name is required');
+    }
+    if (!formData.property_id) {
+      return setError('Property is required');
+    }
+    
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
+      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    }
+
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
+      return setError('Invalid GSTIN format');
+    }
 
     if (formData.lease_start_date && formData.lease_end_date) {
       if (new Date(formData.lease_end_date) < new Date(formData.lease_start_date)) {
-        setError('Lease end date cannot be before lease start date');
-        setLoading(false);
-        return;
+        return setError('Lease end date cannot be before lease start date');
       }
     }
+
+    setLoading(true);
+    setError(null);
+    setSuccess('');
 
     try {
       const url = editingId 
@@ -125,7 +140,11 @@ export default function TenantManagement() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          pan: formData.pan ? formData.pan.toUpperCase() : '',
+          gstin: formData.gstin ? formData.gstin.toUpperCase() : ''
+        })
       });
       
       if (!res.ok) {
@@ -199,11 +218,11 @@ export default function TenantManagement() {
               <div className="flex-row">
                 <div className="form-group flex-1">
                   <label>PAN</label>
-                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} />
+                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} />
                 </div>
                 <div className="form-group flex-1">
                   <label>GSTIN</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} />
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
                 </div>
               </div>
 

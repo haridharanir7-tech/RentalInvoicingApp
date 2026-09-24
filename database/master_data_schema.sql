@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS landlords (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
     pan VARCHAR(20),
     gstin VARCHAR(20),
     contact_details VARCHAR(255),
