@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
 import { Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export default function TenantManagement() {
+  const { user, isLandlord } = useAuth();
   const [tenants, setTenants] = useState([]);
   const [properties, setProperties] = useState([]);
   const [formData, setFormData] = useState({
@@ -31,7 +33,8 @@ export default function TenantManagement() {
 
   const fetchPropertiesForDropdown = async () => {
     try {
-      const res = await fetch('/api/master-data/properties?limit=1000&status=active');
+      const url = `/api/master-data/properties?limit=1000&status=active${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setProperties(data.data || []);
@@ -43,7 +46,8 @@ export default function TenantManagement() {
 
   const fetchTenants = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`/api/master-data/tenants?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
+      const url = `/api/master-data/tenants?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch tenants');
       const data = await res.json();
       setTenants(data.data || []);
@@ -96,6 +100,17 @@ export default function TenantManagement() {
     window.scrollTo(0, 0);
   };
 
+  const handleToggleStatus = async (id) => {
+    try {
+      const res = await fetch(`/api/master-data/tenants/${id}/deactivate`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed');
+      alert('Status updated successfully');
+      fetchTenants();
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this tenant?")) return;
     
@@ -103,8 +118,9 @@ export default function TenantManagement() {
       const res = await fetch(`/api/master-data/tenants/${id}`, {
         method: 'DELETE'
       });
-      if (!res.ok) throw new Error('Failed to delete tenant');
-      fetchTenants();
+      if (!res.ok) throw new Error('Delete failed');
+        alert('Deleted successfully!');
+        fetchTenants();
     } catch (err) {
       alert(err.message);
     }
@@ -170,7 +186,7 @@ export default function TenantManagement() {
         throw new Error(errMessage);
       }
       
-      setSuccess(editingId ? 'Tenant updated successfully!' : 'Tenant created successfully!');
+      alert(editingId ? 'Updated successfully!' : 'Created successfully!');
       setFormData({
         property_id: '', name: '', pan: '', gstin: '', contact_details: '', 
         lease_start_date: '', lease_end_date: '', status: 'Active'
@@ -193,7 +209,7 @@ export default function TenantManagement() {
           <p className="page-subtitle">Manage tenant profiles, lease agreements, and tenancy statuses</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={() => {
+          {!isLandlord && (<button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
             setFormData({ property_id: '', name: '', pan: '', gstin: '', contact_details: '', lease_start_date: '', lease_end_date: '', status: 'Active' });
@@ -201,7 +217,7 @@ export default function TenantManagement() {
             setError('');
           }}>
             + Add Tenant
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -342,7 +358,7 @@ export default function TenantManagement() {
                     {t.status}
                   </span>
                 </td>
-                <td style={{ textAlign: 'center' }}>
+                {!isLandlord && (<td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     <button
                       onClick={() => handleEdit(t)}
@@ -385,7 +401,7 @@ export default function TenantManagement() {
                       Delete
                     </button>
                   </div>
-                </td>
+                </td>)}
               </tr>
             ))}
             {tenants.length === 0 && (

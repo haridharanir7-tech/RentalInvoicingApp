@@ -4,6 +4,8 @@ import { History, Filter, Search, Calendar, RefreshCw, AlertCircle, ArrowRight }
 
 export default function MasterDataAudit() {
   const [logs, setLogs] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [loading, setLoading] = useState(true);
   const [entityType, setEntityType] = useState('');
   const [search, setSearch] = useState('');
@@ -166,14 +168,14 @@ export default function MasterDataAudit() {
                   Loading change log history...
                 </td>
               </tr>
-            ) : filteredLogs.length === 0 ? (
+            ) : paginatedLogs.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No master data audit entries found.
                 </td>
               </tr>
             ) : (
-              filteredLogs.map((log) => (
+              paginatedLogs.map((log) => (
                 <tr key={log.id}>
                   <td style={{ fontSize: '0.8rem', color: '#64748b', verticalAlign: 'top' }}>
                     {new Date(log.created_at).toLocaleString()}
@@ -230,6 +232,16 @@ export default function MasterDataAudit() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {filteredLogs.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredLogs.length)} of {filteredLogs.length} entries
+        </div>
+        <div className="pagination-controls">
+            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+          </div>
       </div>
     </div>
   );

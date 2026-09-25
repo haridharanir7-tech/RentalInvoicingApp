@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
 import { Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function PropertyManagement() {
+  const { user, isLandlord } = useAuth();
   const [properties, setProperties] = useState([]);
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
-    landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: ''
+    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,7 +44,8 @@ export default function PropertyManagement() {
 
   const fetchProperties = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`/api/master-data/properties?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
+      const url = `/api/master-data/properties?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch properties');
       const data = await res.json();
       setProperties(data.data || []);
@@ -73,11 +76,12 @@ export default function PropertyManagement() {
 
   const handleEdit = (property) => {
     setFormData({
-      landlord_id: property.landlord_id || '',
+      landlord_id: property.landlord_id || (isLandlord ? user.landlord_id : ''),
       name: property.name || '',
       address: property.address || '',
       property_type: property.property_type || 'Commercial',
-      total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : ''
+      total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : '',
+        is_active: property.is_active !== false
     });
     setEditingId(property.id);
     setShowForm(true);
@@ -123,7 +127,8 @@ export default function PropertyManagement() {
         name: formData.name.trim(),
         address: formData.address || '',
         property_type: formData.property_type || 'Commercial',
-        total_area: formData.total_area && formData.total_area !== '' ? parseFloat(formData.total_area) : null
+        total_area: formData.total_area && formData.total_area !== '' ? parseFloat(formData.total_area) : null,
+        is_active: formData.is_active !== false
       };
 
       const res = await fetch(url, {
@@ -142,7 +147,7 @@ export default function PropertyManagement() {
       }
       
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
-      setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true });
       setEditingId(null);
       fetchProperties();
       setTimeout(() => setShowForm(false), 1200);
@@ -161,15 +166,15 @@ export default function PropertyManagement() {
           <p className="page-subtitle">Manage commercial & residential real estate units and landlords</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={() => {
+          {!isLandlord && (<button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '' });
             setSuccess('');
             setError('');
           }}>
             + Add Property
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -197,9 +202,10 @@ export default function PropertyManagement() {
                     required 
                   />
                 </div>
-                <div className="form-group flex-1">
-                  <label>Landlord / Owner *</label>
-                  <select className="form-input" name="landlord_id" value={formData.landlord_id} onChange={handleChange} required>
+                {!isLandlord && (
+                  <div className="form-group flex-1">
+                    <label>Landlord / Owner *</label>
+                    <select className="form-input" name="landlord_id" value={formData.landlord_id} onChange={handleChange} required>
                     <option value="">Select Landlord</option>
                     {landlords.map(l => (
                       <option key={l.id} value={l.id}>
@@ -208,6 +214,7 @@ export default function PropertyManagement() {
                     ))}
                   </select>
                 </div>
+              )}
               </div>
 
               <div className="form-group">
@@ -245,7 +252,15 @@ export default function PropertyManagement() {
                     onChange={handleChange} 
                   />
                 </div>
-              </div>
+              
+<div className="form-group flex-1">
+                  <label>Status</label>
+                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+</div>
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>

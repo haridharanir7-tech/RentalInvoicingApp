@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import {
   FileText,
@@ -19,6 +20,7 @@ import {
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
 export default function Invoices() {
+  const { user, isLandlord } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [kpis, setKpis] = useState({
     matchingInvoices: 0,
@@ -63,14 +65,18 @@ export default function Invoices() {
   useEffect(() => {
     fetchInvoices();
     fetchFilterOptions();
-  }, [periodFilter, landlordFilter, propertyFilter, statusFilter]);
+  }, [periodFilter, landlordFilter, propertyFilter, statusFilter, isLandlord, user?.landlord_id]);
 
   const fetchFilterOptions = async () => {
     try {
       const res = await axios.get(`${API_BASE}/properties-tenants`);
       if (res.data.success) {
         setLandlords(res.data.landlords || []);
-        setProperties(res.data.properties || []);
+        let props = res.data.properties || [];
+        if (isLandlord && user?.landlord_id) {
+          props = props.filter((p) => String(p.landlord_id) === String(user.landlord_id));
+        }
+        setProperties(props);
       }
     } catch (err) {
       console.error('Failed to load filter options', err);
@@ -79,12 +85,19 @@ export default function Invoices() {
 
   const fetchInvoices = async () => {
     try {
+      if (isLandlord && !user?.landlord_id) {
+        return;
+      }
       setLoading(true);
       setActionError('');
 
       const params = {};
       if (periodFilter !== 'All Periods') params.period = periodFilter;
-      if (landlordFilter !== 'All Landlords') params.landlord_id = landlordFilter;
+      if (isLandlord) {
+        params.landlord_id = user.landlord_id;
+      } else if (landlordFilter !== 'All Landlords') {
+        params.landlord_id = landlordFilter;
+      }
       if (propertyFilter !== 'All Properties') params.property_id = propertyFilter;
       if (statusFilter !== 'All') params.status = statusFilter;
 
@@ -276,22 +289,24 @@ export default function Invoices() {
             ))}
           </select>
 
-          <select
-            className="form-input"
-            value={landlordFilter}
-            onChange={(e) => {
-              setLandlordFilter(e.target.value);
-              setPage(1);
-            }}
-            style={{ width: '180px' }}
-          >
-            <option value="All Landlords">All Landlords</option>
-            {landlords.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+          {!isLandlord && (
+            <select
+              className="form-input"
+              value={landlordFilter}
+              onChange={(e) => {
+                setLandlordFilter(e.target.value);
+                setPage(1);
+              }}
+              style={{ width: '180px' }}
+            >
+              <option value="All Landlords">All Landlords</option>
+              {landlords.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           <select
             className="form-input"
@@ -412,19 +427,19 @@ export default function Invoices() {
               <th>GST</th>
               <th>Total Amount</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>
+              {!isLandlord && <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? "10" : "11"} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Loading invoices...
                 </td>
               </tr>
             ) : invoices.length === 0 ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? "10" : "11"} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No matching invoices found. Generate invoices from the "Generate Invoice" tab.
                 </td>
               </tr>
@@ -467,56 +482,90 @@ export default function Invoices() {
                       ₹{parseFloat(inv.total_amount).toLocaleString('en-IN')}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <select
-                        value={inv.status}
-                        onChange={(e) => handleStatusChange(inv.invoice_id, e.target.value)}
-                        style={{
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          outline: 'none',
-                          border:
-                            inv.status === 'Draft'
-                              ? '1px solid #fed7aa'
-                              : inv.status === 'Generated'
-                              ? '1px solid #bfdbfe'
-                              : '1px solid #bbf7d0',
-                          background:
-                            inv.status === 'Draft'
-                              ? '#fff7ed'
-                              : inv.status === 'Generated'
-                              ? '#eff6ff'
-                              : '#f0fdf4',
-                          color:
-                            inv.status === 'Draft'
-                              ? '#c2410c'
-                              : inv.status === 'Generated'
-                              ? '#1d4ed8'
-                              : '#15803d'
-                        }}
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Generated">Generated</option>
-                        <option value="Sent">Sent</option>
-                      </select>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {inv.status === 'Draft' ? (
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => openCorrectModal(inv)}
-                          title="Correct draft invoice before finalization"
+                      {isLandlord ? (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border:
+                              inv.status === 'Draft'
+                                ? '1px solid #fed7aa'
+                                : inv.status === 'Generated'
+                                ? '1px solid #bfdbfe'
+                                : '1px solid #bbf7d0',
+                            background:
+                              inv.status === 'Draft'
+                                ? '#fff7ed'
+                                : inv.status === 'Generated'
+                                ? '#eff6ff'
+                                : '#f0fdf4',
+                            color:
+                              inv.status === 'Draft'
+                                ? '#c2410c'
+                                : inv.status === 'Generated'
+                                ? '#1d4ed8'
+                                : '#15803d'
+                          }}
                         >
-                          <Edit3 size={12} />
-                          <span>Correct</span>
-                        </button>
+                          {inv.status}
+                        </span>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Finalized</span>
+                        <select
+                          value={inv.status}
+                          onChange={(e) => handleStatusChange(inv.invoice_id, e.target.value)}
+                          style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            border:
+                              inv.status === 'Draft'
+                                ? '1px solid #fed7aa'
+                                : inv.status === 'Generated'
+                                ? '1px solid #bfdbfe'
+                                : '1px solid #bbf7d0',
+                            background:
+                              inv.status === 'Draft'
+                                ? '#fff7ed'
+                                : inv.status === 'Generated'
+                                ? '#eff6ff'
+                                : '#f0fdf4',
+                            color:
+                              inv.status === 'Draft'
+                                ? '#c2410c'
+                                : inv.status === 'Generated'
+                                ? '#1d4ed8'
+                                : '#15803d'
+                          }}
+                        >
+                          <option value="Draft">Draft</option>
+                          <option value="Generated">Generated</option>
+                          <option value="Sent">Sent</option>
+                        </select>
                       )}
                     </td>
+                    {!isLandlord && (
+                      <td style={{ textAlign: 'center' }}>
+                        {inv.status === 'Draft' ? (
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => openCorrectModal(inv)}
+                            title="Correct draft invoice before finalization"
+                          >
+                            <Edit3 size={12} />
+                            <span>Correct</span>
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Finalized</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })

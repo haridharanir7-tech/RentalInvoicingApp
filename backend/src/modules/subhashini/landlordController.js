@@ -80,7 +80,7 @@ exports.updateLandlord = async (req, res) => {
 exports.deactivateLandlord = async (req, res) => {
     try {
         const { id } = req.params;
-        const query = `UPDATE landlords SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
+        const query = `UPDATE landlords SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
         const result = await db.query(query, [id]);
         
         if (result.rows.length === 0) {

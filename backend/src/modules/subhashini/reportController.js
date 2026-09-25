@@ -2,7 +2,7 @@ const db = require('../../config/database');
 
 exports.getOccupancyReport = async (req, res) => {
     try {
-        const { page = 1, limit = 5, search = '', status = '' } = req.query;
+        const { page = 1, limit = 5, search = '', status = '', landlord_id } = req.query;
         const offset = (page - 1) * limit;
 
         let queryParams = [];
@@ -18,6 +18,11 @@ exports.getOccupancyReport = async (req, res) => {
             queryParams.push(status);
         }
 
+        if (landlord_id) {
+            whereClauses.push(`landlord_id = $${queryParams.length + 1}`);
+            queryParams.push(parseInt(landlord_id, 10));
+        }
+
         const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         const query = `
@@ -26,6 +31,7 @@ exports.getOccupancyReport = async (req, res) => {
                     p.id AS property_id,
                     p.name AS property_name,
                     p.property_type,
+                    p.landlord_id,
                     l.name AS landlord_name,
                     t.id AS tenant_id,
                     t.name AS tenant_name,

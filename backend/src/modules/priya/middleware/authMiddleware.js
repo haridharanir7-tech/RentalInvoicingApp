@@ -30,7 +30,8 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    if (user.status !== 'Active') {
+    console.log('User status in middleware:', user.status);
+      if ((user.status || '').toUpperCase() !== 'ACTIVE') {
       return res.status(403).json({
         success: false,
         message: 'Your account has been deactivated. Please contact an administrator.'

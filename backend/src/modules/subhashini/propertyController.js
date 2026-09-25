@@ -75,7 +75,7 @@ exports.updateProperty = async (req, res) => {
 exports.deactivateProperty = async (req, res) => {
     try {
         const { id } = req.params;
-        const query = `UPDATE properties SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
+        const query = `UPDATE properties SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
         const result = await db.query(query, [id]);
         
         if (result.rows.length === 0) {

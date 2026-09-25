@@ -5,7 +5,7 @@ export default function LandlordManagement() {
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
     name: '', email: '', pan: '', gstin: '', contact_details: '', 
-    billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
+    billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -67,7 +67,8 @@ export default function LandlordManagement() {
       contact_details: landlord.contact_details || '',
       billing_address: landlord.billing_address || '',
       gst_registered: !!landlord.gst_registered,
-      default_invoice_template: landlord.default_invoice_template || 'Template A (Standard)'
+      default_invoice_template: landlord.default_invoice_template || 'Template A (Standard)',
+        is_active: landlord.is_active !== false
     });
     setEditingId(landlord.id);
     setShowForm(true);
@@ -125,7 +126,8 @@ export default function LandlordManagement() {
         contact_details: formData.contact_details || '',
         billing_address: formData.billing_address || '',
         gst_registered: !!formData.gst_registered,
-        default_invoice_template: formData.default_invoice_template || 'Template A (Standard)'
+        default_invoice_template: formData.default_invoice_template || 'Template A (Standard)',
+        is_active: formData.is_active !== false
       };
 
       const res = await fetch(url, {
@@ -162,7 +164,7 @@ export default function LandlordManagement() {
           <button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)' });
+            setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true });
             setSuccess('');
             setError('');
           }}>
@@ -221,13 +223,21 @@ export default function LandlordManagement() {
               </div>
 
               <div className="form-group">
-                <label>Default Invoice Template</label>
-                <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange}>
-                  <option value="Template A (Standard)">Template A (Standard)</option>
-                  <option value="Template B (Detailed)">Template B (Detailed)</option>
-                  <option value="Template C (Compact)">Template C (Compact)</option>
-                </select>
-              </div>
+                  <label>Default Invoice Template</label>
+                  <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange}>
+                    <option value="Template A (Standard)">Template A (Standard)</option>
+                    <option value="Template B (Detailed)">Template B (Detailed)</option>
+                    <option value="Template C (Compact)">Template C (Compact)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>

@@ -18,7 +18,9 @@ import {
   Copy,
   Check,
   Plus,
-  X
+  X,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 export default function AdminLandlords() {
@@ -27,9 +29,10 @@ export default function AdminLandlords() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [search, setSearch] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL'); // ALL, PENDING, ACTIVE, INACTIVE
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   // Modal States
   const [selectedLandlord, setSelectedLandlord] = useState(null);
@@ -45,7 +48,7 @@ export default function AdminLandlords() {
     contact_details: '',
     billing_address: '',
     gst_registered: false,
-    default_invoice_template: 'Template A (Standard)'
+    default_invoice_template: 'Template A (Standard)', is_active: true
   });
 
   // Grant Access Form
@@ -78,8 +81,8 @@ export default function AdminLandlords() {
       setAddModalOpen(false);
       setAddFormData({
         name: '', email: '', pan: '', gstin: '', contact_details: '',
-        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
-      });
+        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
+        });
       fetchLandlords();
     } catch (err) {
       setError(err.message || 'Failed to add landlord.');
@@ -115,11 +118,11 @@ export default function AdminLandlords() {
     try {
       const res = await adminLandlordApi.updateStatus(landlordId, newStatus);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
-        fetchLandlords();
+        alert(res.data.message || 'Status updated successfully!');
+          fetchLandlords();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update landlord status.');
+      alert(err.response?.data?.message || 'Failed to update landlord status.');
     }
   };
 
@@ -253,16 +256,17 @@ export default function AdminLandlords() {
       {/* Filter / Search Bar matching Property & Tenant modules */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
-          <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: '10px' }}>
+          <form onSubmit={(e) => { e.preventDefault(); setAppliedSearch(search); setPage(1); }} style={{ display: 'flex', gap: '10px' }}>
             <input 
               type="text" 
               className="form-input" 
               placeholder="Search landlord, email, PAN..." 
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => setSearch(e.target.value)}
               style={{ width: '220px' }}
             />
-            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
+            <button type="submit" className="btn btn-secondary">Search</button>
+            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -321,9 +325,7 @@ export default function AdminLandlords() {
 
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
-                        {l.user_name && l.user_name !== l.name && (
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>User: {l.user_name}</div>
-                        )}
+                        
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
@@ -374,77 +376,7 @@ export default function AdminLandlords() {
 
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          {/* Pending -> Grant Access / Approve */}
-                          {isPending && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Approve & Grant Login Access"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                borderRadius: '6px',
-                                border: '1px solid #fef08a',
-                                background: '#fefce8',
-                                color: '#a16207',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <ShieldCheck size={13} />
-                              Approve
-                            </button>
-                          )}
-
-                          {/* Active -> Deactivate */}
-                          {isActive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'INACTIVE')}
-                              title="Deactivate account access"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                borderRadius: '6px',
-                                border: '1px solid #fee2e2',
-                                background: '#fef2f2',
-                                color: '#dc2626',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <XCircle size={13} />
-                              Deactivate
-                            </button>
-                          )}
-
-                          {/* Inactive -> Activate */}
-                          {isInactive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Reactivate account"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                borderRadius: '6px',
-                                border: '1px solid #dcfce7',
-                                background: '#f0fdf4',
-                                color: '#15803d',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <CheckCircle size={13} />
-                              Activate
-                            </button>
-                          )}
+                          
 
                           {/* Create Login / Reset Credentials button */}
                           <button
@@ -467,6 +399,36 @@ export default function AdminLandlords() {
                             <KeyRound size={13} />
                             Credentials
                           </button>
+
+                            {/* Edit */}
+                            <button title="Edit" onClick={() => {
+                                setAddFormData({
+                                  id: l.id,
+                                  name: l.name || '',
+                                  email: l.email || l.landlord_email || '',
+                                  pan: l.pan || '',
+                                  gstin: l.gstin || '',
+                                  contact_details: l.contact_details || '',
+                                  billing_address: l.billing_address || '',
+                                  gst_registered: !!l.gst_registered,
+                                  default_invoice_template: l.default_invoice_template || 'Template A (Standard)',
+                                  is_active: (l.status || '').toUpperCase() === 'ACTIVE'
+                                });
+                                setAddModalOpen(true);
+                            }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={13} /> Edit</button>
+
+                            {/* Delete */}
+                            <button title="Delete" onClick={async () => {
+                              if(window.confirm('Are you sure you want to delete this landlord?')) {
+                                try {
+                                  await fetch('/api/master-data/landlords/' + l.id, { method: 'DELETE' });
+                                  fetchLandlords();
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                              }
+                            }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={13} /> Delete</button>
+
 
                           {/* View Details */}
                           <button
@@ -1006,6 +968,29 @@ export default function AdminLandlords() {
                   <option value="Template E (Detailed GST Breakdown)">Template E (Detailed GST Breakdown)</option>
                 </select>
               </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Status
+                  </label>
+                  <select
+                    value={addFormData.is_active ? 'Active' : 'Inactive'}
+                    onChange={(e) => setAddFormData({ ...addFormData, is_active: e.target.value === 'Active' })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      backgroundColor: '#fff'
+                    }}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button

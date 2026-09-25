@@ -67,7 +67,7 @@ export default function LandlordDashboard() {
     );
   }
 
-  const { landlord, summaryCards, charts, invoices = [] } = data || {
+  const { landlord, summaryCards, charts, invoices = [], properties = [], tenants = [] } = data || {
     landlord: {
       name: user?.landlord_name || user?.full_name,
       id: user?.landlord_id,
@@ -103,29 +103,10 @@ export default function LandlordDashboard() {
         boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.25)'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{
-              background: '#2563eb',
-              color: '#ffffff',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '3px 10px',
-              borderRadius: '9999px',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase'
-            }}>
-              Landlord Portal
-            </span>
-            <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>
-              Account: <strong>{landlord?.name || user?.full_name}</strong> (ID: {landlord?.id || user?.landlord_id})
-            </span>
-          </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
             My Estate & Invoicing Overview
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '4px 0 0 0' }}>
-            Self-scoped properties, tenants, and billing records
-          </p>
+          
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -428,202 +409,6 @@ export default function LandlordDashboard() {
       </div>
 
 
-      {/* Landlord Charts Row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
-        gap: '20px',
-        marginBottom: '28px'
-      }}>
-        {/* Monthly Revenue Trend */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                My Monthly Rental Revenue
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                Total rent invoiced for your properties
-              </p>
-            </div>
-            <TrendingUp size={20} color="#059669" />
-          </div>
-
-          {charts.monthlyRevenue?.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-              No billing history found for your properties yet.
-            </div>
-          ) : (
-            <div style={{ height: '220px', display: 'flex', alignItems: 'flex-end', gap: '20px', paddingTop: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              {charts.monthlyRevenue?.map((m, idx) => {
-                const heightPercent = Math.max(Math.round((m.billed / maxRevenue) * 160), 20);
-                return (
-                  <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1e293b' }}>
-                      {formatCurrency(m.billed)}
-                    </span>
-                    <div style={{
-                      width: '32px',
-                      height: `${heightPercent}px`,
-                      background: 'linear-gradient(180deg, #10b981 0%, #047857 100%)',
-                      borderRadius: '6px 6px 0 0'
-                    }} />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                      {m.period}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
-
-        {/* Invoice Status Breakdown */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                My Invoice Status Breakdown
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                Status of all invoices issued for your properties
-              </p>
-            </div>
-            <PieChart size={20} color="#059669" />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', margin: '20px 0' }}>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Draft</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#475569' }}>{charts.invoiceStatus?.Draft || 0}</div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Awaiting review</span>
-            </div>
-
-            <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '14px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8', marginBottom: '6px' }}>Generated</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e40af' }}>{charts.invoiceStatus?.Generated || 0}</div>
-              <span style={{ fontSize: '0.7rem', color: '#3b82f6' }}>Finalized</span>
-            </div>
-
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '14px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#047857', marginBottom: '6px' }}>Sent</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#065f46' }}>{charts.invoiceStatus?.Sent || 0}</div>
-              <span style={{ fontSize: '0.7rem', color: '#10b981' }}>Dispatched</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Invoices for this Landlord */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 2px 0' }}>
-              Recent Invoices for My Estate
-            </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-              Scoped exclusively to your properties in Supabase
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/landlord/invoices')}
-            style={{
-              fontSize: '0.82rem',
-              color: '#2563eb',
-              background: 'none',
-              border: 'none',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            View All My Invoices
-            <ArrowUpRight size={14} />
-          </button>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Invoice #</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Period</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Property</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Rent Amount</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Total Amount</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
-                    No invoices generated for your properties yet.
-                  </td>
-                </tr>
-              ) : (
-                invoices.map((inv, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: '#2563eb' }}>
-                      {inv.invoice_number}
-                    </td>
-                    <td style={{ padding: '12px 14px', color: '#475569' }}>
-                      {inv.billing_period}
-                    </td>
-                    <td style={{ padding: '12px 14px', color: '#1e293b' }}>
-                      {inv.property_name || `Property #${inv.property_id}`}
-                    </td>
-                    <td style={{ padding: '12px 14px', color: '#64748b', textAlign: 'right' }}>
-                      {formatCurrency(inv.rent_amount)}
-                    </td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>
-                      {formatCurrency(inv.total_amount)}
-                    </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '3px 10px',
-                        borderRadius: '9999px',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        background:
-                          inv.status === 'Sent' ? '#dcfce7' :
-                          inv.status === 'Generated' ? '#dbeafe' : '#f1f5f9',
-                        color:
-                          inv.status === 'Sent' ? '#15803d' :
-                          inv.status === 'Generated' ? '#1e40af' : '#475569'
-                      }}>
-                        {inv.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
   );
 }
-

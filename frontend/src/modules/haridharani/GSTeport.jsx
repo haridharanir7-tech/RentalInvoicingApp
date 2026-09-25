@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import { BarChart3, FileSpreadsheet, User, Calendar, Download } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
 export default function GSTReport() {
+  const { user, isLandlord } = useAuth();
   const [reportData, setReportData] = useState([]);
   const [totals, setTotals] = useState({
     taxableValue: 0,
@@ -15,13 +17,13 @@ export default function GSTReport() {
   });
 
   const [monthFilter, setMonthFilter] = useState('all');
-  const [landlordFilter, setLandlordFilter] = useState('all');
+  const [landlordFilter, setLandlordFilter] = useState(isLandlord ? user.landlord_id : 'all');
   const [landlords, setLandlords] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Pagination
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   useEffect(() => {
     fetchFilters();
@@ -259,12 +261,9 @@ export default function GSTReport() {
       {/* Pagination container */}
       <div className="pagination-container">
         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Showing {reportData.length > 0 ? (page - 1) * pageSize + 1 : 0} to{' '}
-          {Math.min(page * pageSize, reportData.length)} of {reportData.length} tax record
-          {reportData.length !== 1 ? 's' : ''}
+          Showing {reportData.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, reportData.length)} of {reportData.length} entries
         </div>
-        {totalPages > 1 && (
-          <div className="pagination-controls">
+        <div className="pagination-controls">
             <button
               className="page-btn"
               disabled={page <= 1}
@@ -280,7 +279,6 @@ export default function GSTReport() {
               Next
             </button>
           </div>
-        )}
       </div>
     </div>
   );

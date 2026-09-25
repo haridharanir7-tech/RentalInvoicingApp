@@ -19,6 +19,8 @@ import {
 export default function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [landlords, setLandlords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -117,6 +119,9 @@ export default function UserManagement() {
     );
   });
 
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+  const paginatedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       {/* Page Title & Actions */}
@@ -213,14 +218,14 @@ export default function UserManagement() {
                   Loading user accounts...
                 </td>
               </tr>
-            ) : filteredUsers.length === 0 ? (
+            ) : paginatedUsers.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No user accounts found matching your search.
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => {
+              paginatedUsers.map((u) => {
                 const isSelf = currentUser?.id === u.id;
                 return (
                   <tr key={u.id}>
@@ -291,6 +296,16 @@ export default function UserManagement() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {filteredUsers.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredUsers.length)} of {filteredUsers.length} entries
+        </div>
+        <div className="pagination-controls">
+            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+          </div>
       </div>
 
       {/* Create User Modal */}

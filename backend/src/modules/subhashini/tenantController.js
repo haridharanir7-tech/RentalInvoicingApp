@@ -86,7 +86,7 @@ exports.deactivateTenant = async (req, res) => {
     try {
         const { id } = req.params;
         // Marking as vacated when deactivated
-        const query = `UPDATE tenants SET status = 'Vacated', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
+        const query = `UPDATE tenants SET status = CASE WHEN status = 'Active' THEN 'Inactive' ELSE 'Active' END, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
         const result = await db.query(query, [id]);
         
         if (result.rows.length === 0) {

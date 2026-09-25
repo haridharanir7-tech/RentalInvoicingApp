@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
 import { CheckCircle, Clock, XCircle, RefreshCw } from 'lucide-react';
 
 export default function OccupancyReport() {
+  const { user, isLandlord } = useAuth();
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,12 +19,18 @@ export default function OccupancyReport() {
 
   useEffect(() => {
     fetchReport(page, searchQuery, statusFilter);
-  }, [page, statusFilter]);
+  }, [page, statusFilter, isLandlord, user?.landlord_id]);
 
   const fetchReport = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
+    if (isLandlord && !user?.landlord_id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const res = await fetch(`/api/master-data/reports/occupancy?page=${overridePage}&limit=10&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}`);
+      const landlordParam = isLandlord && user?.landlord_id ? `&landlord_id=${user.landlord_id}` : '';
+      const url = `/api/master-data/reports/occupancy?page=${overridePage}&limit=10&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${landlordParam}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setReportData(data.data || []);

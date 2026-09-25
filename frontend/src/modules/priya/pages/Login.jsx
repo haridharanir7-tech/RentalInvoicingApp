@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Building2, Lock, Mail, AlertCircle, CheckCircle, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('ragul@gmail.com');
-  const [password, setPassword] = useState('Ragul@123');
+  const { isAuthenticated, user: authUser } = useAuth();
+  React.useEffect(() => {
+    if (isAuthenticated && authUser) {
+      if ((authUser.role || '').toLowerCase() === 'admin') window.location.href = '/admin/dashboard';
+      else window.location.href = '/landlord/dashboard';
+    }
+  }, [isAuthenticated, authUser]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -19,9 +27,9 @@ export default function Login() {
     try {
       const loggedUser = await login(email, password);
       if ((loggedUser.role || '').toLowerCase() === 'admin') {
-        navigate('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else {
-        navigate('/landlord/dashboard');
+        window.location.href = '/landlord/dashboard';
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
@@ -31,11 +39,7 @@ export default function Login() {
     }
   };
 
-  const handleDemoFill = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
-  };
+
 
   return (
     <div style={{
@@ -70,7 +74,7 @@ export default function Login() {
             <Building2 size={32} color="#2563eb" />
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
-            Rental Invoicing Portal
+            Rental Portal
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0 }}>
             Sign in to access your properties, invoices, and reports
@@ -135,14 +139,14 @@ export default function Login() {
             <div style={{ position: 'relative' }}>
               <Lock size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '11px' }} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 style={{
                   width: '100%',
-                  padding: '10px 12px 10px 38px',
+                  padding: '10px 40px 10px 38px',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
                   fontSize: '0.9rem',
@@ -150,6 +154,25 @@ export default function Login() {
                   boxSizing: 'border-box'
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '11px',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
@@ -179,141 +202,7 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Quick Demo Credentials */}
-        <div style={{
-          marginTop: '26px',
-          paddingTop: '20px',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px 0' }}>
-            Quick Demo Logins (1-Click Fill):
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => handleDemoFill('ragul@gmail.com', 'Ragul@123')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                background: '#eff6ff',
-                border: '1.5px solid #3b82f6',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <strong style={{ color: '#1d4ed8' }}>Ragul (Admin - Full Access)</strong>
-                <div style={{ color: '#2563eb', fontSize: '0.75rem' }}>ragul@gmail.com</div>
-              </div>
-              <span style={{ background: '#2563eb', color: '#ffffff', padding: '3px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
-                Admin
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDemoFill('admin@rentalapp.com', 'Admin@123')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <strong style={{ color: '#1e293b' }}>Primary Administrator</strong>
-                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>admin@rentalapp.com</div>
-              </div>
-              <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
-                Admin
-              </span>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => handleDemoFill('admin1@rentalapp.com', 'Admin1#Rental801')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <strong style={{ color: '#1e293b' }}>Administrator (Admin 1)</strong>
-                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>admin1@rentalapp.com</div>
-              </div>
-              <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
-                Admin
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoFill('karan@gmail.com', 'Karan#Pass901')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <strong style={{ color: '#1e293b' }}>karan (Landlord #13)</strong>
-                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>karan@gmail.com</div>
-              </div>
-              <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
-                Landlord
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoFill('rameshkumar@gmail.com', 'RameshK#Rent902')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                textAlign: 'left'
-              }}
-            >
-              <div>
-                <strong style={{ color: '#1e293b' }}>Ramesh Kumar (Landlord #12)</strong>
-                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>rameshkumar@gmail.com</div>
-              </div>
-              <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '0.72rem' }}>
-                Landlord
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

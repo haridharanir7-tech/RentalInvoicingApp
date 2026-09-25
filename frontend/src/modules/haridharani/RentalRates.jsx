@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, History, X, Check, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, History, X, Check, AlertCircle, CheckCircle, XCircle, Edit, Trash2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -111,7 +111,39 @@ export default function RentalRates() {
     }));
   };
 
-  const openHistoryModal = async (rate) => {
+  const handleEditRate = (rate) => {
+        setFormData({
+          rate_id: rate.rate_id,
+          landlord_id: rate.landlord_id || '',
+          property_id: rate.property_id || '',
+          tenant_id: rate.tenant_id || '',
+          monthly_rent: rate.monthly_rent || 0,
+          maintenance_charges: rate.maintenance_charges || 0,
+          parking_charges: rate.parking_charges || 0,
+          tax_supply_type: rate.tax_supply_type || 'intra_state',
+          gst_rate: rate.gst_rate || 0,
+          gst_applicable: rate.gst_applicable || false,
+          is_custom_gst: true,
+          effective_from: rate.effective_from ? rate.effective_from.substring(0, 10) : '',
+          effective_to: rate.effective_to ? rate.effective_to.substring(0, 10) : '',
+          change_reason: ''
+        });
+        setModalOpen(true);
+      };
+
+    const handleDeleteRate = async (id) => {
+      if (window.confirm("Are you sure you want to delete this rental rate?")) {
+        try {
+          await axios.delete(`${API_BASE}/rental-rates/${id}`);
+          alert("Rental rate deleted successfully from database!");
+          fetchRates();
+        } catch (e) {
+          alert("Failed to delete rental rate.");
+        }
+      }
+    };
+
+    const openHistoryModal = async (rate) => {
     try {
       setHistoryItem(rate);
       const res = await axios.get(`${API_BASE}/rental-rates/history/${rate.rate_id}`);
@@ -180,7 +212,9 @@ export default function RentalRates() {
         change_reason: formData.change_reason || 'Rate Revision'
       };
 
-      const res = await axios.post(`${API_BASE}/rental-rates`, payload);
+      let res;
+      res = await axios.post(`${API_BASE}/rental-rates`, payload);
+      alert(formData.rate_id ? "Rental rate updated successfully in database!" : "Rental rate created successfully in database!");
       if (res.data.success) {
         setFormSuccess('Rental rate saved successfully!');
         fetchRates();
@@ -392,8 +426,10 @@ export default function RentalRates() {
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <button
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <button title="Edit" onClick={() => handleEditRate(rate)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={14} /> Edit</button>
+                          <button title="Delete" onClick={() => handleDeleteRate(rate.rate_id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={14} /> Delete</button>
+                          <button
                           className="btn btn-secondary"
                           style={{
                             padding: '5px 12px',
