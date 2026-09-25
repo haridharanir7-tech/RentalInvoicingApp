@@ -6,6 +6,8 @@ import { FileSpreadsheet, Download, Filter, Search, RefreshCw, FileText } from '
 export default function InvoiceRegister() {
   const { user, isLandlord } = useAuth();
   const [invoices, setInvoices] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [totals, setTotals] = useState(null);
   const [period, setPeriod] = useState('');
   const [status, setStatus] = useState('');
@@ -234,14 +236,14 @@ export default function InvoiceRegister() {
                   Loading invoice register data...
                 </td>
               </tr>
-            ) : filteredInvoices.length === 0 ? (
+            ) : paginatedInvoices.length === 0 ? (
               <tr>
                 <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No invoices found matching the selected filters.
                 </td>
               </tr>
             ) : (
-              filteredInvoices.map((inv) => (
+              paginatedInvoices.map((inv) => (
                 <tr key={inv.id}>
                   <td>
                     <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0f172a' }}>
@@ -282,6 +284,16 @@ export default function InvoiceRegister() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredInvoices.length)} of {filteredInvoices.length} entries
+        </div>
+        <div className="pagination-controls">
+            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+          </div>
       </div>
     </div>
   );

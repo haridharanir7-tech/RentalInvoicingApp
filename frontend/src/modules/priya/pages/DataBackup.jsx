@@ -15,6 +15,8 @@ import {
 
 export default function DataBackup() {
   const [backups, setBackups] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -202,14 +204,14 @@ export default function DataBackup() {
                   Loading backup archives...
                 </td>
               </tr>
-            ) : backups.length === 0 ? (
+            ) : paginatedBackups.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No backup archives found. Click 'Backup System Now' to create one.
                 </td>
               </tr>
             ) : (
-              backups.map((b) => (
+              paginatedBackups.map((b) => (
                 <tr key={b.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -282,6 +284,16 @@ export default function DataBackup() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {backups.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, backups.length)} of {backups.length} entries
+        </div>
+        <div className="pagination-controls">
+            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+          </div>
       </div>
 
       {/* Restore Test Report Modal */}

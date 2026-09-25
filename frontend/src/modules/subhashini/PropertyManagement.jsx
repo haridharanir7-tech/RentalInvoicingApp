@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
+import { Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function PropertyManagement() {
+  const { user, isLandlord } = useAuth();
   const [properties, setProperties] = useState([]);
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
-    landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: ''
+    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -30,8 +32,7 @@ export default function PropertyManagement() {
 
   const fetchLandlordsForDropdown = async () => {
     try {
-      // Get all active landlords for the dropdown (no pagination)
-      const res = await fetch('http://localhost:5000/api/master-data/landlords?limit=1000&status=active');
+      const res = await fetch('/api/master-data/landlords?limit=1000&status=active');
       if (res.ok) {
         const data = await res.json();
         setLandlords(data.data || []);
@@ -43,14 +44,15 @@ export default function PropertyManagement() {
 
   const fetchProperties = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/properties?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const url = `/api/master-data/properties?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch properties');
       const data = await res.json();
-      setProperties(data.data);
-      setTotalPages(data.pagination.totalPages);
-      setTotalRecords(data.pagination.total);
+      setProperties(data.data || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching properties:', err);
     }
   };
 
@@ -73,7 +75,14 @@ export default function PropertyManagement() {
   };
 
   const handleEdit = (property) => {
-    setFormData(property);
+    setFormData({
+      landlord_id: property.landlord_id || (isLandlord ? user.landlord_id : ''),
+      name: property.name || '',
+      address: property.address || '',
+      property_type: property.property_type || 'Commercial',
+      total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : '',
+        is_active: property.is_active !== false
+    });
     setEditingId(property.id);
     setShowForm(true);
     window.scrollTo(0, 0);
@@ -83,7 +92,7 @@ export default function PropertyManagement() {
     if (!window.confirm("Are you sure you want to delete this property?")) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/properties/${id}`, {
+      const res = await fetch(`/api/master-data/properties/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete property');
@@ -109,14 +118,23 @@ export default function PropertyManagement() {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/master-data/properties/${editingId}` 
-        : 'http://localhost:5000/api/master-data/properties';
+        ? `/api/master-data/properties/${editingId}` 
+        : '/api/master-data/properties';
       const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        landlord_id: parseInt(formData.landlord_id, 10),
+        name: formData.name.trim(),
+        address: formData.address || '',
+        property_type: formData.property_type || 'Commercial',
+        total_area: formData.total_area && formData.total_area !== '' ? parseFloat(formData.total_area) : null,
+        is_active: formData.is_active !== false
+      };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       if (!res.ok) {
@@ -129,10 +147,10 @@ export default function PropertyManagement() {
       }
       
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
-      setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true });
       setEditingId(null);
       fetchProperties();
-      setTimeout(() => setShowForm(false), 1500); // Hide form after success
+      setTimeout(() => setShowForm(false), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -142,17 +160,22 @@ export default function PropertyManagement() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Property Management</h2>
-        <button className="btn btn-primary" onClick={() => {
-          setShowForm(true);
-          setEditingId(null);
-          setFormData({ landlord_id: '', name: '', address: '', property_type: 'Commercial', total_area: '' });
-          setSuccess('');
-          setError('');
-        }}>
-          + Add Property
-        </button>
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Property Management</h2>
+          <p className="page-subtitle">Manage commercial & residential real estate units and landlords</p>
+        </div>
+        <div className="page-actions">
+          {!isLandlord && (<button className="btn btn-primary" onClick={() => {
+            setShowForm(true);
+            setEditingId(null);
+            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+            setSuccess('');
+            setError('');
+          }}>
+            + Add Property
+          </button>)}
+        </div>
       </div>
 
       {showForm && (
@@ -169,22 +192,41 @@ export default function PropertyManagement() {
               <div className="flex-row">
                 <div className="form-group flex-1">
                   <label>Property Name *</label>
-                  <input type="text" className="form-input" name="name" value={formData.name} onChange={handleChange} required />
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    name="name" 
+                    placeholder="e.g. Skyline Towers, Block B"
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    required 
+                  />
                 </div>
-                <div className="form-group flex-1">
-                  <label>Landlord / Owner *</label>
-                  <select className="form-input" name="landlord_id" value={formData.landlord_id} onChange={handleChange} required>
+                {!isLandlord && (
+                  <div className="form-group flex-1">
+                    <label>Landlord / Owner *</label>
+                    <select className="form-input" name="landlord_id" value={formData.landlord_id} onChange={handleChange} required>
                     <option value="">Select Landlord</option>
                     {landlords.map(l => (
-                      <option key={l.id} value={l.id}>{l.name}</option>
+                      <option key={l.id} value={l.id}>
+                        {l.name} {l.email || l.landlord_email ? `(${l.email || l.landlord_email})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
+              )}
               </div>
 
               <div className="form-group">
                 <label>Address</label>
-                <textarea className="form-input" name="address" value={formData.address} onChange={handleChange} rows="2"></textarea>
+                <textarea 
+                  className="form-input" 
+                  name="address" 
+                  placeholder="e.g. Plot No. 12, Outer Ring Road, Marathahalli, Bengaluru 560037"
+                  value={formData.address} 
+                  onChange={handleChange} 
+                  rows="2"
+                />
               </div>
 
               <div className="flex-row">
@@ -198,9 +240,27 @@ export default function PropertyManagement() {
                 </div>
                 <div className="form-group flex-1">
                   <label>Total Area (sq ft)</label>
-                  <input type="number" step="0.01" className="form-input" name="total_area" value={formData.total_area} onChange={handleChange} />
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0"
+                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'Subtract') e.preventDefault(); }}
+                    placeholder="e.g. 2400"
+                    className="form-input" 
+                    name="total_area" 
+                    value={formData.total_area} 
+                    onChange={handleChange} 
+                  />
                 </div>
-              </div>
+              
+<div className="form-group flex-1">
+                  <label>Status</label>
+                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+</div>
 
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
@@ -213,8 +273,7 @@ export default function PropertyManagement() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h3 style={{ margin: 0 }}>Existing Properties</h3>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
             <input 
@@ -223,7 +282,7 @@ export default function PropertyManagement() {
               placeholder="Search property, address..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '200px' }}
+              style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
             <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
@@ -249,8 +308,8 @@ export default function PropertyManagement() {
               <th>Property Name</th>
               <th>Type & Area</th>
               <th>Landlord</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -266,18 +325,55 @@ export default function PropertyManagement() {
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{p.total_area ? `${p.total_area} sq ft` : ''}</div>
                 </td>
                 <td>{p.landlord_name || 'N/A'}</td>
-                <td>
+                <td style={{ textAlign: 'center' }}>
                   <span className={p.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                    {p.is_active ? <CheckCircle size={13} /> : <XCircle size={13} />}
                     {p.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td>
-                  <button onClick={() => handleEdit(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }} title="Edit">
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                <td style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => handleEdit(p)}
+                      title="Edit"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #dbeafe',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      title="Delete"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #fee2e2',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

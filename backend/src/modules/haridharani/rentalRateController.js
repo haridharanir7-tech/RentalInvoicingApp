@@ -309,3 +309,14 @@ exports.saveRentalRate = async (req, res) => {
     res.status(500).json({ success: false, error: 'Database error saving rental rate' });
   }
 };
+
+exports.deleteRentalRate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM ratehistory WHERE rate_id = $1', [parseInt(id, 10)]);
+    await db.query('DELETE FROM rentalrate WHERE rate_id = $1', [parseInt(id, 10)]);
+    return res.status(200).json({ success: true, message: 'Deleted successfully' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};

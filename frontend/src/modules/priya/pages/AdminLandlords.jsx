@@ -16,7 +16,11 @@ import {
   Mail,
   FileText,
   Copy,
-  Check
+  Check,
+  Plus,
+  X,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 export default function AdminLandlords() {
@@ -25,12 +29,27 @@ export default function AdminLandlords() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [search, setSearch] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL'); // ALL, PENDING, ACTIVE, INACTIVE
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   // Modal States
   const [selectedLandlord, setSelectedLandlord] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addingLandlord, setAddingLandlord] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    name: '',
+    email: '',
+    pan: '',
+    gstin: '',
+    contact_details: '',
+    billing_address: '',
+    gst_registered: false,
+    default_invoice_template: 'Template A (Standard)', is_active: true
+  });
 
   // Grant Access Form
   const [accessEmail, setAccessEmail] = useState('');
@@ -38,6 +57,39 @@ export default function AdminLandlords() {
   const [generatedTempPass, setGeneratedTempPass] = useState('');
   const [copied, setCopied] = useState(false);
   const [submittingAccess, setSubmittingAccess] = useState(false);
+
+  const handleAddLandlordSubmit = async (e) => {
+    e.preventDefault();
+    if (!addFormData.name.trim()) {
+      setError('Landlord name is required.');
+      return;
+    }
+    setAddingLandlord(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/master-data/landlords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addFormData)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create landlord');
+      }
+      setSuccessMsg(`Landlord "${addFormData.name}" added successfully.`);
+      setAddModalOpen(false);
+      setAddFormData({
+        name: '', email: '', pan: '', gstin: '', contact_details: '',
+        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
+        });
+      fetchLandlords();
+    } catch (err) {
+      setError(err.message || 'Failed to add landlord.');
+    } finally {
+      setAddingLandlord(false);
+    }
+  };
 
   const fetchLandlords = async () => {
     setLoading(true);
@@ -49,7 +101,7 @@ export default function AdminLandlords() {
       }
     } catch (err) {
       console.error('Failed to load landlords:', err);
-      setError(err.response?.data?.message || 'Failed to retrieve landlords from Supabase.');
+      setError(err.response?.data?.message || 'Failed to retrieve landlords.');
     } finally {
       setLoading(false);
     }
@@ -66,11 +118,11 @@ export default function AdminLandlords() {
     try {
       const res = await adminLandlordApi.updateStatus(landlordId, newStatus);
       if (res.data.success) {
-        setSuccessMsg(res.data.message);
-        fetchLandlords();
+        alert(res.data.message || 'Status updated successfully!');
+          fetchLandlords();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update landlord status.');
+      alert(err.response?.data?.message || 'Failed to update landlord status.');
     }
   };
 
@@ -138,52 +190,28 @@ export default function AdminLandlords() {
     return matchesSearch;
   });
 
+  const totalPages = Math.ceil(filteredLandlords.length / pageSize) || 1;
+  const paginatedLandlords = filteredLandlords.slice((page - 1) * pageSize, page * pageSize);
+
   const pendingCount = landlords.filter((l) => (l.status || '').toUpperCase() === 'PENDING').length;
 
   return (
-    <div style={{ maxWidth: '1380px', margin: '0 auto', padding: '10px 0 40px 0' }}>
-      {/* Top Header */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
+    <div className="card">
+      <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-              ADMIN ACCESS CONTROL
-            </span>
-          </div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Landlord Directory & Access Management
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-            Connected directly to Subhashini's `landlords` table in Supabase PostgreSQL
-          </p>
+          <h2 className="page-title">Landlords</h2>
+          <p className="page-subtitle">Manage landlord profiles, tax credentials, and access</p>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="page-actions">
           <button
-            onClick={fetchLandlords}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              color: '#334155',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              cursor: 'pointer'
+            className="btn btn-primary"
+            onClick={() => {
+              setAddModalOpen(true);
+              setError('');
+              setSuccessMsg('');
             }}
           >
-            <RefreshCw size={14} />
-            Refresh
+            + Add Landlord
           </button>
         </div>
       </div>
@@ -225,107 +253,54 @@ export default function AdminLandlords() {
         </div>
       )}
 
-      {/* Controls: Filter Tabs & Search */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '14px',
-        marginBottom: '20px',
-        background: '#ffffff',
-        padding: '16px 20px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-      }}>
-        {/* Filter Tabs */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {[
-            { id: 'ALL', label: 'All Landlords', count: landlords.length },
-            { id: 'PENDING', label: 'Pending Approvals', count: pendingCount, highlight: pendingCount > 0 },
-            { id: 'ACTIVE', label: 'Active', count: landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length },
-            { id: 'INACTIVE', label: 'Inactive', count: landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilterTab(tab.id)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '8px',
-                border: filterTab === tab.id ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                background: filterTab === tab.id ? '#eff6ff' : '#ffffff',
-                color: filterTab === tab.id ? '#1d4ed8' : '#64748b',
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>{tab.label}</span>
-              <span style={{
-                background: tab.highlight ? '#fef3c7' : filterTab === tab.id ? '#dbeafe' : '#f1f5f9',
-                color: tab.highlight ? '#d97706' : filterTab === tab.id ? '#1e40af' : '#64748b',
-                padding: '1px 6px',
-                borderRadius: '9999px',
-                fontSize: '0.72rem',
-                fontWeight: 700
-              }}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Search Input */}
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '10px' }} />
-          <input
-            type="text"
-            placeholder="Search by name, email, PAN..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 36px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.85rem',
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
+      {/* Filter / Search Bar matching Property & Tenant modules */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="filter-bar" style={{ margin: 0 }}>
+          <form onSubmit={(e) => { e.preventDefault(); setAppliedSearch(search); setPage(1); }} style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Search landlord, email, PAN..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '220px' }}
+            />
+            <button type="submit" className="btn btn-secondary">Search</button>
+            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
+          </form>
+          <select 
+            className="form-input" 
+            value={filterTab} 
+            onChange={(e) => { setFilterTab(e.target.value); setPage(1); }}
+            style={{ width: '150px' }}
+          >
+            <option value="ALL">All Statuses ({landlords.length})</option>
+            <option value="ACTIVE">Active ({landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length})</option>
+            <option value="PENDING">Pending ({pendingCount})</option>
+            <option value="INACTIVE">Inactive ({landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length})</option>
+          </select>
         </div>
       </div>
 
-      {/* Landlords Table */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>ID</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Landlord Name</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Contact Info</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>Tax Details</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Properties</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Account Status</th>
-                <th style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Admin Actions</th>
-              </tr>
-            </thead>
+      {/* Landlords Table Container */}
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Landlord Name</th>
+              <th>Contact Info</th>
+              <th>Tax Details</th>
+              <th style={{ textAlign: 'center', width: '110px' }}>Properties</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '220px' }}>Actions</th>
+            </tr>
+          </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    Loading landlords from Supabase...
+                    Loading landlords...
                   </td>
                 </tr>
               ) : filteredLandlords.length === 0 ? (
@@ -335,7 +310,7 @@ export default function AdminLandlords() {
                   </td>
                 </tr>
               ) : (
-                filteredLandlords.map((l) => {
+                paginatedLandlords.map((l) => {
                   const statusUpper = (l.status || '').toUpperCase();
                   const isPending = statusUpper === 'PENDING';
                   const isActive = statusUpper === 'ACTIVE';
@@ -350,9 +325,7 @@ export default function AdminLandlords() {
 
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
-                        {l.user_name && l.user_name !== l.name && (
-                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>User: {l.user_name}</div>
-                        )}
+                        
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
@@ -401,93 +374,61 @@ export default function AdminLandlords() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          {/* Pending -> Grant Access / Approve */}
-                          {isPending && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Approve & Grant Login Access"
-                              style={{
-                                padding: '5px 12px',
-                                background: '#16a34a',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.76rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <ShieldCheck size={13} />
-                              Approve
-                            </button>
-                          )}
-
-                          {/* Active -> Deactivate */}
-                          {isActive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'INACTIVE')}
-                              title="Deactivate account access"
-                              style={{
-                                padding: '5px 10px',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                border: '1px solid #fecaca',
-                                borderRadius: '6px',
-                                fontSize: '0.76rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Deactivate
-                            </button>
-                          )}
-
-                          {/* Inactive -> Activate */}
-                          {isInactive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Reactivate account"
-                              style={{
-                                padding: '5px 10px',
-                                background: '#ecfdf5',
-                                color: '#047857',
-                                border: '1px solid #a7f3d0',
-                                borderRadius: '6px',
-                                fontSize: '0.76rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Activate
-                            </button>
-                          )}
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          
 
                           {/* Create Login / Reset Credentials button */}
                           <button
                             onClick={() => openAccessModal(l)}
                             title="Manage Login Credentials"
                             style={{
-                              padding: '5px 8px',
-                              background: '#f1f5f9',
-                              color: '#334155',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '6px',
-                              fontSize: '0.76rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              gap: '4px',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid #dbeafe',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer'
                             }}
                           >
                             <KeyRound size={13} />
                             Credentials
                           </button>
+
+                            {/* Edit */}
+                            <button title="Edit" onClick={() => {
+                                setAddFormData({
+                                  id: l.id,
+                                  name: l.name || '',
+                                  email: l.email || l.landlord_email || '',
+                                  pan: l.pan || '',
+                                  gstin: l.gstin || '',
+                                  contact_details: l.contact_details || '',
+                                  billing_address: l.billing_address || '',
+                                  gst_registered: !!l.gst_registered,
+                                  default_invoice_template: l.default_invoice_template || 'Template A (Standard)',
+                                  is_active: (l.status || '').toUpperCase() === 'ACTIVE'
+                                });
+                                setAddModalOpen(true);
+                            }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={13} /> Edit</button>
+
+                            {/* Delete */}
+                            <button title="Delete" onClick={async () => {
+                              if(window.confirm('Are you sure you want to delete this landlord?')) {
+                                try {
+                                  await fetch('/api/master-data/landlords/' + l.id, { method: 'DELETE' });
+                                  fetchLandlords();
+                                } catch (e) {
+                                  console.error(e);
+                                }
+                              }
+                            }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={13} /> Delete</button>
+
 
                           {/* View Details */}
                           <button
@@ -497,11 +438,15 @@ export default function AdminLandlords() {
                             }}
                             title="View Full Profile"
                             style={{
-                              padding: '5px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0',
                               background: '#f8fafc',
                               color: '#475569',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '6px',
                               cursor: 'pointer'
                             }}
                           >
@@ -516,7 +461,31 @@ export default function AdminLandlords() {
             </tbody>
           </table>
         </div>
-      </div>
+
+        {/* Pagination container matching other modules */}
+        <div className="pagination-container">
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            Showing {filteredLandlords.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredLandlords.length)} of {filteredLandlords.length} landlord{filteredLandlords.length !== 1 ? 's' : ''} ({landlords.length} total)
+          </div>
+          {totalPages > 1 && (
+            <div className="pagination-controls">
+              <button 
+                className="page-btn" 
+                disabled={page <= 1} 
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <button 
+                className="page-btn" 
+                disabled={page >= totalPages} 
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
 
       {/* Modal 1: View Landlord Details */}
       {viewModalOpen && selectedLandlord && (
@@ -783,6 +752,281 @@ export default function AdminLandlords() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Add Landlord Modal */}
+      {addModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '540px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Add New Landlord
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                  Create a new landlord record in the database
+                </p>
+              </div>
+              <button
+                onClick={() => setAddModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddLandlordSubmit}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Landlord / Entity Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={addFormData.name}
+                  onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                  placeholder="e.g. Ramesh Kumar"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={addFormData.email}
+                    onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                    placeholder="landlord@example.com"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.contact_details}
+                    onChange={(e) => setAddFormData({ ...addFormData, contact_details: e.target.value })}
+                    placeholder="+91 9876543210"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.pan}
+                    onChange={(e) => setAddFormData({ ...addFormData, pan: e.target.value.toUpperCase() })}
+                    placeholder="ABCDE1234F"
+                    maxLength={10}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    GSTIN
+                  </label>
+                  <input
+                    type="text"
+                    value={addFormData.gstin}
+                    onChange={(e) => setAddFormData({ ...addFormData, gstin: e.target.value.toUpperCase() })}
+                    placeholder="33AAAAA0000A1Z5"
+                    maxLength={15}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.88rem',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={addFormData.gst_registered}
+                    onChange={(e) => setAddFormData({ ...addFormData, gst_registered: e.target.checked })}
+                  />
+                  GST Registered Entity
+                </label>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Billing Address
+                </label>
+                <textarea
+                  value={addFormData.billing_address}
+                  onChange={(e) => setAddFormData({ ...addFormData, billing_address: e.target.value })}
+                  placeholder="Street, City, State, PIN"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                  Default Invoice Template
+                </label>
+                <select
+                  value={addFormData.default_invoice_template}
+                  onChange={(e) => setAddFormData({ ...addFormData, default_invoice_template: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.88rem',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="Template A (Standard)">Template A (Standard)</option>
+                  <option value="Template B (Compact)">Template B (Compact)</option>
+                  <option value="Template C (Corporate)">Template C (Corporate)</option>
+                  <option value="Template D (Modern Minimal)">Template D (Modern Minimal)</option>
+                  <option value="Template E (Detailed GST Breakdown)">Template E (Detailed GST Breakdown)</option>
+                </select>
+              </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                    Status
+                  </label>
+                  <select
+                    value={addFormData.is_active ? 'Active' : 'Inactive'}
+                    onChange={(e) => setAddFormData({ ...addFormData, is_active: e.target.value === 'Active' })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      backgroundColor: '#fff'
+                    }}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAddModalOpen(false)}
+                  style={{
+                    padding: '9px 16px',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingLandlord}
+                  style={{
+                    padding: '9px 20px',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: addingLandlord ? 'not-allowed' : 'pointer',
+                    fontSize: '0.84rem'
+                  }}
+                >
+                  {addingLandlord ? 'Saving...' : 'Add Landlord'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -186,7 +186,9 @@ const getLandlordDashboard = async (req, res) => {
           monthlyRevenue: monthlyRevenueChart,
           invoiceStatus
         },
-        invoices: invoices.slice(0, 5)
+        invoices: invoices.slice(0, 5),
+          properties: properties.slice(0, 5),
+          tenants: tenants.slice(0, 5)
       }
     });
   } catch (err) {

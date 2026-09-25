@@ -40,7 +40,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Error fetching admin dashboard:', err);
-      setError(err.response?.data?.message || 'Failed to load dashboard analytics from Supabase.');
+      setError(err.response?.data?.message || 'Failed to load dashboard analytics.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     return (
       <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
         <RefreshCw className="spin" size={32} style={{ margin: '0 auto 12px auto', display: 'block', color: '#2563eb' }} />
-        <p style={{ fontSize: '1rem', fontWeight: 500 }}>Connecting to Supabase and compiling system analytics...</p>
+        <p style={{ fontSize: '1rem', fontWeight: 500 }}>Loading system analytics...</p>
       </div>
     );
   }
@@ -92,29 +92,9 @@ export default function AdminDashboard() {
         boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.25)'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{
-              background: '#3b82f6',
-              color: '#ffffff',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              padding: '3px 10px',
-              borderRadius: '9999px',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase'
-            }}>
-              System Administrator
-            </span>
-            <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>
-              Logged in: <strong>{user?.full_name || 'Admin'}</strong> ({user?.email})
-            </span>
-          </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-            Rental Management Dashboard
+            Dashboard
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '4px 0 0 0' }}>
-            Real-time analytics and data connected directly to Supabase PostgreSQL
-          </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -207,11 +187,11 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Summary KPI Cards Grid (6 cards) */}
+      {/* Summary KPI Cards Grid (6 cards, 3 per row) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-        gap: '16px',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '20px',
         marginBottom: '28px'
       }}>
         {/* Card 1: Total Landlords */}
@@ -236,8 +216,8 @@ export default function AdminDashboard() {
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a' }}>
             {summaryCards.totalLandlords}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '6px', fontWeight: 600 }}>
-            Source: Supabase `landlords`
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px' }}>
+            Registered Landlords
           </div>
         </div>
 
@@ -337,7 +317,7 @@ export default function AdminDashboard() {
             {formatCurrency(summaryCards.totalRevenue)}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '6px', fontWeight: 600 }}>
-            Generated + Sent Billed
+            Billed Revenue
           </div>
         </div>
 
@@ -367,61 +347,6 @@ export default function AdminDashboard() {
           <div style={{ fontSize: '0.75rem', color: summaryCards.pendingApprovalsCount > 0 ? '#b45309' : '#64748b', marginTop: '6px', fontWeight: 600 }}>
             {summaryCards.pendingApprovalsCount > 0 ? 'Action required' : 'All accounts authorized'}
           </div>
-        </div>
-      </div>
-
-      {/* Quick Navigation Cards for Key Modules */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>
-          Quick Module Navigation
-        </h3>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px'
-        }}>
-          {[
-            { name: 'Landlords', path: '/admin/landlords', icon: Users, color: '#2563eb', desc: 'Approvals & Access' },
-            { name: 'Properties', path: '/admin/properties', icon: Building2, color: '#7c3aed', desc: 'Master Data (Subhashini)' },
-            { name: 'Tenants', path: '/admin/tenants', icon: Home, color: '#059669', desc: 'Tenants (Subhashini)' },
-            { name: 'Rental Rates', path: '/admin/rental-rates', icon: Percent, color: '#d97706', desc: 'Pricing (Haridharani)' },
-            { name: 'Generate Invoice', path: '/admin/generate-invoice', icon: FilePlus, color: '#ea580c', desc: 'Billing (Haridharani)' },
-            { name: 'Invoices', path: '/admin/invoices', icon: Receipt, color: '#0284c7', desc: 'Register (Haridharani)' },
-            { name: 'Invoice Template', path: '/admin/invoice-template', icon: FileCode, color: '#4f46e5', desc: 'Designer (Ragul)' },
-            { name: 'GST Report', path: '/admin/gst-report', icon: BarChart3, color: '#0d9488', desc: 'Compliance (Haridharani)' },
-            { name: 'Occupancy Report', path: '/admin/occupancy-report', icon: PieChart, color: '#e11d48', desc: 'Occupancy (Subhashini)' }
-          ].map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={idx}
-                onClick={() => navigate(item.path)}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: `${item.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={18} color={item.color} />
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                    {item.name}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                    {item.desc}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
@@ -644,7 +569,7 @@ export default function AdminDashboard() {
               Recent Invoices
             </h3>
             <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-              Latest billing records from Supabase
+              Latest billing records
             </p>
           </div>
           <button

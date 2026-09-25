@@ -12,6 +12,7 @@ ensureSchema().catch(err => console.error('[Haridharani DB Init Error]:', err));
 // 1. Rental Rate Configuration & Master Data Helpers
 router.get('/rental-rates', rentalRateController.getRentalRates);
 router.post('/rental-rates', rentalRateController.saveRentalRate);
+router.delete('/rental-rates/:id', rentalRateController.deleteRentalRate);
 router.get('/rental-rates/history/:tenantId', rentalRateController.getRateHistory);
 router.get('/properties-tenants', rentalRateController.getPropertiesAndTenants);
 

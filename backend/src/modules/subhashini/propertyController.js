@@ -7,16 +7,31 @@ exports.createProperty = async (req, res) => {
         if (!landlord_id) {
             return res.status(400).json({ error: 'landlord_id is required to associate property' });
         }
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Property name is required' });
+        }
+
+        const parsedArea = total_area !== undefined && total_area !== null && total_area !== '' 
+            ? parseFloat(total_area) 
+            : null;
 
         const query = `
             INSERT INTO properties (landlord_id, name, address, property_type, total_area, is_active)
             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
         `;
-        const values = [landlord_id, name, address, property_type, total_area, is_active !== false];
+        const values = [
+            parseInt(landlord_id, 10), 
+            name.trim(), 
+            address || '', 
+            property_type || 'Commercial', 
+            parsedArea, 
+            is_active !== false
+        ];
         
         const result = await db.query(query, values);
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        console.error('createProperty error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -26,12 +41,25 @@ exports.updateProperty = async (req, res) => {
         const { id } = req.params;
         const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
 
+        const parsedArea = total_area !== undefined && total_area !== null && total_area !== '' 
+            ? parseFloat(total_area) 
+            : null;
+
         const query = `
             UPDATE properties
-            SET landlord_id = $1, name = $2, address = $3, property_type = $4, total_area = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
+            SET landlord_id = $1, name = $2, address = $3, property_type = $4, 
+                total_area = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
             WHERE id = $7 RETURNING *;
         `;
-        const values = [landlord_id, name, address, property_type, total_area, is_active, id];
+        const values = [
+            landlord_id ? parseInt(landlord_id, 10) : null, 
+            name ? name.trim() : '', 
+            address || '', 
+            property_type || 'Commercial', 
+            parsedArea, 
+            is_active !== undefined ? is_active : true, 
+            id
+        ];
 
         const result = await db.query(query, values);
         if (result.rows.length === 0) {
@@ -39,6 +67,7 @@ exports.updateProperty = async (req, res) => {
         }
         res.json(result.rows[0]);
     } catch (error) {
+        console.error('updateProperty error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -46,7 +75,7 @@ exports.updateProperty = async (req, res) => {
 exports.deactivateProperty = async (req, res) => {
     try {
         const { id } = req.params;
-        const query = `UPDATE properties SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
+        const query = `UPDATE properties SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
         const result = await db.query(query, [id]);
         
         if (result.rows.length === 0) {
@@ -60,7 +89,7 @@ exports.deactivateProperty = async (req, res) => {
 
 exports.getProperties = async (req, res) => {
     try {
-        const { page = 1, limit = 5, search = '', status = '' } = req.query;
+        const { page = 1, limit = 5, search = '', status = '', landlord_id } = req.query;
         const offset = (page - 1) * limit;
         
         let queryParams = [];
@@ -75,6 +104,11 @@ exports.getProperties = async (req, res) => {
             whereClauses.push(`p.is_active = true`);
         } else if (status === 'inactive') {
             whereClauses.push(`p.is_active = false`);
+        }
+
+        if (landlord_id) {
+            whereClauses.push(`p.landlord_id = $${queryParams.length + 1}`);
+            queryParams.push(parseInt(landlord_id, 10));
         }
 
         const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -109,32 +143,6 @@ exports.getProperties = async (req, res) => {
                 totalPages
             }
         });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-exports.updateProperty = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
-        
-        const query = `
-            UPDATE properties 
-            SET landlord_id = $1, name = $2, address = $3, property_type = $4, 
-                total_area = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $7
-            RETURNING *
-        `;
-        const values = [landlord_id || null, name, address, property_type, total_area || null, is_active !== undefined ? is_active : true, id];
-        
-        const result = await db.query(query, values);
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Property not found' });
-        }
-        
-        res.json({ message: 'Property updated successfully', property: result.rows[0] });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react'; 
+import { useAuth } from '../priya/context/AuthContext';
+import { Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export default function TenantManagement() {
+  const { user, isLandlord } = useAuth();
   const [tenants, setTenants] = useState([]);
   const [properties, setProperties] = useState([]);
   const [formData, setFormData] = useState({
@@ -31,26 +33,28 @@ export default function TenantManagement() {
 
   const fetchPropertiesForDropdown = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/master-data/properties?limit=1000&status=active');
+      const url = `/api/master-data/properties?limit=1000&status=active${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setProperties(data.data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching properties:', err);
     }
   };
 
   const fetchTenants = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/tenants?page=${overridePage}&limit=5&search=${overrideSearch}&status=${overrideStatus}`);
+      const url = `/api/master-data/tenants?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${isLandlord ? '&landlord_id=' + user.landlord_id : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch tenants');
       const data = await res.json();
-      setTenants(data.data);
-      setTotalPages(data.pagination.totalPages);
-      setTotalRecords(data.pagination.total);
+      setTenants(data.data || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalRecords(data.pagination?.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching tenants:', err);
     }
   };
 
@@ -73,7 +77,6 @@ export default function TenantManagement() {
   };
 
   const handleEdit = (tenant) => {
-    // For date fields, we need to format them to YYYY-MM-DD for the input type="date"
     const formattedTenant = { ...tenant };
     if (formattedTenant.lease_start_date) {
       formattedTenant.lease_start_date = new Date(formattedTenant.lease_start_date).toISOString().split('T')[0];
@@ -82,21 +85,42 @@ export default function TenantManagement() {
       formattedTenant.lease_end_date = new Date(formattedTenant.lease_end_date).toISOString().split('T')[0];
     }
     
-    setFormData(formattedTenant);
+    setFormData({
+      property_id: formattedTenant.property_id || '',
+      name: formattedTenant.name || '',
+      pan: formattedTenant.pan || '',
+      gstin: formattedTenant.gstin || '',
+      contact_details: formattedTenant.contact_details || '',
+      lease_start_date: formattedTenant.lease_start_date || '',
+      lease_end_date: formattedTenant.lease_end_date || '',
+      status: formattedTenant.status || 'Active'
+    });
     setEditingId(tenant.id);
     setShowForm(true);
     window.scrollTo(0, 0);
+  };
+
+  const handleToggleStatus = async (id) => {
+    try {
+      const res = await fetch(`/api/master-data/tenants/${id}/deactivate`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed');
+      alert('Status updated successfully');
+      fetchTenants();
+    } catch (err) {
+      alert('Failed to update status');
+    }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this tenant?")) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/master-data/tenants/${id}`, {
+      const res = await fetch(`/api/master-data/tenants/${id}`, {
         method: 'DELETE'
       });
-      if (!res.ok) throw new Error('Failed to delete tenant');
-      fetchTenants();
+      if (!res.ok) throw new Error('Delete failed');
+        alert('Deleted successfully!');
+        fetchTenants();
     } catch (err) {
       alert(err.message);
     }
@@ -105,7 +129,6 @@ export default function TenantManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Client-side Validation
     if (!formData.name.trim()) {
       return setError('Tenant Name is required');
     }
@@ -133,18 +156,25 @@ export default function TenantManagement() {
 
     try {
       const url = editingId 
-        ? `http://localhost:5000/api/master-data/tenants/${editingId}` 
-        : 'http://localhost:5000/api/master-data/tenants';
+        ? `/api/master-data/tenants/${editingId}` 
+        : '/api/master-data/tenants';
       const method = editingId ? 'PUT' : 'POST';
+
+      const payload = {
+        property_id: parseInt(formData.property_id, 10),
+        name: formData.name.trim(),
+        pan: formData.pan ? formData.pan.toUpperCase() : '',
+        gstin: formData.gstin ? formData.gstin.toUpperCase() : '',
+        contact_details: formData.contact_details || '',
+        lease_start_date: formData.lease_start_date && formData.lease_start_date !== '' ? formData.lease_start_date : null,
+        lease_end_date: formData.lease_end_date && formData.lease_end_date !== '' ? formData.lease_end_date : null,
+        status: formData.status || 'Active'
+      };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          pan: formData.pan ? formData.pan.toUpperCase() : '',
-          gstin: formData.gstin ? formData.gstin.toUpperCase() : ''
-        })
+        body: JSON.stringify(payload)
       });
       
       if (!res.ok) {
@@ -152,20 +182,18 @@ export default function TenantManagement() {
         try {
           const errData = await res.json();
           if (errData.error) errMessage = errData.error;
-        } catch (e) {
-          // ignore JSON parse error
-        }
+        } catch (e) {}
         throw new Error(errMessage);
       }
       
-      setSuccess(editingId ? 'Tenant updated successfully!' : 'Tenant created successfully!');
+      alert(editingId ? 'Updated successfully!' : 'Created successfully!');
       setFormData({
         property_id: '', name: '', pan: '', gstin: '', contact_details: '', 
         lease_start_date: '', lease_end_date: '', status: 'Active'
       });
       setEditingId(null);
       fetchTenants();
-      setTimeout(() => setShowForm(false), 1500); // Hide form after success
+      setTimeout(() => setShowForm(false), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -175,17 +203,22 @@ export default function TenantManagement() {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Tenant Management</h2>
-        <button className="btn btn-primary" onClick={() => {
-          setShowForm(true);
-          setEditingId(null);
-          setFormData({ property_id: '', name: '', pan: '', gstin: '', contact_details: '', lease_start_date: '', lease_end_date: '', status: 'Active' });
-          setSuccess('');
-          setError('');
-        }}>
-          + Add Tenant
-        </button>
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Tenant Management</h2>
+          <p className="page-subtitle">Manage tenant profiles, lease agreements, and tenancy statuses</p>
+        </div>
+        <div className="page-actions">
+          {!isLandlord && (<button className="btn btn-primary" onClick={() => {
+            setShowForm(true);
+            setEditingId(null);
+            setFormData({ property_id: '', name: '', pan: '', gstin: '', contact_details: '', lease_start_date: '', lease_end_date: '', status: 'Active' });
+            setSuccess('');
+            setError('');
+          }}>
+            + Add Tenant
+          </button>)}
+        </div>
       </div>
 
       {showForm && (
@@ -261,8 +294,7 @@ export default function TenantManagement() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h3 style={{ margin: 0 }}>Existing Tenants</h3>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
             <input 
@@ -271,7 +303,7 @@ export default function TenantManagement() {
               placeholder="Search tenant, property..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '200px' }}
+              style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
             <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
@@ -298,8 +330,8 @@ export default function TenantManagement() {
               <th>Tenant Name</th>
               <th>Property</th>
               <th>Lease Period</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -315,22 +347,61 @@ export default function TenantManagement() {
                   {t.lease_start_date ? new Date(t.lease_start_date).toLocaleDateString() : '-'} 
                   {t.lease_end_date ? ` to ${new Date(t.lease_end_date).toLocaleDateString()}` : ''}
                 </td>
-                <td>
+                <td style={{ textAlign: 'center' }}>
                   <span className={`badge ${
                     t.status === 'Active' ? 'badge-active' : 
-                    t.status === 'Notice Period' ? 'badge' : 'badge-inactive'
-                  }`} style={t.status === 'Notice Period' ? { backgroundColor: '#fef08a', color: '#854d0e' } : {}}>
+                    t.status === 'Notice Period' ? 'badge-warning' : 'badge-inactive'
+                  }`}>
+                    {t.status === 'Active' && <CheckCircle size={13} />}
+                    {t.status === 'Notice Period' && <Clock size={13} />}
+                    {(t.status === 'Vacated' || t.status === 'Inactive') && <XCircle size={13} />}
                     {t.status}
                   </span>
                 </td>
-                <td>
-                  <button onClick={() => handleEdit(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }} title="Edit">
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete">
-                    <Trash2 size={18} />
-                  </button>
-                </td>
+                {!isLandlord && (<td style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => handleEdit(t)}
+                      title="Edit"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #dbeafe',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      title="Delete"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #fee2e2',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
+                </td>)}
               </tr>
             ))}
             {tenants.length === 0 && (

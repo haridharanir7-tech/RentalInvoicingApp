@@ -4,6 +4,8 @@ import { ShieldAlert, AlertTriangle, Edit3, PlusCircle, CheckCircle, RefreshCw }
 
 export default function InvoiceOverrideLog() {
   const [logs, setLogs] = useState([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -172,14 +174,14 @@ export default function InvoiceOverrideLog() {
                   Loading override logs...
                 </td>
               </tr>
-            ) : logs.length === 0 ? (
+            ) : paginatedLogs.length === 0 ? (
               <tr>
                 <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No draft invoice overrides have been recorded.
                 </td>
               </tr>
             ) : (
-              logs.map((log) => (
+              paginatedLogs.map((log) => (
                 <tr key={log.id}>
                   <td style={{ fontSize: '0.8rem', color: '#64748b', verticalAlign: 'top' }}>
                     {new Date(log.created_at).toLocaleString()}
@@ -230,6 +232,16 @@ export default function InvoiceOverrideLog() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination-container">
+        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+          Showing {logs.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, logs.length)} of {logs.length} entries
+        </div>
+        <div className="pagination-controls">
+            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+          </div>
       </div>
 
       {/* Manual Override Modal */}

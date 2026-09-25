@@ -937,7 +937,8 @@ export default function InvoiceTemplatesView({
                 </div>
 
                 <div className="mentor-form-group">
-                  <label className="mentor-label">Business Name on Invoice</label>
+                  <label className="mentor-label">
+                   Name on Invoice</label>
                   <input
                     type="text"
                     required
