@@ -64,6 +64,30 @@ export default function AdminLandlords() {
       setError('Landlord name is required.');
       return;
     }
+
+    // Contact Phone validation: must be digits only and exactly 10 digits
+    if (addFormData.contact_details && !/^[0-9]{10}$/.test(addFormData.contact_details.trim())) {
+      setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets or special characters).');
+      return;
+    }
+
+    // PAN validation: standard 10 alphanumeric characters (5 letters, 4 numbers, 1 letter)
+    if (addFormData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan.trim().toUpperCase())) {
+      setError('Invalid PAN format. Must be 10 characters (5 uppercase letters, 4 numbers, 1 letter, e.g. ABCDE1234F).');
+      return;
+    }
+
+    // GSTIN validation: 15 alphanumeric characters
+    if (addFormData.gst_registered && !addFormData.gstin.trim()) {
+      setError('GSTIN is required when GST Registered Entity is checked.');
+      return;
+    }
+
+    if (addFormData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin.trim().toUpperCase())) {
+      setError('Invalid GSTIN format. Must be 15 characters (e.g. 33AAAAA0000A1Z5).');
+      return;
+    }
+
     setAddingLandlord(true);
     setError('');
     setSuccessMsg('');
@@ -71,7 +95,14 @@ export default function AdminLandlords() {
       const res = await fetch('/api/master-data/landlords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(addFormData)
+        body: JSON.stringify({
+          ...addFormData,
+          name: addFormData.name.trim(),
+          email: addFormData.email ? addFormData.email.trim() : null,
+          pan: addFormData.pan ? addFormData.pan.trim().toUpperCase() : '',
+          gstin: addFormData.gstin ? addFormData.gstin.trim().toUpperCase() : '',
+          contact_details: addFormData.contact_details ? addFormData.contact_details.trim() : ''
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -852,10 +883,14 @@ export default function AdminLandlords() {
                     Contact Phone
                   </label>
                   <input
-                    type="text"
+                    type="tel"
                     value={addFormData.contact_details}
-                    onChange={(e) => setAddFormData({ ...addFormData, contact_details: e.target.value })}
-                    placeholder="+91 9876543210"
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setAddFormData({ ...addFormData, contact_details: cleanVal });
+                    }}
+                    placeholder="9876543210"
+                    maxLength={10}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -865,6 +900,20 @@ export default function AdminLandlords() {
                       boxSizing: 'border-box'
                     }}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Only 10 digits (no alphabets)
+                    </span>
+                    {addFormData.contact_details && (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 600,
+                        color: addFormData.contact_details.length === 10 ? '#16a34a' : '#e11d48' 
+                      }}>
+                        {addFormData.contact_details.length}/10 digits
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -876,7 +925,10 @@ export default function AdminLandlords() {
                   <input
                     type="text"
                     value={addFormData.pan}
-                    onChange={(e) => setAddFormData({ ...addFormData, pan: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                      setAddFormData({ ...addFormData, pan: cleanPan });
+                    }}
                     placeholder="ABCDE1234F"
                     maxLength={10}
                     style={{
@@ -889,15 +941,32 @@ export default function AdminLandlords() {
                       textTransform: 'uppercase'
                     }}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Format: ABCDE1234F
+                    </span>
+                    {addFormData.pan && (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 600,
+                        color: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
+                      }}>
+                        {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length}/10`}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    GSTIN
+                    GSTIN {addFormData.gst_registered && <span style={{ color: '#e11d48' }}>*</span>}
                   </label>
                   <input
                     type="text"
                     value={addFormData.gstin}
-                    onChange={(e) => setAddFormData({ ...addFormData, gstin: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                      setAddFormData({ ...addFormData, gstin: cleanGstin });
+                    }}
                     placeholder="33AAAAA0000A1Z5"
                     maxLength={15}
                     style={{
@@ -910,6 +979,20 @@ export default function AdminLandlords() {
                       textTransform: 'uppercase'
                     }}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      15 characters alphanumeric
+                    </span>
+                    {addFormData.gstin && (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 600,
+                        color: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
+                      }}>
+                        {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length}/15`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

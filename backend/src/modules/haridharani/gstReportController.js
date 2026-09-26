@@ -7,7 +7,10 @@ exports.getGstMonthlySummary = async (req, res) => {
   const { month, landlord_id } = req.query;
 
   try {
-    let whereClauses = [];
+    let whereClauses = [
+      `l.gst_registered = true`,
+      `i.status IN ('Generated', 'Sent')`
+    ];
     let params = [];
     let pIdx = 1;
 
@@ -21,7 +24,7 @@ exports.getGstMonthlySummary = async (req, res) => {
       params.push(landlord_id);
     }
 
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
 
     const query = `
       SELECT 

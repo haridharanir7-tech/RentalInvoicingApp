@@ -22,6 +22,8 @@ router.post('/invoices/preview', invoiceController.previewInvoices);
 router.post('/invoices/generate', invoiceController.generateInvoices);
 router.put('/invoices/:id/status', invoiceController.updateInvoiceStatus);
 router.put('/invoices/:id/correct', invoiceController.correctInvoice);
+router.put('/invoices/:id/correct-draft', invoiceController.correctInvoice);
+router.delete('/invoices/:id', invoiceController.deleteInvoice);
 
 // 3. GST Monthly Reporting
 router.get('/reports/gst-summary', gstReportController.getGstMonthlySummary);

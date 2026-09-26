@@ -183,10 +183,20 @@ exports.previewInvoices = async (req, res) => {
   }
 
   try {
-    // Find active rates for active tenants
-    let filters = [`r.status = 'Active'`];
-    let params = [];
-    let pIdx = 1;
+    // Calculate the start and end dates of the billing period
+    const [year, month] = billing_period.split('-').map(Number);
+    const startDate = `${billing_period}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${billing_period}-${String(lastDay).padStart(2, '0')}`;
+
+    // Find active rates that are effective during this billing period
+    let filters = [
+      `r.status = 'Active'`,
+      `r.effective_from <= $1`,
+      `(r.effective_to IS NULL OR r.effective_to >= $2)`
+    ];
+    let params = [endDate, startDate];
+    let pIdx = 3;
 
     if (landlord_id && landlord_id !== 'all') {
       filters.push(`l.id = $${pIdx++}`);
@@ -220,7 +230,7 @@ exports.previewInvoices = async (req, res) => {
       LEFT JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN properties p ON r.property_id = p.id
       LEFT JOIN landlords l ON p.landlord_id = l.id
-      LEFT JOIN invoices inv ON inv.tenant_id = t.id 
+      LEFT JOIN invoices inv ON inv.tenant_id IS NOT DISTINCT FROM t.id 
                             AND inv.property_id = p.id 
                             AND inv.billing_period = '${billing_period}'
       WHERE ${filters.join(' AND ')}
@@ -274,13 +284,13 @@ exports.generateInvoices = async (req, res) => {
     for (const item of items) {
       // 1. Check if invoice already exists for this tenant & property & period
       const checkExisting = await client.query(
-        `SELECT invoice_id, invoice_number FROM invoices WHERE tenant_id = $1 AND property_id = $2 AND billing_period = $3`,
-        [item.tenant_id, item.property_id, billing_period]
+        `SELECT invoice_id, invoice_number FROM invoices WHERE tenant_id IS NOT DISTINCT FROM $1 AND property_id = $2 AND billing_period = $3`,
+        [item.tenant_id || null, item.property_id, billing_period]
       );
 
       if (checkExisting.rows.length > 0) {
         skippedInvoices.push({
-          tenant_name: item.tenant_name,
+          tenant_name: item.tenant_name || 'N/A',
           invoice_number: checkExisting.rows[0].invoice_number,
           reason: 'Invoice already exists for this period.'
         });
@@ -332,7 +342,7 @@ exports.generateInvoices = async (req, res) => {
         billing_period,
         item.landlord_id,
         item.property_id,
-        item.tenant_id,
+        item.tenant_id || null,
         item.rate_id || null,
         financials.rent_amount,
         financials.maintenance_charges,
@@ -352,16 +362,24 @@ exports.generateInvoices = async (req, res) => {
       const createdInvoice = insertRes.rows[0];
 
       // Record status creation in status history
-      await client.query(`
-        INSERT INTO invoice_status_history (invoice_id, old_status, new_status, change_reason)
-        VALUES ($1, NULL, 'Draft', 'Initial Invoice Generation')
-      `, [createdInvoice.invoice_id]);
+      try {
+        await client.query(`
+          INSERT INTO invoice_status_history (invoice_id, old_status, new_status, change_reason)
+          VALUES ($1, NULL, 'Draft', 'Initial Invoice Generation')
+        `, [createdInvoice.invoice_id]);
+      } catch (histErr) {
+        console.warn('Status history logging notice:', histErr.message);
+      }
 
       // Record in audit log
-      await client.query(`
-        INSERT INTO audit_logs (action, table_name, record_id, description)
-        VALUES ('INVOICE_GENERATED', 'invoices', $1, $2)
-      `, [createdInvoice.invoice_id, `Invoice ${invoiceNumber} created in Draft status for period ${billing_period}`]);
+      try {
+        await client.query(`
+          INSERT INTO audit_logs (action, table_name, record_id, description, entity_type, entity_id)
+          VALUES ('INVOICE_GENERATED', 'invoices', $1, $2, 'invoices', $1)
+        `, [String(createdInvoice.invoice_id), `Invoice ${invoiceNumber} created in Draft status for period ${billing_period}`]);
+      } catch (auditErr) {
+        console.warn('Audit logging notice:', auditErr.message);
+      }
 
       generatedInvoices.push(createdInvoice);
     }
@@ -379,7 +397,7 @@ exports.generateInvoices = async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error generating invoices:', error);
-    res.status(500).json({ success: false, error: 'Database transaction error generating invoices' });
+    res.status(500).json({ success: false, error: `Database transaction error generating invoices: ${error.message}` });
   } finally {
     client.release();
   }
@@ -536,6 +554,59 @@ exports.correctInvoice = async (req, res) => {
   } catch (error) {
     console.error('Error correcting invoice:', error);
     res.status(500).json({ success: false, error: 'Database error correcting invoice' });
+  }
+};
+
+// 5. Delete Draft Invoice
+exports.deleteInvoice = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const checkRes = await db.query(
+      'SELECT invoice_id, invoice_number, status FROM invoices WHERE invoice_id = $1',
+      [id]
+    );
+
+    if (checkRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Invoice not found' });
+    }
+
+    const invoice = checkRes.rows[0];
+
+    if (invoice.status !== 'Draft') {
+      return res.status(400).json({
+        success: false,
+        error: "Only 'Draft' invoices can be deleted. Finalized invoices cannot be removed."
+      });
+    }
+
+    // Clean up status history for this invoice
+    try {
+      await db.query('DELETE FROM invoice_status_history WHERE invoice_id = $1', [id]);
+    } catch (e) {
+      console.warn('Notice cleaning up status history:', e.message);
+    }
+
+    // Delete invoice
+    await db.query('DELETE FROM invoices WHERE invoice_id = $1', [id]);
+
+    // Record audit entry
+    try {
+      await db.query(
+        `INSERT INTO audit_logs (action, table_name, record_id, description)
+         VALUES ('INVOICE_DELETED', 'invoices', $1, $2)`,
+        [id, `Draft Invoice ${invoice.invoice_number} deleted.`]
+      );
+    } catch (auditErr) {
+      console.warn('Notice logging audit for delete:', auditErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Draft invoice ${invoice.invoice_number} deleted successfully.`
+    });
+  } catch (error) {
+    console.error('Error deleting draft invoice:', error);
+    res.status(500).json({ success: false, error: 'Database error deleting invoice' });
   }
 };
 

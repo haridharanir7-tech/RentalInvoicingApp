@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
-import { BarChart3, FileSpreadsheet, User, Calendar, Download } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, User, Calendar, Download, Printer, Info } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -38,7 +38,9 @@ export default function GSTReport() {
     try {
       const res = await axios.get(`${API_BASE}/properties-tenants`);
       if (res.data.success) {
-        setLandlords(res.data.landlords || []);
+        // Exclude Non-GST landlords from the GST report filter
+        const gstOnly = (res.data.landlords || []).filter((l) => !!l.gst_registered);
+        setLandlords(gstOnly);
       }
     } catch (err) {
       console.error('Failed to load filter options', err);
@@ -121,11 +123,21 @@ export default function GSTReport() {
           </p>
         </div>
         <div className="page-actions">
+          <button className="btn btn-secondary" onClick={() => window.print()}>
+            <Printer size={15} />
+            <span>Print / PDF</span>
+          </button>
           <button className="btn btn-primary" onClick={handleExportCSV}>
             <Download size={15} />
             <span>Export GST Report (.csv)</span>
           </button>
         </div>
+      </div>
+
+      {/* Exclusion Note */}
+      <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', fontSize: '0.82rem', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Info size={16} color="#2563eb" style={{ flexShrink: 0 }} />
+        <span><strong>Note:</strong> Non-GST registered landlords are excluded from this report because no GST is applicable on their invoices. Only finalized (Generated / Sent) invoices are included.</span>
       </div>
 
       {/* Filter Bar */}
@@ -148,7 +160,7 @@ export default function GSTReport() {
             onChange={(e) => setLandlordFilter(e.target.value)}
             style={{ width: '200px' }}
           >
-            <option value="all">All Landlords</option>
+            <option value="all">All GST Landlords</option>
             {landlords.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}

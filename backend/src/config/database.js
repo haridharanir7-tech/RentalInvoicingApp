@@ -6,7 +6,10 @@ const pool = new Pool(
   process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false },
+        keepAlive: true,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 25000
       }
     : {
         host: process.env.DB_HOST || 'localhost',
@@ -26,7 +29,19 @@ pool.on('error', (err) => {
   console.error('Unexpected database client error', err);
 });
 
+async function query(text, params) {
+  try {
+    return await pool.query(text, params);
+  } catch (err) {
+    if (err.message && (err.message.includes('timeout') || err.message.includes('terminated') || err.message.includes('ECONNRESET'))) {
+      console.warn('Retrying query after connection issue...', err.message);
+      return await pool.query(text, params);
+    }
+    throw err;
+  }
+}
+
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+  query,
   pool
 };

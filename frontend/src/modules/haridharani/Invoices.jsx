@@ -14,7 +14,8 @@ import {
   X,
   CheckCircle,
   Clock,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
@@ -38,7 +39,7 @@ export default function Invoices() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [landlords, setLandlords] = useState([]);
@@ -178,6 +179,35 @@ export default function Invoices() {
       setActionError(err.response?.data?.error || 'Failed to correct invoice.');
     } finally {
       setCorrecting(false);
+    }
+  };
+
+  // Delete draft invoice
+  const handleDeleteDraft = async (invoice) => {
+    if (!invoice || invoice.status !== 'Draft') {
+      alert('Only draft invoices can be deleted.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete draft invoice ${invoice.invoice_number}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await axios.delete(`${API_BASE}/invoices/${invoice.invoice_id}`);
+      if (res.data.success) {
+        setActionSuccess(`Draft invoice ${invoice.invoice_number} deleted successfully.`);
+        if (correctModalOpen) {
+          setCorrectModalOpen(false);
+          setSelectedInvoice(null);
+        }
+        fetchInvoices();
+        setTimeout(() => setActionSuccess(''), 3000);
+      } else {
+        setActionError(res.data.error || 'Failed to delete draft invoice');
+      }
+    } catch (err) {
+      console.error('Error deleting draft invoice:', err);
+      setActionError(err.response?.data?.error || 'Failed to delete draft invoice');
     }
   };
 
@@ -552,15 +582,36 @@ export default function Invoices() {
                     {!isLandlord && (
                       <td style={{ textAlign: 'center' }}>
                         {inv.status === 'Draft' ? (
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => openCorrectModal(inv)}
-                            title="Correct draft invoice before finalization"
-                          >
-                            <Edit3 size={12} />
-                            <span>Correct</span>
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => openCorrectModal(inv)}
+                              title="Correct draft invoice before finalization"
+                            >
+                              <Edit3 size={12} />
+                              <span>Correct</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn"
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '0.78rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fca5a5'
+                              }}
+                              onClick={() => handleDeleteDraft(inv)}
+                              title="Delete this draft invoice"
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Finalized</span>
                         )}
@@ -581,24 +632,31 @@ export default function Invoices() {
           {Math.min(page * pageSize, invoices.length)} of {invoices.length} invoice
           {invoices.length !== 1 ? 's' : ''}
         </div>
-        {totalPages > 1 && (
-          <div className="pagination-controls">
+        <div className="pagination-controls">
+          <button
+            className="page-btn"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
             <button
-              className="page-btn"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              key={pNum}
+              className={`page-btn ${page === pNum ? 'active' : ''}`}
+              onClick={() => setPage(pNum)}
             >
-              Previous
+              {pNum}
             </button>
-            <button
-              className="page-btn"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </button>
-          </div>
-        )}
+          ))}
+          <button
+            className="page-btn"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       {/* ============================================================== */}
@@ -712,18 +770,41 @@ export default function Invoices() {
                 <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Logged in master data audit trails</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setCorrectModalOpen(false)}
+                  className="btn"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#fee2e2',
+                    color: '#dc2626',
+                    border: '1px solid #fca5a5'
+                  }}
+                  onClick={() => handleDeleteDraft(selectedInvoice)}
                   disabled={correcting}
+                  title="Permanently delete this draft invoice"
                 >
-                  Cancel
+                  <Trash2 size={15} />
+                  <span>Delete Draft</span>
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={correcting}>
-                  {correcting ? 'Saving & Auditing...' : 'Save & Log Audit'}
-                </button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setCorrectModalOpen(false)}
+                    disabled={correcting}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={correcting}>
+                    {correcting ? 'Saving & Auditing...' : 'Save & Log Audit'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

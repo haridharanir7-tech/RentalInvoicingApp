@@ -52,9 +52,17 @@ export default function LandlordManagement() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let finalVal = type === 'checkbox' ? checked : value;
+    if (name === 'contact_details') {
+      finalVal = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'pan') {
+      finalVal = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    } else if (name === 'gstin') {
+      finalVal = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+    }
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: finalVal
     });
   };
 
@@ -95,17 +103,21 @@ export default function LandlordManagement() {
     if (!formData.name.trim()) {
       return setError('Name is required');
     }
+
+    if (formData.contact_details && !/^[0-9]{10}$/.test(formData.contact_details.trim())) {
+      return setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets).');
+    }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.trim().toUpperCase())) {
       return setError('Invalid PAN format (e.g. ABCDE1234F)');
     }
 
-    if (formData.gst_registered && !formData.gstin) {
+    if (formData.gst_registered && !formData.gstin.trim()) {
       return setError('GSTIN is required when GST Registered is checked');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
-      return setError('Invalid GSTIN format');
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin.trim().toUpperCase())) {
+      return setError('Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)');
     }
 
     setLoading(true);
@@ -212,8 +224,8 @@ export default function LandlordManagement() {
                   <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} required={formData.gst_registered} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
                 </div>
                 <div className="form-group flex-1">
-                  <label>Contact Details</label>
-                  <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} />
+                  <label>Contact Phone</label>
+                  <input type="tel" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} placeholder="9876543210" maxLength="10" />
                 </div>
               </div>
 

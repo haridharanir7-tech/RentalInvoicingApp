@@ -8,9 +8,23 @@ exports.createLandlord = async (req, res) => {
             return res.status(400).json({ error: 'Landlord name is required' });
         }
 
+        // Contact phone validation: exactly 10 digits if provided
+        if (contact_details && !/^[0-9]{10}$/.test(contact_details.trim())) {
+            return res.status(400).json({ error: 'Contact phone must be exactly 10 digits (numbers only).' });
+        }
+
+        // PAN validation: standard 10 alphanumeric characters (5 letters, 4 digits, 1 letter)
+        if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.trim().toUpperCase())) {
+            return res.status(400).json({ error: 'Invalid PAN format. Must be 10 characters (e.g. ABCDE1234F).' });
+        }
+
         // Validation for GSTIN if gst_registered is true
-        if (gst_registered && !gstin) {
+        if (gst_registered && (!gstin || !gstin.trim())) {
             return res.status(400).json({ error: 'GSTIN is mandatory when GST Registered is true.' });
+        }
+
+        if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin.trim().toUpperCase())) {
+            return res.status(400).json({ error: 'Invalid GSTIN format. Must be 15 characters (e.g. 33AAAAA0000A1Z5).' });
         }
 
         const query = `
@@ -42,8 +56,22 @@ exports.updateLandlord = async (req, res) => {
         const { id } = req.params;
         const { name, email, pan, gstin, contact_details, billing_address, is_active, gst_registered, default_invoice_template } = req.body;
 
-        if (gst_registered && !gstin) {
+        // Contact phone validation: exactly 10 digits if provided
+        if (contact_details && !/^[0-9]{10}$/.test(contact_details.trim())) {
+            return res.status(400).json({ error: 'Contact phone must be exactly 10 digits (numbers only).' });
+        }
+
+        // PAN validation: standard 10 alphanumeric characters (5 letters, 4 digits, 1 letter)
+        if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan.trim().toUpperCase())) {
+            return res.status(400).json({ error: 'Invalid PAN format. Must be 10 characters (e.g. ABCDE1234F).' });
+        }
+
+        if (gst_registered && (!gstin || !gstin.trim())) {
             return res.status(400).json({ error: 'GSTIN is mandatory when GST Registered is true.' });
+        }
+
+        if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin.trim().toUpperCase())) {
+            return res.status(400).json({ error: 'Invalid GSTIN format. Must be 15 characters (e.g. 33AAAAA0000A1Z5).' });
         }
 
         const query = `

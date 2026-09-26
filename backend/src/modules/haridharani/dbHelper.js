@@ -103,6 +103,7 @@ async function ensureSchema() {
 
     // In case invoices existed already without some columns:
     const invoiceCols = [
+      `ALTER TABLE invoices ALTER COLUMN tenant_id DROP NOT NULL`,
       `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS landlord_id INT`,
       `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS billing_period VARCHAR(20)`,
       `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS rate_id INT`,

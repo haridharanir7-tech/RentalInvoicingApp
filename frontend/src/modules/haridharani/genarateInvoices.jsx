@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle, ArrowRight, Edit, Trash2, X } from 'lucide-react';
+import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle, ArrowRight, X } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -24,9 +24,9 @@ export default function GenerateInvoices() {
   const [resultMessage, setResultMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Pagination
+  // Pagination (5 rows per page)
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5;
 
   useEffect(() => {
     fetchMasterData();
@@ -98,59 +98,7 @@ export default function GenerateInvoices() {
     }
   };
 
-  const handleEditPreview = (preview) => {
-    const newRent = prompt('Enter new base rent for this invoice:', preview.rent_amount);
-    if (newRent !== null && !isNaN(parseFloat(newRent))) {
-      const parsedRent = parseFloat(newRent);
-      setPreviews(previews.map(p => {
-        if ((p.rate_id === preview.rate_id) || (p.tenant_id === preview.tenant_id && p.property_id === preview.property_id)) {
-           const additional = parseFloat(p.additional_charges || 0);
-           const taxable = parsedRent + additional;
-           
-           let cgst = 0, sgst = 0, igst = 0, gstTotal = 0;
-           if (p.gst_rate > 0) {
-              if (p.tax_supply_type === 'Inter-state') {
-                 igst = (taxable * p.gst_rate) / 100;
-                 gstTotal = igst;
-              } else if (p.tax_supply_type === 'Intra-state') {
-                 cgst = (taxable * (p.gst_rate / 2)) / 100;
-                 sgst = (taxable * (p.gst_rate / 2)) / 100;
-                 gstTotal = cgst + sgst;
-              }
-           }
-           const total = taxable + gstTotal;
-
-           return { 
-              ...p, 
-              rent_amount: parsedRent,
-              taxable_amount: taxable,
-              cgst_amount: cgst,
-              sgst_amount: sgst,
-              igst_amount: igst,
-              gst_amount: gstTotal,
-              total_amount: total
-           };
-        }
-        return p;
-      }));
-      alert('Preview updated! Changes will be saved to database when you click Generate.');
-    }
-  };
-  
-  const handleDeletePreview = (preview) => {
-      if (window.confirm('Remove this invoice preview from generation list?')) {
-        setPreviews(previews.filter(p => {
-          const match = p.rate_id ? p.rate_id === preview.rate_id : (p.tenant_id === preview.tenant_id && p.property_id === preview.property_id);
-          return !match;
-        }));
-        // Also remove from selectedIds if present
-        const id = preview.rate_id || `${preview.tenant_id}-${preview.property_id}`;
-        setSelectedIds(selectedIds.filter(sel => sel !== id));
-        alert('Preview removed from generation list.');
-      }
-    };
-
-    const handleGenerate = async () => {
+  const handleGenerate = async () => {
     if (selectedIds.length === 0) {
       setErrorMessage('Please select at least one tenant to generate an invoice for.');
       return;
@@ -204,16 +152,16 @@ export default function GenerateInvoices() {
         </div>
         <div className="page-actions">
           {!isLandlord && (
-<button
-            className="btn btn-primary"
-            onClick={handleGenerate}
-            disabled={generating || selectedIds.length === 0}
-            style={{ padding: '9px 18px' }}
-          >
-            <Zap size={16} />
-            <span>{generating ? 'Generating Invoices...' : `Generate ${selectedIds.length} Invoice(s)`}</span>
-          </button> 
-)}
+            <button
+              className="btn btn-primary"
+              onClick={handleGenerate}
+              disabled={generating || selectedIds.length === 0}
+              style={{ padding: '9px 18px' }}
+            >
+              <Zap size={16} />
+              <span>{generating ? 'Generating Invoices...' : `Generate ${selectedIds.length} Invoice(s)`}</span>
+            </button> 
+          )}
         </div>
       </div>
 
@@ -232,23 +180,23 @@ export default function GenerateInvoices() {
           </div>
 
           {!isLandlord && (
-<select
-            className="form-input"
-            value={selectedLandlord}
-            onChange={(e) => {
-              setSelectedLandlord(e.target.value);
-              setSelectedProperty('all');
-            }}
-            style={{ width: '200px' }}
-          >
-            <option value="all">All Landlords</option>
-            {landlords.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name} {l.gst_registered ? '(GST Reg)' : '(Non-GST)'}
-              </option>
-            ))}
-          </select> 
-)}
+            <select
+              className="form-input"
+              value={selectedLandlord}
+              onChange={(e) => {
+                setSelectedLandlord(e.target.value);
+                setSelectedProperty('all');
+              }}
+              style={{ width: '200px' }}
+            >
+              <option value="all">All Landlords</option>
+              {landlords.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} {l.gst_registered ? '(GST Reg)' : '(Non-GST)'}
+                </option>
+              ))}
+            </select> 
+          )}
 
           <select
             className="form-input"
@@ -273,8 +221,8 @@ export default function GenerateInvoices() {
             }}
             style={{ background: '#f1f5f9' }}
           >
-              Clear
-            </button>
+            Clear
+          </button>
         </div>
       </div>
 
@@ -328,8 +276,8 @@ export default function GenerateInvoices() {
           <thead>
             <tr>
               {!isLandlord && (
-<th style={{ width: '40px', textAlign: 'center' }}></th> 
-)}
+                <th style={{ width: '40px', textAlign: 'center' }}></th> 
+              )}
               <th>Tenant & Landlord</th>
               <th>Property</th>
               <th>Base Rent</th>
@@ -338,19 +286,18 @@ export default function GenerateInvoices() {
               <th>GST Breakdown</th>
               <th>Total Payable</th>
               <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
-     <th style={{ textAlign: 'center', width: '200px' }}>Actions</th>
-     </tr>
+            </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? 8 : 9} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Calculating rent, additional charges, and GST...
                 </td>
               </tr>
             ) : previews.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? 8 : 9} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No active rental rates found for the selected criteria. Please configure rental rates first.
                 </td>
               </tr>
@@ -434,11 +381,6 @@ export default function GenerateInvoices() {
                         </span>
                       )}
                     </td>
-                      <td style={{ textAlign: 'center' }}>
-                         <div style={{ display: 'inline-flex', gap: '8px' }}>
-                           <button title="Delete" onClick={() => handleDeletePreview(item)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={14} /> Delete</button>
-                         </div>
-                      </td>
                   </tr>
                 );
               })
@@ -454,24 +396,31 @@ export default function GenerateInvoices() {
           {Math.min(page * pageSize, previews.length)} of {previews.length} item
           {previews.length !== 1 ? 's' : ''}
         </div>
-        {totalPages > 1 && (
-          <div className="pagination-controls">
+        <div className="pagination-controls">
+          <button
+            className="page-btn"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
             <button
-              className="page-btn"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              key={pNum}
+              className={`page-btn ${page === pNum ? 'active' : ''}`}
+              onClick={() => setPage(pNum)}
             >
-              Previous
+              {pNum}
             </button>
-            <button
-              className="page-btn"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </button>
-          </div>
-        )}
+          ))}
+          <button
+            className="page-btn"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

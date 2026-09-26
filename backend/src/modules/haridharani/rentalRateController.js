@@ -47,12 +47,12 @@ exports.getRentalRates = async (req, res) => {
 exports.getPropertiesAndTenants = async (req, res) => {
   try {
     const landlordsQuery = `
-      SELECT id, name, gst_registered, gstin FROM landlords WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
+      SELECT id, name, gst_registered, gstin, COALESCE(is_active, true) AS is_active FROM landlords ORDER BY name ASC
     `;
     const landlordsResult = await db.query(landlordsQuery);
 
     const propertiesQuery = `
-      SELECT id, landlord_id, name, property_type FROM properties WHERE is_active = true OR is_active IS NULL ORDER BY name ASC
+      SELECT id, landlord_id, name, property_type, COALESCE(is_active, true) AS is_active FROM properties ORDER BY name ASC
     `;
     const propertiesResult = await db.query(propertiesQuery);
 
@@ -206,6 +206,13 @@ exports.saveRentalRate = async (req, res) => {
 
     const additional_charges = (parseFloat(maintenance_charges) || 0) + (parseFloat(parking_charges) || 0);
 
+    // Enforce tax law: Non-GST registered landlords cannot levy GST
+    const landlordCheck = await db.query('SELECT gst_registered FROM landlords WHERE id = $1', [landlord_id]);
+    const isLandlordGst = landlordCheck.rows.length > 0 ? !!landlordCheck.rows[0].gst_registered : false;
+    const finalGstApplicable = isLandlordGst ? !!gst_applicable : false;
+    const finalGstRate = finalGstApplicable ? (parseFloat(gst_rate) || 0) : 0.00;
+    const finalSupplyType = isLandlordGst ? (tax_supply_type || 'intra_state') : 'intra_state';
+
     let savedRate;
     if (rate_id) {
       // Update existing rate
@@ -236,9 +243,9 @@ exports.saveRentalRate = async (req, res) => {
         maintenance_charges,
         parking_charges,
         additional_charges,
-        tax_supply_type,
-        gst_applicable,
-        gst_rate,
+        finalSupplyType,
+        finalGstApplicable,
+        finalGstRate,
         effective_from,
         effective_to || null,
         change_reason,
@@ -264,9 +271,9 @@ exports.saveRentalRate = async (req, res) => {
         maintenance_charges,
         parking_charges,
         additional_charges,
-        tax_supply_type,
-        gst_applicable,
-        gst_rate,
+        finalSupplyType,
+        finalGstApplicable,
+        finalGstRate,
         effective_from,
         effective_to || null,
         change_reason
