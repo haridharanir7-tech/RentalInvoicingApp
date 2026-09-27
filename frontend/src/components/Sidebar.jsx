@@ -150,10 +150,10 @@ export default function Sidebar() {
               <span>Invoices</span>
             </NavLink>
 
-            {/* 5. Generate Invoice */}
+            {/* 5. Generated Invoice */}
             <NavLink to="/landlord/generate-invoice" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <FilePlus size={18} />
-              <span>Generate Invoice</span>
+              <span>Generated Invoice</span>
             </NavLink>
 
             {/* 6. Invoice Template */}

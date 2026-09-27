@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, History, X, Check, AlertCircle, CheckCircle, XCircle, Edit, Trash2 } from 'lucide-react';
+import { Plus, History, X, Check, AlertCircle, Edit, Trash2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -16,7 +16,6 @@ export default function RentalRates() {
   // Filters & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [landlordFilter, setLandlordFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
@@ -201,6 +200,11 @@ export default function RentalRates() {
       return;
     }
 
+    if (baseRentNum > 99999999 || maintNum > 99999999 || parkNum > 99999999) {
+      setFormError("All cost figures must be at most 8 digits (max ₹9,99,99,999).");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = {
@@ -250,17 +254,12 @@ export default function RentalRates() {
       (r.property_name || '').toLowerCase().includes(query) ||
       (r.tenant_name || '').toLowerCase().includes(query);
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      !statusFilter ||
-      (r.status || 'Active').toLowerCase() === statusFilter.toLowerCase();
-
     const matchesLandlord =
       landlordFilter === 'all' ||
       !landlordFilter ||
       String(r.landlord_id) === String(landlordFilter);
 
-    return matchesSearch && matchesStatus && matchesLandlord;
+    return matchesSearch && matchesLandlord;
   });
 
   const totalPages = Math.ceil(filteredRates.length / pageSize) || 1;
@@ -307,44 +306,12 @@ export default function RentalRates() {
           <button type="submit" className="btn btn-secondary">
             Search
           </button>
-          <select
-            className="form-input"
-            value={landlordFilter}
-            onChange={(e) => {
-              setLandlordFilter(e.target.value);
-              setPage(1);
-            }}
-            style={{ width: '170px' }}
-          >
-            <option value="all">All Landlords</option>
-            {masterData.landlords
-              .filter((l) => l.is_active !== false)
-              .map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name} {l.email ? `(${l.email})` : ''}
-                </option>
-              ))}
-          </select>
-          <select
-            className="form-input"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            style={{ width: '140px' }}
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={() => {
               setSearchQuery('');
               setLandlordFilter('all');
-              setStatusFilter('all');
               setPage(1);
             }}
             style={{ background: '#f1f5f9' }}
@@ -365,20 +332,19 @@ export default function RentalRates() {
               <th>Maintenance & Parking</th>
               <th>GST Rate / Supply</th>
               <th>Effective Period</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Loading rental rates...
                 </td>
               </tr>
             ) : filteredRates.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No rental rates matching your filter criteria.
                 </td>
               </tr>
@@ -386,12 +352,11 @@ export default function RentalRates() {
               paginatedRates.map((rate) => {
                 const totalAdditional =
                   (parseFloat(rate.maintenance_charges) || 0) + (parseFloat(rate.parking_charges) || 0);
-                const isActive = (rate.status || 'Active').toLowerCase() === 'active';
 
                 return (
                   <tr key={rate.rate_id}>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{rate.landlord_name}</div>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{rate.landlord_name}{rate.landlord_email ? ` (${rate.landlord_email})` : ""}</div>
                       <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
                         {rate.landlord_gst_registered ? (
                           <span style={{ color: '#2563eb', fontWeight: 600 }}>GST Registered</span>
@@ -434,19 +399,6 @@ export default function RentalRates() {
                       <div style={{ fontSize: '0.82rem', color: '#334155' }}>
                         {rate.effective_from} to {rate.effective_to || 'Indefinite'}
                       </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {isActive ? (
-                        <span className="badge badge-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle size={13} />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="badge badge-inactive" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <XCircle size={13} />
-                          {rate.status || 'Inactive'}
-                        </span>
-                      )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -568,7 +520,7 @@ export default function RentalRates() {
                       .filter((l) => l.is_active !== false)
                       .map((l) => (
                         <option key={l.id} value={l.id}>
-                          {l.name} {l.email ? `(${l.email})` : ''}
+                          {l.name}{l.email ? ` (${l.email})` : ""}
                         </option>
                       ))}
                   </select>
@@ -635,12 +587,14 @@ export default function RentalRates() {
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'Subtract') e.preventDefault();
                     }}
-                    placeholder="e.g. 60000"
+                    max="99999999" placeholder="e.g. 10000000"
                     className="form-input"
                     value={formData.monthly_rent}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
-                      setFormData({ ...formData, monthly_rent: val });
+                      let raw = e.target.value;
+                      if (raw.length > 8) raw = raw.slice(0, 8);
+                      const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                      setFormData({ ...formData, monthly_rent: val > 99999999 ? 99999999 : val });
                     }}
                     required
                     style={{ height: '36px', fontSize: '0.84rem' }}
@@ -655,12 +609,14 @@ export default function RentalRates() {
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'Subtract') e.preventDefault();
                     }}
-                    placeholder="e.g. 3000"
+                    max="99999999" placeholder="e.g. 10000000"
                     className="form-input"
                     value={formData.maintenance_charges}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
-                      setFormData({ ...formData, maintenance_charges: val });
+                      let raw = e.target.value;
+                      if (raw.length > 8) raw = raw.slice(0, 8);
+                      const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                      setFormData({ ...formData, maintenance_charges: val > 99999999 ? 99999999 : val });
                     }}
                     style={{ height: '36px', fontSize: '0.84rem' }}
                   />
@@ -678,12 +634,14 @@ export default function RentalRates() {
                     onKeyDown={(e) => {
                       if (e.key === '-' || e.key === 'Subtract') e.preventDefault();
                     }}
-                    placeholder="e.g. 2000"
+                    max="99999999" placeholder="e.g. 10000000"
                     className="form-input"
                     value={formData.parking_charges}
                     onChange={(e) => {
-                      const val = e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0);
-                      setFormData({ ...formData, parking_charges: val });
+                      let raw = e.target.value;
+                      if (raw.length > 8) raw = raw.slice(0, 8);
+                      const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                      setFormData({ ...formData, parking_charges: val > 99999999 ? 99999999 : val });
                     }}
                     style={{ height: '36px', fontSize: '0.84rem' }}
                   />
