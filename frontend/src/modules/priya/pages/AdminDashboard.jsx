@@ -660,20 +660,13 @@ export default function AdminDashboard() {
           </table>
         </div>
 
-        {/* Pagination Container */}
-        <div className="pagination-container" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '16px',
-          paddingTop: '14px',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices
+        {/* Pagination Container matching Landlords module */}
+        <div className="pagination-container">
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices ({recentInvoices.length} total)
           </div>
           {totalInvoicePages > 1 && (
-            <div className="pagination-controls" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div className="pagination-controls">
               <button
                 className="page-btn"
                 disabled={invoicePage <= 1}
@@ -681,15 +674,6 @@ export default function AdminDashboard() {
               >
                 Previous
               </button>
-              {Array.from({ length: totalInvoicePages }, (_, i) => i + 1).map((pageNum) => (
-                <button
-                  key={pageNum}
-                  className={`page-btn ${invoicePage === pageNum ? 'active' : ''}`}
-                  onClick={() => setInvoicePage(pageNum)}
-                >
-                  {pageNum}
-                </button>
-              ))}
               <button
                 className="page-btn"
                 disabled={invoicePage >= totalInvoicePages}
