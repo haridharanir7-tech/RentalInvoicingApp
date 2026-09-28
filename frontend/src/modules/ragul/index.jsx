@@ -100,7 +100,15 @@ export default function RagulModule() {
     }
   });
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState('wave-blue');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('selectedInvoiceTemplate');
+      if (saved) return saved;
+    } catch (e) {
+      console.warn('Could not read selectedInvoiceTemplate from localStorage', e);
+    }
+    return 'wave-blue';
+  });
   const [toastMessage, setToastMessage] = useState(null);
 
   function showMessage(msg) {
@@ -117,8 +125,20 @@ export default function RagulModule() {
       .then((data) => {
         if (data.success && Array.isArray(data.data) && data.data.length >= 5) {
           setTemplates(data.data);
-          const def = data.data.find((t) => t.isDefault);
-          if (def) setSelectedTemplateId(def.id);
+          const savedId = localStorage.getItem('selectedInvoiceTemplate');
+          if (savedId && data.data.some((t) => t.id === savedId)) {
+            setSelectedTemplateId(savedId);
+          } else {
+            const def = data.data.find((t) => t.isDefault) || data.data[0];
+            if (def) {
+              setSelectedTemplateId(def.id);
+              try {
+                localStorage.setItem('selectedInvoiceTemplate', def.id);
+              } catch (e) {
+                console.warn(e);
+              }
+            }
+          }
         }
       })
       .catch((err) => {
@@ -165,6 +185,11 @@ export default function RagulModule() {
     });
 
     setSelectedTemplateId(templateData.id);
+    try {
+      localStorage.setItem('selectedInvoiceTemplate', templateData.id);
+    } catch (e) {
+      console.warn(e);
+    }
 
     // Sync to backend in background
     fetch('/api/ragul/templates', {
@@ -181,7 +206,27 @@ export default function RagulModule() {
       .catch((err) => console.warn('Backend sync warning:', err));
   }
 
+  function handleSelectTemplate(id) {
+    setSelectedTemplateId(id);
+    try {
+      localStorage.setItem('selectedInvoiceTemplate', id);
+    } catch (e) {
+      console.warn(e);
+    }
+    setTemplates((prev) =>
+      prev.map((t) => ({
+        ...t,
+        isDefault: t.id === id,
+      }))
+    );
+  }
+
   function handleSetDefault(id) {
+    try {
+      localStorage.setItem('selectedInvoiceTemplate', id);
+    } catch (e) {
+      console.warn(e);
+    }
     setTemplates((prev) =>
       prev.map((t) => ({
         ...t,
@@ -210,7 +255,7 @@ export default function RagulModule() {
       <InvoiceTemplatesView
         templates={templates}
         selectedTemplateId={selectedTemplateId}
-        setSelectedTemplateId={setSelectedTemplateId}
+        setSelectedTemplateId={handleSelectTemplate}
         activeTemplate={activeTemplate}
         onSave={handleSave}
         onSetDefault={handleSetDefault}
