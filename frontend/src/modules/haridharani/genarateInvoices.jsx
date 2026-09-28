@@ -294,7 +294,8 @@ export default function GenerateInvoices() {
               {!isLandlord && (
                 <th style={{ width: '40px', textAlign: 'center' }}></th> 
               )}
-              <th>Tenant & Landlord</th>
+              <th>Tenant</th>
+                <th>Landlord</th>
               <th>Property</th>
               <th>Base Rent</th>
               <th>Charges (Maint/Park)</th>
@@ -307,13 +308,13 @@ export default function GenerateInvoices() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={isLandlord ? 8 : 9} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? 9 : 10} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Calculating rent, additional charges, and GST...
                 </td>
               </tr>
             ) : previews.length === 0 ? (
               <tr>
-                <td colSpan={isLandlord ? 8 : 9} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan={isLandlord ? 9 : 10} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No active rental rates found for the selected criteria. Please configure rental rates first.
                 </td>
               </tr>
@@ -343,16 +344,18 @@ export default function GenerateInvoices() {
                       </td>
                     )}
                     <td>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                        Landlord: {item.landlord_name}{' '}
-                        {item.landlord_gst_registered ? (
-                          <span style={{ color: '#2563eb', fontWeight: 600 }}>(GST Reg)</span>
-                        ) : (
-                          <span style={{ color: '#b91c1c' }}>(Non-GST)</span>
-                        )}
-                      </div>
-                    </td>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.landlord_name}</div>
+                        <div style={{ fontSize: '0.74rem' }}>
+                          {item.landlord_gst_registered ? (
+                            <span style={{ color: '#2563eb', fontWeight: 600 }}>GST Registered</span>
+                          ) : (
+                            <span style={{ color: '#b91c1c' }}>Non-GST</span>
+                          )}
+                        </div>
+                      </td>
                     <td>{item.property_name}</td>
                     <td style={{ fontWeight: 500 }}>
                       ₹{parseFloat(item.rent_amount).toLocaleString('en-IN')}

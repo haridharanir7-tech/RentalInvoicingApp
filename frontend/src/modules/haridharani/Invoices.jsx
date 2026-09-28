@@ -462,25 +462,26 @@ export default function Invoices() {
               <th>Date</th>
               <th>Period</th>
               <th>Landlord</th>
-              <th>Property / Tenant</th>
+              <th>Property</th>
+                <th>Tenant</th>
               <th>Rent</th>
               <th>Charges</th>
               <th>GST</th>
               <th>Total Amount</th>
               <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              {!isLandlord && <th style={{ textAlign: 'center', width: '120px' }}>Actions</th>}
+              <th style={{ textAlign: "center", width: "120px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={isLandlord ? "10" : "11"} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Loading invoices...
                 </td>
               </tr>
             ) : invoices.length === 0 ? (
               <tr>
-                <td colSpan={isLandlord ? "10" : "11"} style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No matching invoices found. Generate invoices from the "Generate Invoice" tab.
                 </td>
               </tr>
@@ -501,10 +502,10 @@ export default function Invoices() {
                     <td>{inv.invoice_date}</td>
                     <td>{inv.billing_period}</td>
                     <td style={{ fontWeight: 600 }}>{inv.landlord_name}</td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{inv.property_name}</div>
-                    </td>
+                    <td>{inv.property_name}</td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                      </td>
                     <td style={{ fontWeight: 500 }}>
                       ₹{parseFloat(inv.rent_amount).toLocaleString('en-IN')}
                     </td>
@@ -590,9 +591,9 @@ export default function Invoices() {
                         </select>
                       )}
                     </td>
-                    {!isLandlord && (
-                      <td style={{ textAlign: 'center' }}>
-                        {inv.status === 'Draft' ? (
+                    <td style={{ textAlign: 'center' }}>
+                          {inv.status === 'Draft' ? (
+                            !isLandlord ? (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                             <button
                               className="btn btn-secondary"
@@ -624,9 +625,12 @@ export default function Invoices() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                              className="btn"
-                              style={{
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
+                            )
+                          ) : (
+                            <button
+                                className="btn"
+                                style={{
                                 padding: '4px 8px',
                                 fontSize: '0.78rem',
                                 display: 'inline-flex',
@@ -644,9 +648,8 @@ export default function Invoices() {
                               <Download size={12} />
                               <span>Download</span>
                             </button>
-                        )}
-                      </td>
-                    )}
+                          )}
+                        </td>
                   </tr>
                 );
               })
