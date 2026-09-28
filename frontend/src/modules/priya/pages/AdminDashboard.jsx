@@ -803,9 +803,6 @@ export default function AdminDashboard() {
                   Total Invoices → Draft + Generated + Sent
                 </p>
               </div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '3px 8px', borderRadius: '6px' }}>
-                Pie Chart
-              </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '210px' }}>
