@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
-  const invoicePageSize = 5;
+  const [invoicePageSize, setInvoicePageSize] = useState(2);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -606,7 +606,8 @@ export default function AdminDashboard() {
                 <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Invoice #</th>
                 <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Period</th>
                 <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Landlord</th>
-                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Property / Tenant</th>
+                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Property</th>
+                <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600 }}>Tenant</th>
                 <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Total Amount</th>
                 <th style={{ padding: '10px 14px', color: '#64748b', fontWeight: 600, textAlign: 'center' }}>Status</th>
               </tr>
@@ -614,7 +615,7 @@ export default function AdminDashboard() {
             <tbody>
               {paginatedInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
                     No invoices recorded in database yet.
                   </td>
                 </tr>
@@ -628,10 +629,13 @@ export default function AdminDashboard() {
                       {inv.billing_period}
                     </td>
                     <td style={{ padding: '12px 14px', color: '#1e293b' }}>
-                      {inv.landlord_name || `Landlord #${inv.landlord_id}`}
+                      {inv.landlord_name || (inv.landlord_id ? `Landlord #${inv.landlord_id}` : '-')}
                     </td>
-                    <td style={{ padding: '12px 14px', color: '#64748b' }}>
-                      {inv.property_name || `Property #${inv.property_id}`}
+                    <td style={{ padding: '12px 14px', color: '#475569' }}>
+                      {inv.property_name || (inv.property_id ? `Property #${inv.property_id}` : '-')}
+                    </td>
+                    <td style={{ padding: '12px 14px', color: '#0f172a', fontWeight: 500 }}>
+                      {inv.tenant_name || (inv.tenant_id ? `Tenant #${inv.tenant_id}` : '-')}
                     </td>
                     <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0f172a', textAlign: 'right' }}>
                       {formatCurrency(inv.total_amount)}
@@ -662,27 +666,50 @@ export default function AdminDashboard() {
 
         {/* Pagination Container matching Landlords module */}
         <div className="pagination-container">
-          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-            Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices ({recentInvoices.length} total)
-          </div>
-          {totalInvoicePages > 1 && (
-            <div className="pagination-controls">
-              <button
-                className="page-btn"
-                disabled={invoicePage <= 1}
-                onClick={() => setInvoicePage((p) => Math.max(1, p - 1))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
+            <span>
+              Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices ({recentInvoices.length} total)
+            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
+              <span>Per page:</span>
+              <select
+                value={invoicePageSize}
+                onChange={(e) => {
+                  setInvoicePageSize(Number(e.target.value));
+                  setInvoicePage(1);
+                }}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  fontSize: '0.82rem',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
               >
-                Previous
-              </button>
-              <button
-                className="page-btn"
-                disabled={invoicePage >= totalInvoicePages}
-                onClick={() => setInvoicePage((p) => Math.min(totalInvoicePages, p + 1))}
-              >
-                Next
-              </button>
+                <option value={2}>2</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+              </select>
             </div>
-          )}
+          </div>
+          <div className="pagination-controls">
+            <button
+              className="page-btn"
+              disabled={invoicePage <= 1}
+              onClick={() => setInvoicePage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <button
+              className="page-btn"
+              disabled={invoicePage >= totalInvoicePages || totalInvoicePages <= 1}
+              onClick={() => setInvoicePage((p) => Math.min(totalInvoicePages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -68,6 +68,13 @@ export default function InvoiceRegister() {
     );
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / pageSize));
+  const paginatedInvoices = filteredInvoices.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, period, status]);
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
@@ -222,7 +229,8 @@ export default function InvoiceRegister() {
               <th>Invoice #</th>
               <th>Date & Period</th>
               <th>Landlord</th>
-              <th>Property & Tenant</th>
+              <th>Property</th>
+              <th>Tenant</th>
               <th>Rent Amount</th>
               <th>GST Amount</th>
               <th>Total Amount</th>
@@ -232,13 +240,13 @@ export default function InvoiceRegister() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   Loading invoice register data...
                 </td>
               </tr>
             ) : paginatedInvoices.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
                   No invoices found matching the selected filters.
                 </td>
               </tr>
@@ -260,8 +268,10 @@ export default function InvoiceRegister() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 600 }}>{inv.tenant_name}</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{inv.property_name}</div>
+                    <div style={{ fontSize: '0.84rem', color: '#334155' }}>{inv.property_name || '-'}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 600 }}>{inv.tenant_name || '-'}</div>
                   </td>
                   <td>{formatCurrency(inv.rent_amount)}</td>
                   <td style={{ color: '#2563eb' }}>{formatCurrency(inv.gst_amount)}</td>
@@ -288,12 +298,12 @@ export default function InvoiceRegister() {
 
       <div className="pagination-container">
         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Showing {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredInvoices.length)} of {filteredInvoices.length} entries
+          Showing {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredInvoices.length)} of {filteredInvoices.length} invoices ({invoices.length} total)
         </div>
         <div className="pagination-controls">
-            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
-            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
-          </div>
+          <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+          <button className="page-btn" disabled={page >= totalPages || totalPages <= 1} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+        </div>
       </div>
     </div>
   );

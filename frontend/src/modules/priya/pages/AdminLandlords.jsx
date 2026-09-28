@@ -498,24 +498,22 @@ export default function AdminLandlords() {
           <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
             Showing {filteredLandlords.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredLandlords.length)} of {filteredLandlords.length} landlord{filteredLandlords.length !== 1 ? 's' : ''} ({landlords.length} total)
           </div>
-          {totalPages > 1 && (
-            <div className="pagination-controls">
-              <button 
-                className="page-btn" 
-                disabled={page <= 1} 
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <button 
-                className="page-btn" 
-                disabled={page >= totalPages} 
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <div className="pagination-controls">
+            <button 
+              className="page-btn" 
+              disabled={page <= 1} 
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </button>
+            <button 
+              className="page-btn" 
+              disabled={page >= totalPages || totalPages <= 1} 
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
         </div>
 
       {/* Modal 1: View Landlord Details */}

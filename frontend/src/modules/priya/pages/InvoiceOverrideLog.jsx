@@ -236,12 +236,12 @@ export default function InvoiceOverrideLog() {
 
       <div className="pagination-container">
         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Showing {logs.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, logs.length)} of {logs.length} entries
+          Showing {logs.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, logs.length)} of {logs.length} override logs ({logs.length} total)
         </div>
         <div className="pagination-controls">
-            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
-            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
-          </div>
+          <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+          <button className="page-btn" disabled={page >= totalPages || totalPages <= 1} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+        </div>
       </div>
 
       {/* Manual Override Modal */}
