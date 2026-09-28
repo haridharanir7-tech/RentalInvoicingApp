@@ -138,30 +138,53 @@ export default function AdminDashboard() {
 
   // 1. Chart 1 Data: Monthly Billing Composition (Stacked Bar Chart)
   // Relationship: Base Rent + Maintenance/Parking Charges + GST = Total Invoice Amount
-  const monthlyBillingData = (charts.monthlyRevenue || []).map(m => {
-    const rent = Number(m.rent || 0);
-    const maintParking = Number(m.maintenance || 0) + Number(m.parking || 0);
-    const gst = Number(m.gst || 0);
-    const total = Number(m.billed || 0) || (rent + maintParking + gst) || 1;
+  const invoicePeriodMap = {};
+  (recentInvoices || []).forEach(inv => {
+    const p = inv.billing_period || 'Unknown';
+    if (!invoicePeriodMap[p]) {
+      invoicePeriodMap[p] = { rent: 0, maintParking: 0, gst: 0, total: 0, count: 0 };
+    }
+    const r = Number(inv.rent_amount || 0);
+    const m = Number(inv.maintenance_charges || 0);
+    const pk = Number(inv.parking_charges || 0);
+    const g = Number(inv.gst_amount || 0);
+    const tot = Number(inv.total_amount || 0) || (r + m + pk + g);
+    invoicePeriodMap[p].rent += r;
+    invoicePeriodMap[p].maintParking += (m + pk);
+    invoicePeriodMap[p].gst += g;
+    invoicePeriodMap[p].total += tot;
+    invoicePeriodMap[p].count += 1;
+  });
+
+  const basePeriods = (charts.monthlyRevenue?.length > 0)
+    ? charts.monthlyRevenue
+    : Object.keys(invoicePeriodMap).sort().map(p => ({ period: p, ...invoicePeriodMap[p] }));
+
+  const monthlyBillingData = basePeriods.map(m => {
+    const fromInv = invoicePeriodMap[m.period];
+    const rent = Number(m.rent || fromInv?.rent || 0);
+    const maintParking = (Number(m.maintenance || 0) + Number(m.parking || 0)) || Number(fromInv?.maintParking || 0);
+    const gst = Number(m.gst ?? fromInv?.gst ?? 0);
+    const total = Number(m.billed || 0) || (rent + maintParking + gst) || Number(fromInv?.total || 1);
     return {
       period: m.period,
       rent,
       maintParking,
       gst,
       total,
-      rentPct: ((rent / total) * 100).toFixed(1),
-      maintParkingPct: ((maintParking / total) * 100).toFixed(1),
-      gstPct: ((gst / total) * 100).toFixed(1),
-      count: m.invoicesGenerated || m.count || 0
+      rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
+      maintParkingPct: total > 0 ? ((maintParking / total) * 100).toFixed(1) : '0.0',
+      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
+      count: m.invoicesGenerated || m.count || fromInv?.count || 0
     };
   });
   const maxMonthlyBilling = Math.max(...monthlyBillingData.map(m => m.total), 1);
 
   // 2. Chart 2 Data: Monthly Revenue & GST Trend (Line Chart)
   // Relationship: Total Billed Amount <-> GST Collected over time
-  const trendData = (charts.monthlyRevenue || []).map(m => ({
+  const trendData = monthlyBillingData.map(m => ({
     period: m.period,
-    billed: Number(m.billed || 0),
+    billed: Number(m.total || 0),
     gst: Number(m.gst || 0)
   }));
   const maxTrendVal = Math.max(...trendData.map(t => Math.max(t.billed, t.gst)), 1) * 1.15;
@@ -607,7 +630,7 @@ export default function AdminDashboard() {
 
                       {/* Stacked Vertical Bar */}
                       <div style={{
-                        width: '54px',
+                        width: '56px',
                         height: `${totalBarHeight}px`,
                         display: 'flex',
                         flexDirection: 'column-reverse',
@@ -619,34 +642,42 @@ export default function AdminDashboard() {
                         border: '1px solid #cbd5e1'
                       }}>
                         {/* Segment 1 (Bottom): Base Rent */}
-                        <div
-                          style={{
-                            height: `${rentH}px`,
-                            background: '#2563eb',
-                            transition: 'height 0.3s'
-                          }}
-                          title={`Base Rent: ${formatCurrency(m.rent)}`}
-                        />
-                        {/* Segment 2 (Middle): Maintenance & Parking Charges */}
-                        {maintH > 0 && (
+                        {m.rent > 0 && (
                           <div
                             style={{
-                              height: `${maintH}px`,
-                              background: '#8b5cf6',
-                              transition: 'height 0.3s'
+                              flex: m.rent,
+                              background: '#2563eb',
+                              width: '100%',
+                              minHeight: '4px',
+                              transition: 'all 0.3s ease'
                             }}
-                            title={`Maintenance & Parking: ${formatCurrency(m.maintParking)}`}
+                            title={`Base Rent: ${formatCurrency(m.rent)} (${m.rentPct}%)`}
+                          />
+                        )}
+                        {/* Segment 2 (Middle): Maintenance & Parking Charges */}
+                        {m.maintParking > 0 && (
+                          <div
+                            style={{
+                              flex: m.maintParking,
+                              background: '#8b5cf6',
+                              width: '100%',
+                              minHeight: '4px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            title={`Maintenance & Parking: ${formatCurrency(m.maintParking)} (${m.maintParkingPct}%)`}
                           />
                         )}
                         {/* Segment 3 (Top): GST */}
-                        {gstH > 0 && (
+                        {m.gst > 0 && (
                           <div
                             style={{
-                              height: `${gstH}px`,
+                              flex: m.gst,
                               background: '#f59e0b',
-                              transition: 'height 0.3s'
+                              width: '100%',
+                              minHeight: '4px',
+                              transition: 'all 0.3s ease'
                             }}
-                            title={`GST: ${formatCurrency(m.gst)}`}
+                            title={`GST (18%): ${formatCurrency(m.gst)} (${m.gstPct}%)`}
                           />
                         )}
                       </div>
