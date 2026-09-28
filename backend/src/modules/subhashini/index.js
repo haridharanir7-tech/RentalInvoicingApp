@@ -1,5 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+
+const uploadDir = path.join(__dirname, '../../../uploads/properties');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+});
+const upload = multer({ storage: storage });
 
 const landlordController = require('./landlordController');
 const propertyController = require('./propertyController');
@@ -14,7 +32,7 @@ router.delete('/landlords/:id', landlordController.deleteLandlord);
 router.get('/landlords', landlordController.getLandlords);
 
 // Property Routes
-router.post('/properties', propertyController.createProperty);
+router.post('/properties', upload.single('property_document'), propertyController.createProperty);
 router.put('/properties/:id', propertyController.updateProperty);
 router.patch('/properties/:id/deactivate', propertyController.deactivateProperty);
 router.delete('/properties/:id', propertyController.deleteProperty);
