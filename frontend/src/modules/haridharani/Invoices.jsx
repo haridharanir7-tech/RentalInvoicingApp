@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
-import {
-  FileText,
+import { FileText,
   Printer,
   Calendar,
   Building,
@@ -15,8 +14,7 @@ import {
   CheckCircle,
   Clock,
   Send,
-  Trash2
-} from 'lucide-react';
+  Trash2, Download } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -120,7 +118,20 @@ export default function Invoices() {
   };
 
   // Status Change Workflow (Draft > Generated > Sent)
-  const handleStatusChange = async (invoiceId, newStatus) => {
+  const handleDownloadInvoice = (inv) => {
+      // Mock download logic
+      const invoiceData = `INVOICE: ${inv.invoice_number}\nDATE: ${inv.invoice_date}\nTENANT: ${inv.tenant_name}\nPROPERTY: ${inv.property_name}\nRENT: ${inv.rent_amount}\nGST: ${inv.gst_amount}\nTOTAL: ${inv.total_amount}`;
+      const blob = new Blob([invoiceData], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${inv.invoice_number}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    const handleStatusChange = async (invoiceId, newStatus) => {
     try {
       setActionSuccess('');
       setActionError('');
@@ -245,7 +256,7 @@ export default function Invoices() {
       inv.billing_period,
       `"${inv.landlord_name}"`,
       `"${inv.property_name}"`,
-      `"${inv.tenant_name}"`,
+      `"${inv.tenant_name || 'Unassigned Tenant'}"`,
       inv.rent_amount,
       inv.maintenance_charges,
       inv.parking_charges,
@@ -491,7 +502,7 @@ export default function Invoices() {
                     <td>{inv.billing_period}</td>
                     <td style={{ fontWeight: 600 }}>{inv.landlord_name}</td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name}</div>
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
                       <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{inv.property_name}</div>
                     </td>
                     <td style={{ fontWeight: 500 }}>
@@ -613,7 +624,26 @@ export default function Invoices() {
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Finalized</span>
+                          <button
+                              className="btn"
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '0.78rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: '#f0fdf4',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0',
+                                cursor: 'pointer',
+                                borderRadius: '6px'
+                              }}
+                              onClick={() => handleDownloadInvoice(inv)}
+                              title="Download invoice"
+                            >
+                              <Download size={12} />
+                              <span>Download</span>
+                            </button>
                         )}
                       </td>
                     )}
@@ -640,15 +670,7 @@ export default function Invoices() {
           >
             Previous
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
-            <button
-              key={pNum}
-              className={`page-btn ${page === pNum ? 'active' : ''}`}
-              onClick={() => setPage(pNum)}
-            >
-              {pNum}
-            </button>
-          ))}
+          
           <button
             className="page-btn"
             disabled={page >= totalPages}
@@ -683,9 +705,7 @@ export default function Invoices() {
             </div>
 
             <form onSubmit={handleSaveCorrection}>
-              <div style={{ fontSize: '0.82rem', color: '#475569', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                <strong>Audit Compliance Notice:</strong> Per invoicing policy, only Draft invoices can be corrected. All adjustments are permanently stamped in the audit trail with the provided change reason.
-              </div>
+              
 
               <div className="flex-row" style={{ marginBottom: '14px' }}>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
@@ -704,7 +724,7 @@ export default function Invoices() {
                     }}
                     required
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Base monthly rental amount</span>
+                  
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Maintenance Charges (₹)</label>
@@ -721,7 +741,7 @@ export default function Invoices() {
                       setCorrectionForm({ ...correctionForm, maintenance_charges: val });
                     }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Monthly maintenance fee</span>
+                  
                 </div>
               </div>
 
@@ -741,7 +761,7 @@ export default function Invoices() {
                       setCorrectionForm({ ...correctionForm, parking_charges: val });
                     }}
                   />
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Parking slot charges</span>
+                  
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
                   <label className="form-label">Tax Supply Type</label>
@@ -753,7 +773,7 @@ export default function Invoices() {
                     <option value="intra_state">Intra-State (CGST + SGST)</option>
                     <option value="inter_state">Inter-State (IGST)</option>
                   </select>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Tax category applied</span>
+                  
                 </div>
               </div>
 
@@ -767,7 +787,7 @@ export default function Invoices() {
                   onChange={(e) => setCorrectionForm({ ...correctionForm, change_reason: e.target.value })}
                   required
                 />
-                <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '3px' }}>Logged in master data audit trails</span>
+                
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>

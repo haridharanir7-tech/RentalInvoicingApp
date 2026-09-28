@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle, ArrowRight, X } from 'lucide-react';
+import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle, ArrowRight, X, Download } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api/haridharani';
 
@@ -98,7 +98,19 @@ export default function GenerateInvoices() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleDownloadInvoice = (invNum) => {
+      // Mock download logic
+      const blob = new Blob([`INVOICE: ${invNum}\nDownloaded from Generate Invoices screen.`], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${invNum}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    const handleGenerate = async () => {
     if (selectedIds.length === 0) {
       setErrorMessage('Please select at least one tenant to generate an invoice for.');
       return;
@@ -331,7 +343,7 @@ export default function GenerateInvoices() {
                       </td>
                     )}
                     <td>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name}</div>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
                       <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
                         Landlord: {item.landlord_name}{' '}
                         {item.landlord_gst_registered ? (
@@ -410,15 +422,7 @@ export default function GenerateInvoices() {
           >
             Previous
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
-            <button
-              key={pNum}
-              className={`page-btn ${page === pNum ? 'active' : ''}`}
-              onClick={() => setPage(pNum)}
-            >
-              {pNum}
-            </button>
-          ))}
+          
           <button
             className="page-btn"
             disabled={page >= totalPages}
