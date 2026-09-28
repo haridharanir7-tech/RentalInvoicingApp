@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function LandlordManagement() {
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
     name: '', email: '', pan: '', gstin: '', contact_details: '', 
-    billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
+    billing_address: '', gst_registered: false, default_invoice_template: '', is_active: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [templates, setTemplates] = useState([]);
 
   // Pagination & Filters
   const [page, setPage] = useState(1);
@@ -23,6 +24,25 @@ export default function LandlordManagement() {
   useEffect(() => {
     fetchLandlords(page, searchQuery, statusFilter);
   }, [page, statusFilter]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await fetch('/api/ragul/templates');
+        if (res.ok) {
+          const jsonData = await res.json();
+          const tplArray = jsonData.data || [];
+          setTemplates(tplArray);
+          if (tplArray.length > 0 && !formData.default_invoice_template) {
+            setFormData(prev => ({ ...prev, default_invoice_template: tplArray[0].name }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch templates:', err);
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const fetchLandlords = async (overridePage = page, overrideSearch = searchQuery, overrideStatus = statusFilter) => {
     try {
@@ -52,17 +72,9 @@ export default function LandlordManagement() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    let finalVal = type === 'checkbox' ? checked : value;
-    if (name === 'contact_details') {
-      finalVal = value.replace(/\D/g, '').slice(0, 10);
-    } else if (name === 'pan') {
-      finalVal = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-    } else if (name === 'gstin') {
-      finalVal = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
-    }
     setFormData({
       ...formData,
-      [name]: finalVal
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -103,21 +115,23 @@ export default function LandlordManagement() {
     if (!formData.name.trim()) {
       return setError('Name is required');
     }
-
-    if (formData.contact_details && !/^[0-9]{10}$/.test(formData.contact_details.trim())) {
-      return setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets).');
-    }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.trim().toUpperCase())) {
-      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    const cleanPan = (formData.pan || '').trim().toUpperCase();
+    if (cleanPan && !/^[A-Z0-9]{3,20}$/.test(cleanPan)) {
+      return setError('Invalid PAN format (alphanumeric characters, e.g. ABCDE1234F)');
     }
 
-    if (formData.gst_registered && !formData.gstin.trim()) {
+    if (formData.gst_registered && !formData.gstin) {
       return setError('GSTIN is required when GST Registered is checked');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin.trim().toUpperCase())) {
-      return setError('Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)');
+    const cleanGstin = (formData.gstin || '').trim().toUpperCase();
+    if (cleanGstin && !/^[A-Z0-9]{3,20}$/.test(cleanGstin)) {
+      return setError('Invalid GSTIN format (alphanumeric characters, e.g. 33AAAAA0000A1Z5)');
+    }
+
+    if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
+      return setError('Contact Details must be a 10-digit phone number');
     }
 
     setLoading(true);
@@ -153,7 +167,7 @@ export default function LandlordManagement() {
       setSuccess(editingId ? 'Landlord updated successfully!' : 'Landlord created successfully!');
       setFormData({
         name: '', email: '', pan: '', gstin: '', contact_details: '', 
-        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)'
+        billing_address: '', gst_registered: false, default_invoice_template: templates.length > 0 ? templates[0].name : ''
       });
       setEditingId(null);
       fetchLandlords();
@@ -176,7 +190,7 @@ export default function LandlordManagement() {
           <button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true });
+            setFormData({ name: '', email: '', pan: '', gstin: '', contact_details: '', billing_address: '', gst_registered: false, default_invoice_template: templates.length > 0 ? templates[0].name : '', is_active: true });
             setSuccess('');
             setError('');
           }}>
@@ -202,15 +216,15 @@ export default function LandlordManagement() {
                   <input type="text" className="form-input" name="name" value={formData.name} onChange={handleChange} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>Email ID</label>
-                  <input type="email" className="form-input" name="email" value={formData.email || ''} onChange={handleChange} />
+                  <label>Email ID *</label>
+                  <input type="email" className="form-input" name="email" value={formData.email || ''} onChange={handleChange} required />
                 </div>
               </div>
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>PAN</label>
-                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} />
+                  <label>PAN *</label>
+                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} required />
                 </div>
                 <div className="form-group flex-1" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
                   <input type="checkbox" name="gst_registered" checked={formData.gst_registered} onChange={handleChange} />
@@ -220,32 +234,40 @@ export default function LandlordManagement() {
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>GSTIN {formData.gst_registered && '*'}</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} required={formData.gst_registered} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
+                  <label>GSTIN *</label>
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} required placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
                 </div>
                 <div className="form-group flex-1">
-                  <label>Contact Phone</label>
-                  <input type="tel" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} placeholder="9876543210" maxLength="10" />
+                  <label>Contact Details *</label>
+                  <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} required pattern="\d{10}" title="Phone number must be exactly 10 digits" maxLength="10" />
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Billing Address</label>
-                <textarea className="form-input" name="billing_address" value={formData.billing_address} onChange={handleChange} rows="2"></textarea>
+                <label>Billing Address *</label>
+                <textarea className="form-input" name="billing_address" value={formData.billing_address} onChange={handleChange} rows="2" required></textarea>
               </div>
 
               <div className="form-group">
-                  <label>Default Invoice Template</label>
-                  <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange}>
-                    <option value="Template A (Standard)">Template A (Standard)</option>
-                    <option value="Template B (Detailed)">Template B (Detailed)</option>
-                    <option value="Template C (Compact)">Template C (Compact)</option>
+                  <label>Default Invoice Template *</label>
+                  <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange} required>
+                    <option value="">Select a template...</option>
+                    {templates.map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                    {templates.length === 0 && (
+                      <>
+                        <option value="Template A (Standard)">Template A (Standard)</option>
+                        <option value="Template B (Detailed)">Template B (Detailed)</option>
+                        <option value="Template C (Compact)">Template C (Compact)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label>Status</label>
-                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}>
+                  <label>Status *</label>
+                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })} required>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
@@ -315,6 +337,7 @@ export default function LandlordManagement() {
                 </td>
                 <td>
                   <span className={l.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                    {l.is_active ? <CheckCircle size={13} /> : <XCircle size={13} />}
                     {l.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>

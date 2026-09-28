@@ -28,17 +28,203 @@ export const TEMPLATE_LAYOUTS = [
   { id: "premium", name: "Premium Gold", desc: "Luxury framed card & verified seal", icon: "👑" },
 ];
 
+export const DEFAULT_TEMPLATES = [
+  {
+    id: "wave-blue",
+    name: "Modern Wave (Canva Style)",
+    layoutStyle: "wave",
+    businessName: "Sri Lakshmi Properties & Estates",
+    address: "Plot 14, 100 Feet Road, Indiranagar, Bengaluru, Karnataka 560038",
+    gstin: "29AKLPP4821M1Z6",
+    pan: "AAKLP4821M",
+    header: "#1d4ed8",
+    accent: "#2563eb",
+    logo: null,
+    logoName: "company-logo.png",
+    footer:
+      "Bank: HDFC Bank, Indiranagar Branch - A/c 50200012345670 - IFSC HDFC0000123\nPayment terms: Due on the 5th of every month. Thank you for your business!",
+    isDefault: true,
+  },
+  {
+    id: "minimal-charcoal",
+    name: "Clean Minimalist (Executive)",
+    layoutStyle: "minimal",
+    businessName: "Horizon Real Estate Holdings",
+    address: "45 MG Road, CBD, Bengaluru, Karnataka 560001",
+    gstin: "29AABCH9999M1ZQ",
+    pan: "AAKLP4821M",
+    header: "#0f172a",
+    accent: "#3b82f6",
+    logo: null,
+    logoName: "company-logo.png",
+    footer:
+      "Bank: State Bank of India, MG Road - A/c 30999888777 - IFSC SBIN0000800\nPayment due within 7 days of invoice issuance. Electronic generated invoice.",
+    isDefault: false,
+  },
+  {
+    id: "classic-pine",
+    name: "Classic Corporate (Boxed Grid)",
+    layoutStyle: "classic",
+    businessName: "Apex Commercial Realty Pvt Ltd",
+    address: "Tower B, Tech Park, Whitefield, Bengaluru, Karnataka 560066",
+    gstin: "29AAACA2020B1Z4",
+    pan: "AAACA2020B",
+    header: "#133832",
+    accent: "#166534",
+    logo: null,
+    logoName: "company-logo.png",
+    footer:
+      "Bank: ICICI Bank, Whitefield - A/c 000205001234 - IFSC ICIC0000002\nIssued under Section 31 of CGST Act. Certified genuine rental billing.",
+    isDefault: false,
+  },
+  {
+    id: "split-teal",
+    name: "Split Sidebar (Tech Pillar)",
+    layoutStyle: "split",
+    businessName: "Meridian Estates LLP",
+    address: "Tower 4, Electronic City Phase 1, Bengaluru, Karnataka 560100",
+    gstin: "33AAQFM7310K1ZR",
+    pan: "AAQFM7310K",
+    header: "#0f766e",
+    accent: "#0d9488",
+    logo: null,
+    logoName: "company-logo.png",
+    footer:
+      "Bank: Axis Bank, Electronic City - A/c 918020045678901 - IFSC UTIB0000142\nPrompt settlement is appreciated. For queries contact accounts@meridian.in.",
+    isDefault: false,
+  },
+  {
+    id: "premium-gold",
+    name: "Premium Elegant (Signature & Gold)",
+    layoutStyle: "premium",
+    businessName: "Royal Heritage Residency & Commercials",
+    address: "Palace Cross Road, Vasanth Nagar, Bengaluru, Karnataka 560052",
+    gstin: "29AAGCR5543K1ZM",
+    pan: "AAGCR5543K",
+    header: "#b45309",
+    accent: "#d97706",
+    logo: null,
+    logoName: "company-logo.png",
+    footer:
+      "Bank: Kotak Mahindra Bank - A/c 2011448899 - IFSC KKBK0000456\nCertified authentic billing document with authorized digital signatory.",
+    isDefault: false,
+  },
+];
+
 export default function InvoiceTemplatesView({
   templates = [],
-  selectedTemplateId,
-  setSelectedTemplateId,
-  activeTemplate,
+  selectedTemplateId: propSelectedTemplateId,
+  setSelectedTemplateId: propSetSelectedTemplateId,
+  activeTemplate: propActiveTemplate,
   onSave,
   onSetDefault,
   showMessage,
 }) {
   const fileInputRef = useRef(null);
   const [isZipping, setIsZipping] = useState(false);
+
+  // Template list (prop or fallback to default templates)
+  const templateList = templates && templates.length > 0 ? templates : DEFAULT_TEMPLATES;
+
+  // Persistent selected template ID state synced with localStorage
+  const [internalSelectedId, setInternalSelectedId] = useState(() => {
+    try {
+      const saved = localStorage.getItem("selectedInvoiceTemplate");
+      if (saved) return saved;
+    } catch (e) {
+      console.warn("Could not read selectedInvoiceTemplate from localStorage", e);
+    }
+    const def = templateList.find((t) => t.isDefault) || templateList[0];
+    const initialId = propSelectedTemplateId || def?.id || "wave-blue";
+    try {
+      localStorage.setItem("selectedInvoiceTemplate", initialId);
+    } catch (e) {
+      console.warn("Could not write selectedInvoiceTemplate to localStorage", e);
+    }
+    return initialId;
+  });
+
+  const selectedTemplateId = propSelectedTemplateId !== undefined ? propSelectedTemplateId : internalSelectedId;
+
+  // Template currently being previewed on the screen (defaults to the active selected template)
+  const [previewTemplateId, setPreviewTemplateId] = useState(selectedTemplateId);
+
+  // Sync previewTemplateId when selectedTemplateId resolves
+  useEffect(() => {
+    if (selectedTemplateId) {
+      setPreviewTemplateId((curr) => curr || selectedTemplateId);
+    }
+  }, [selectedTemplateId]);
+
+  const currentPreviewId = previewTemplateId || selectedTemplateId;
+
+  // Active template derived from the preview selection
+  const activeTemplate =
+    templateList.find((t) => t.id === currentPreviewId) ||
+    templateList.find((t) => t.id === selectedTemplateId) ||
+    propActiveTemplate ||
+    templateList[0] ||
+    DEFAULT_TEMPLATES[0];
+
+  const isSelected = activeTemplate.id === selectedTemplateId;
+
+  // Read & ensure valid template on page load and when templateList changes
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("selectedInvoiceTemplate");
+      if (saved) {
+        if (templateList.some((t) => t.id === saved)) {
+          if (internalSelectedId !== saved) setInternalSelectedId(saved);
+          if (propSetSelectedTemplateId && propSelectedTemplateId !== saved) {
+            propSetSelectedTemplateId(saved);
+          }
+          return;
+        }
+      }
+      // No saved template or saved is no longer in list -> use default template
+      const def = templateList.find((t) => t.isDefault) || templateList[0];
+      const defaultId = def?.id || "wave-blue";
+      if (internalSelectedId !== defaultId) setInternalSelectedId(defaultId);
+      if (propSetSelectedTemplateId && propSelectedTemplateId !== defaultId) {
+        propSetSelectedTemplateId(defaultId);
+      }
+      localStorage.setItem("selectedInvoiceTemplate", defaultId);
+    } catch (e) {
+      console.warn("Error verifying selectedInvoiceTemplate in localStorage", e);
+    }
+  }, [templateList]);
+
+  // Sync internal state when parent changes propSelectedTemplateId
+  useEffect(() => {
+    if (propSelectedTemplateId && propSelectedTemplateId !== internalSelectedId) {
+      setInternalSelectedId(propSelectedTemplateId);
+      try {
+        localStorage.setItem("selectedInvoiceTemplate", propSelectedTemplateId);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  }, [propSelectedTemplateId]);
+
+  // Handler for selecting a template as active/default
+  function handleSelectTemplate(tplId) {
+    const targetId = tplId || currentPreviewId;
+    setInternalSelectedId(targetId);
+    setPreviewTemplateId(targetId);
+    if (propSetSelectedTemplateId) {
+      propSetSelectedTemplateId(targetId);
+    }
+    try {
+      localStorage.setItem("selectedInvoiceTemplate", targetId);
+    } catch (e) {
+      console.warn("Failed to save selectedInvoiceTemplate to localStorage", e);
+    }
+    if (onSetDefault) {
+      onSetDefault(targetId);
+    }
+    const matched = templateList.find((t) => t.id === targetId);
+    showMessage?.(`✓ Template "${matched?.name || targetId}" selected as default template!`);
+  }
 
   // Popup Modal visibility state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,7 +277,7 @@ export default function InvoiceTemplatesView({
     setModalMode("create");
     setFormData({
       id: `template-${Date.now()}`,
-      name: `Custom Template ${templates.length + 1}`,
+      name: `Custom Template ${templateList.length + 1}`,
       layoutStyle: "wave",
       businessName: activeTemplate?.businessName || "Sri Lakshmi Properties & Estates",
       address: activeTemplate?.address || "Plot 14, 100 Feet Road, Indiranagar, Bengaluru, Karnataka 560038",
@@ -188,6 +374,7 @@ export default function InvoiceTemplatesView({
     }
 
     onSave?.(formData, modalMode === "create");
+    handleSelectTemplate(formData.id);
     setIsModalOpen(false);
     showMessage?.(`✓ Template "${formData.name}" saved to database successfully!`);
   }
@@ -303,16 +490,17 @@ export default function InvoiceTemplatesView({
             COLUMN 1: TEMPLATES LIST (WITH "+ NEW TEMPLATE" BUTTON)
             ========================================================================= */}
         <div className="col-templates-list no-print">
-          <div className="col-header-title">Templates ({templates.length})</div>
+          <div className="col-header-title">Templates ({templateList.length})</div>
 
           <div className="template-items-wrap">
-            {templates.map((tpl) => {
-              const isSelected = tpl.id === selectedTemplateId;
+            {templateList.map((tpl) => {
+              const isThisSelected = tpl.id === selectedTemplateId;
+              const isThisViewing = tpl.id === currentPreviewId;
               return (
                 <div
                   key={tpl.id}
-                  className={`template-tab-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => setSelectedTemplateId(tpl.id)}
+                  className={`template-tab-item ${isThisViewing ? "viewing" : ""} ${isThisSelected ? "selected" : ""}`}
+                  onClick={() => setPreviewTemplateId(tpl.id)}
                 >
                   <div className="template-tab-meta">
                     <span className="template-tab-name">{tpl.name}</span>
@@ -325,7 +513,11 @@ export default function InvoiceTemplatesView({
                       className="template-color-dot"
                       style={{ backgroundColor: tpl.header || "#1d4ed8" }}
                     />
-                    {tpl.isDefault && <span className="template-default-indicator">●</span>}
+                    {isThisSelected && (
+                      <span className="template-default-indicator" title="Active / Default Template">
+                        ●
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -355,46 +547,25 @@ export default function InvoiceTemplatesView({
             </div>
 
             <div className="preview-toolbar-actions">
-              {/* Customize / Edit Button: OPENS THE MODAL TO EDIT THIS TEMPLATE! */}
-              <button
-                type="button"
-                className="btn-action-customize"
-                onClick={handleOpenEditModal}
-                title="Customize template layout, colors & details"
-              >
-                <Edit3 size={15} /> Customize
-              </button>
-
-              {/* Clean Download PDF Button */}
-              <button
-                type="button"
-                className="btn-action-primary"
-                onClick={handleDownloadPdf}
-                title="Download or Print PDF"
-              >
-                <Download size={15} /> Download PDF
-              </button>
-
-              {/* Print Button */}
-              <button
-                type="button"
-                className="btn-action-secondary"
-                onClick={handleDownloadPdf}
-                title="Print active invoice"
-              >
-                <Printer size={15} /> Print
-              </button>
-
-              {/* Bulk ZIP Button */}
-              <button
-                type="button"
-                className="btn-action-zip"
-                onClick={handleBulkZipDownload}
-                disabled={isZipping}
-                title="Download all tenant invoices in ZIP package"
-              >
-                <Archive size={15} /> {isZipping ? "Packing ZIP..." : "Bulk ZIP"}
-              </button>
+              {isSelected ? (
+                <button
+                  type="button"
+                  className="btn-action-selected"
+                  onClick={() => handleSelectTemplate(currentPreviewId)}
+                  title="Currently active default template"
+                >
+                  <Check size={16} /> Selected
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-action-primary"
+                  onClick={() => handleSelectTemplate(currentPreviewId)}
+                  title="Select this template as default"
+                >
+                  <Check size={16} /> Select
+                </button>
+              )}
             </div>
           </div>
 

@@ -2,6 +2,8 @@ const db = require('../../config/database');
 
 exports.createProperty = async (req, res) => {
     try {
+        console.log("BODY:", req.body);
+        console.log("FILE:", req.file);
         const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
         
         if (!landlord_id) {
@@ -25,11 +27,23 @@ exports.createProperty = async (req, res) => {
             address || '', 
             property_type || 'Commercial', 
             parsedArea, 
-            is_active !== false
+            is_active !== false && is_active !== 'false'
         ];
         
         const result = await db.query(query, values);
-        res.status(201).json(result.rows[0]);
+        const newProperty = result.rows[0];
+
+        // Insert document if file was uploaded
+        if (req.file) {
+            const document_name = req.file.originalname;
+            const document_url = '/uploads/properties/' + req.file.filename;
+            await db.query(
+                `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
+                [newProperty.id, document_name, document_url]
+            );
+        }
+
+        res.status(201).json(newProperty);
     } catch (error) {
         console.error('createProperty error:', error);
         res.status(500).json({ error: error.message });

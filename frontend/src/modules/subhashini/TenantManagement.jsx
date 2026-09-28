@@ -136,17 +136,21 @@ export default function TenantManagement() {
       return setError('Property is required');
     }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
-      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    if (formData.pan && !/^[A-Z0-9]{3,20}$/i.test(formData.pan.trim())) {
+      return setError('Invalid PAN format (alphanumeric characters, e.g. ABCDE1234F)');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
-      return setError('Invalid GSTIN format');
+    if (formData.gstin && !/^[A-Z0-9]{3,20}$/i.test(formData.gstin.trim())) {
+      return setError('Invalid GSTIN format (alphanumeric characters, e.g. 33AAAAA0000A1Z5)');
+    }
+
+    if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
+      return setError('Contact details must be exactly 10 digits');
     }
 
     if (formData.lease_start_date && formData.lease_end_date) {
-      if (new Date(formData.lease_end_date) < new Date(formData.lease_start_date)) {
-        return setError('Lease end date cannot be before lease start date');
+      if (new Date(formData.lease_end_date) <= new Date(formData.lease_start_date)) {
+        return setError('Lease end date must be after lease start date');
       }
     }
 
@@ -225,7 +229,7 @@ export default function TenantManagement() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Tenant' : 'New Tenant'}</h3>
+              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Tenant' : 'Add New Tenant'}</h3>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>&times;</button>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '10px', fontSize: '0.9rem' }}>{error}</div>}
@@ -250,32 +254,32 @@ export default function TenantManagement() {
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>PAN</label>
-                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} />
+                  <label>PAN *</label>
+                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>GSTIN</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} />
+                  <label>GSTIN *</label>
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} required />
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Contact Details</label>
-                <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={handleChange} />
+                <label>Contact Details *</label>
+                <input type="text" className="form-input" name="contact_details" value={formData.contact_details} onChange={(e) => setFormData({...formData, contact_details: e.target.value.replace(/\D/g, '')})} pattern="\d{10}" maxLength="10" title="Contact Details must be exactly 10 digits" required />
               </div>
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>Lease Start Date</label>
-                  <input type="date" className="form-input" name="lease_start_date" value={formData.lease_start_date} onChange={handleChange} />
+                  <label>Lease Start Date *</label>
+                  <input type="date" className="form-input" name="lease_start_date" value={formData.lease_start_date} onChange={handleChange} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>Lease End Date</label>
-                  <input type="date" className="form-input" name="lease_end_date" value={formData.lease_end_date} onChange={handleChange} />
+                  <label>Lease End Date *</label>
+                  <input type="date" className="form-input" name="lease_end_date" value={formData.lease_end_date} onChange={handleChange} min={formData.lease_start_date} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>Status</label>
-                  <select className="form-input" name="status" value={formData.status} onChange={handleChange}>
+                  <label>Status *</label>
+                  <select className="form-input" name="status" value={formData.status} onChange={handleChange} required>
                     <option value="Active">Active</option>
                     <option value="Notice Period">Notice Period</option>
                     <option value="Vacated">Vacated</option>
@@ -286,7 +290,7 @@ export default function TenantManagement() {
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Tenant'}
+                  {loading ? 'Saving...' : editingId ? 'Save Tenant' : 'Add Tenant'}
                 </button>
               </div>
             </form>
@@ -306,7 +310,7 @@ export default function TenantManagement() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
+            <button type="button" className="btn btn-secondary" onClick={handleClearFilters}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -323,15 +327,15 @@ export default function TenantManagement() {
       </div>
       
       <div className="table-container">
-        <table>
+        <table style={{ tableLayout: 'fixed', width: '100%', minWidth: '1000px' }}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Tenant Name</th>
-              <th>Property</th>
-              <th>Lease Period</th>
-              <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
+              <th style={{ width: '6%' }}>ID</th>
+              <th style={{ width: '23%' }}>Tenant Name</th>
+              <th style={{ width: '23%' }}>Property</th>
+              <th style={{ width: '18%' }}>Lease Period</th>
+              <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -343,7 +347,9 @@ export default function TenantManagement() {
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{t.contact_details}</div>
                 </td>
                 <td>{t.property_name || 'N/A'}</td>
-                <td>
+                <td 
+                  title={`${t.lease_start_date ? new Date(t.lease_start_date).toLocaleDateString() : '-'} ${t.lease_end_date ? `to ${new Date(t.lease_end_date).toLocaleDateString()}` : ''}`}
+                >
                   {t.lease_start_date ? new Date(t.lease_start_date).toLocaleDateString() : '-'} 
                   {t.lease_end_date ? ` to ${new Date(t.lease_end_date).toLocaleDateString()}` : ''}
                 </td>
@@ -361,6 +367,7 @@ export default function TenantManagement() {
                 {!isLandlord && (<td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     <button
+                      className="action-btn-edit"
                       onClick={() => handleEdit(t)}
                       title="Edit"
                       style={{
@@ -381,6 +388,7 @@ export default function TenantManagement() {
                       Edit
                     </button>
                     <button
+                      className="action-btn-delete"
                       onClick={() => handleDelete(t.id)}
                       title="Delete"
                       style={{

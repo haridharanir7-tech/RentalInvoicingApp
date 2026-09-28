@@ -7,7 +7,7 @@ export default function PropertyManagement() {
   const [properties, setProperties] = useState([]);
   const [landlords, setLandlords] = useState([]);
   const [formData, setFormData] = useState({
-    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true
+    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_document: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -70,8 +70,8 @@ export default function PropertyManagement() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const { name, value, type, files } = e.target;
+    setFormData({ ...formData, [name]: type === 'file' ? files[0] : value });
   };
 
   const handleEdit = (property) => {
@@ -81,7 +81,8 @@ export default function PropertyManagement() {
       address: property.address || '',
       property_type: property.property_type || 'Commercial',
       total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : '',
-        is_active: property.is_active !== false
+      is_active: property.is_active !== false,
+      property_document: null
     });
     setEditingId(property.id);
     setShowForm(true);
@@ -122,19 +123,22 @@ export default function PropertyManagement() {
         : '/api/master-data/properties';
       const method = editingId ? 'PUT' : 'POST';
 
-      const payload = {
-        landlord_id: parseInt(formData.landlord_id, 10),
-        name: formData.name.trim(),
-        address: formData.address || '',
-        property_type: formData.property_type || 'Commercial',
-        total_area: formData.total_area && formData.total_area !== '' ? parseFloat(formData.total_area) : null,
-        is_active: formData.is_active !== false
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append('landlord_id', parseInt(formData.landlord_id, 10));
+      formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('address', formData.address || '');
+      formDataToSend.append('property_type', formData.property_type || 'Commercial');
+      if (formData.total_area && formData.total_area !== '') {
+        formDataToSend.append('total_area', parseFloat(formData.total_area));
+      }
+      formDataToSend.append('is_active', formData.is_active !== false);
+      if (formData.property_document) {
+        formDataToSend.append('property_document', formData.property_document);
+      }
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: formDataToSend
       });
       
       if (!res.ok) {
@@ -147,7 +151,7 @@ export default function PropertyManagement() {
       }
       
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
-      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true });
+      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_document: null });
       setEditingId(null);
       fetchProperties();
       setTimeout(() => setShowForm(false), 1200);
@@ -169,7 +173,7 @@ export default function PropertyManagement() {
           {!isLandlord && (<button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '' });
+            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', property_document: null });
             setSuccess('');
             setError('');
           }}>
@@ -182,7 +186,7 @@ export default function PropertyManagement() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Property' : 'New Property'}</h3>
+              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Property' : 'Add New Property'}</h3>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>&times;</button>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '10px', fontSize: '0.9rem' }}>{error}</div>}
@@ -218,7 +222,7 @@ export default function PropertyManagement() {
               </div>
 
               <div className="form-group">
-                <label>Address</label>
+                <label>Address *</label>
                 <textarea 
                   className="form-input" 
                   name="address" 
@@ -226,20 +230,21 @@ export default function PropertyManagement() {
                   value={formData.address} 
                   onChange={handleChange} 
                   rows="2"
+                  required
                 />
               </div>
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>Property Type</label>
-                  <select className="form-input" name="property_type" value={formData.property_type} onChange={handleChange}>
+                  <label>Property Type *</label>
+                  <select className="form-input" name="property_type" value={formData.property_type} onChange={handleChange} required>
                     <option value="Commercial">Commercial</option>
                     <option value="Residential">Residential</option>
                     <option value="Warehouse">Warehouse</option>
                   </select>
                 </div>
                 <div className="form-group flex-1">
-                  <label>Total Area (sq ft)</label>
+                  <label>Total Area (sq ft) *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -249,23 +254,31 @@ export default function PropertyManagement() {
                     className="form-input" 
                     name="total_area" 
                     value={formData.total_area} 
-                    onChange={handleChange} 
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               
 <div className="form-group flex-1">
-                  <label>Status</label>
-                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })}>
+                  <label>Status *</label>
+                  <select className="form-input" name="is_active" value={formData.is_active ? 'Active' : 'Inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'Active' })} required>
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
 </div>
 
+              <div className="flex-row">
+                <div className="form-group flex-1">
+                  <label>Document File (Optional)</label>
+                  <input type="file" className="form-input" name="property_document" onChange={handleChange} />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Property'}
+                  {loading ? 'Saving...' : editingId ? 'Save Property' : 'Add Property'}
                 </button>
               </div>
             </form>
@@ -285,7 +298,7 @@ export default function PropertyManagement() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
+            <button type="button" className="btn btn-secondary" onClick={handleClearFilters}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -301,15 +314,15 @@ export default function PropertyManagement() {
       </div>
       
       <div className="table-container">
-        <table>
+        <table style={{ tableLayout: 'fixed', width: '100%', minWidth: '1000px' }}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Property Name</th>
-              <th>Type & Area</th>
-              <th>Landlord</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '180px' }}>Actions</th>
+              <th style={{ width: '6%' }}>ID</th>
+              <th style={{ width: '28%' }}>Property Name</th>
+              <th style={{ width: '18%' }}>Type & Area</th>
+              <th style={{ width: '18%' }}>Landlord</th>
+              <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -318,7 +331,14 @@ export default function PropertyManagement() {
                 <td>{p.id}</td>
                 <td style={{ fontWeight: 500 }}>
                   <div>{p.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{p.address}</div>
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    color: '#64748b',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%' 
+                  }} title={p.address}>{p.address}</div>
                 </td>
                 <td>
                   <div>{p.property_type || '-'}</div>
@@ -334,6 +354,7 @@ export default function PropertyManagement() {
                 <td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                     <button
+                      className="action-btn-edit"
                       onClick={() => handleEdit(p)}
                       title="Edit"
                       style={{
@@ -354,6 +375,7 @@ export default function PropertyManagement() {
                       Edit
                     </button>
                     <button
+                      className="action-btn-delete"
                       onClick={() => handleDelete(p.id)}
                       title="Delete"
                       style={{

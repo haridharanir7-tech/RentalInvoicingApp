@@ -47,7 +47,17 @@ exports.getRentalRates = async (req, res) => {
 exports.getPropertiesAndTenants = async (req, res) => {
   try {
     const landlordsQuery = `
-      SELECT id, name, gst_registered, gstin, COALESCE(is_active, true) AS is_active FROM landlords ORDER BY name ASC
+      SELECT 
+        l.id, 
+        l.name, 
+        MAX(COALESCE(l.email, u.email, '')) AS email, 
+        l.gst_registered, 
+        l.gstin, 
+        COALESCE(l.is_active, true) AS is_active 
+      FROM landlords l
+      LEFT JOIN users u ON u.landlord_id = l.id
+      GROUP BY l.id, l.name, l.gst_registered, l.gstin, l.is_active
+      ORDER BY l.name ASC
     `;
     const landlordsResult = await db.query(landlordsQuery);
 
@@ -83,6 +93,40 @@ exports.getPropertiesAndTenants = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching master data:', error);
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const storeFile = path.join(__dirname, '../../../data-store.json');
+      if (fs.existsSync(storeFile)) {
+        const store = JSON.parse(fs.readFileSync(storeFile, 'utf8'));
+        return res.json({
+          success: true,
+          landlords: (store.landlords || []).map((l) => ({
+            id: l.id,
+            name: l.name,
+            email: l.email || '',
+            gst_registered: !!l.gst_registered,
+            gstin: l.gstin || '',
+            is_active: l.status === 'Active' || l.is_active !== false
+          })),
+          properties: (store.properties || []).map((p) => ({
+            id: p.id,
+            landlord_id: p.landlord_id,
+            name: p.property_name || p.name,
+            property_type: p.property_type || 'Commercial',
+            is_active: p.status === 'Active' || p.is_active !== false
+          })),
+          tenants: (store.tenants || []).map((t) => ({
+            tenant_id: t.id,
+            tenant_name: t.name || t.tenant_name,
+            property_id: t.property_id,
+            property_name: t.property_name || 'Assigned Property'
+          }))
+        });
+      }
+    } catch (fErr) {
+      console.error('Fallback read error:', fErr);
+    }
     res.status(500).json({ success: false, error: 'Failed to fetch master data' });
   }
 };
@@ -150,10 +194,17 @@ exports.saveRentalRate = async (req, res) => {
     change_reason = 'Rate Revision'
   } = req.body;
 
-  if (!landlord_id || !property_id || !monthly_rent || !effective_from) {
+  if (!landlord_id || !property_id || !tenant_id || !monthly_rent || !effective_from) {
     return res.status(400).json({
       success: false,
-      error: 'Landlord, property, monthly rent, and effective-from date are required.'
+      error: 'Landlord, property, tenant, monthly rent, and effective-from date are required.'
+    });
+  }
+
+  if (parseFloat(monthly_rent) > 99999999 || parseFloat(maintenance_charges) > 99999999 || parseFloat(parking_charges) > 99999999) {
+    return res.status(400).json({
+      success: false,
+      error: 'All cost figures must not exceed 8 digits (max ₹9,99,99,999).'
     });
   }
 
@@ -173,11 +224,12 @@ exports.saveRentalRate = async (req, res) => {
     let overlapQuery = `
       SELECT rate_id, TO_CHAR(effective_from, 'YYYY-MM-DD') AS effective_from, TO_CHAR(effective_to, 'YYYY-MM-DD') AS effective_to
       FROM rentalrate
-      WHERE property_id = $1
-        AND status = 'Active'
+        WHERE property_id = $1
+          AND tenant_id = $2
+          AND status = 'Active'
     `;
-    const overlapParams = [property_id];
-    let pIdx = 2;
+    const overlapParams = [property_id, tenant_id || null];
+      let pIdx = 3;
 
     if (rate_id) {
       overlapQuery += ` AND rate_id != $${pIdx++}`;

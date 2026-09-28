@@ -153,6 +153,14 @@ export default function App() {
                 </AppLayout>
               }
             />
+            <Route
+              path="/admin/invoice_template"
+              element={<Navigate to="/admin/invoice-template" replace />}
+            />
+            <Route
+              path="/admin/invoice-templates"
+              element={<Navigate to="/admin/invoice-template" replace />}
+            />
 
             {/* 9. Occupancy Report (Subhashini) */}
             <Route
@@ -257,14 +265,18 @@ export default function App() {
               }
             />
 
-            {/* 6. Invoice Template (Ragul) */}
+            {/* Invoice Template access is restricted to Admin only */}
             <Route
               path="/landlord/invoice-template"
-              element={
-                <AppLayout>
-                  <RagulModule />
-                </AppLayout>
-              }
+              element={<Navigate to="/landlord/dashboard" replace />}
+            />
+            <Route
+              path="/landlord/invoice_template"
+              element={<Navigate to="/landlord/dashboard" replace />}
+            />
+            <Route
+              path="/landlord/invoice-templates"
+              element={<Navigate to="/landlord/dashboard" replace />}
             />
 
             {/* 7. GST Report */}
@@ -328,14 +340,10 @@ export default function App() {
               }
             />
 
-            {/* Ragul Module Route */}
+            {/* Ragul Module Route (Legacy redirect) */}
             <Route
               path="/ragul/*"
-              element={
-                <AppLayout>
-                  <RagulModule />
-                </AppLayout>
-              }
+              element={<RootRedirect />}
             />
           </Route>
 

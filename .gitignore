@@ -69,4 +69,6 @@ invoices/generated/
 *.zip
 *.tar.gz
 scratch/
+coverage/
+.system_generated/
 

@@ -142,7 +142,7 @@ export default function Sidebar() {
             </NavLink>
 
             <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 12px 4px 12px' }}>
-              Invoicing & Templates
+              Invoicing
             </div>
 
             {/* 4. Invoices */}
@@ -151,16 +151,10 @@ export default function Sidebar() {
               <span>Invoices</span>
             </NavLink>
 
-            {/* 5. Generate Invoice */}
+            {/* 5. Generated Invoice */}
             <NavLink to="/landlord/generate-invoice" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <FilePlus size={18} />
-              <span>Generate Invoice</span>
-            </NavLink>
-
-            {/* 6. Invoice Template */}
-            <NavLink to="/landlord/invoice-template" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              <FileCode size={18} />
-              <span>Invoice Template</span>
+              <span>Generated Invoice</span>
             </NavLink>
 
             <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 12px 4px 12px' }}>

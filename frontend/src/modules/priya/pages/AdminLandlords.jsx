@@ -40,7 +40,10 @@ export default function AdminLandlords() {
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addingLandlord, setAddingLandlord] = useState(false);
+  const [templatesList, setTemplatesList] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [addFormData, setAddFormData] = useState({
+    id: null,
     name: '',
     email: '',
     pan: '',
@@ -48,7 +51,8 @@ export default function AdminLandlords() {
     contact_details: '',
     billing_address: '',
     gst_registered: false,
-    default_invoice_template: 'Template A (Standard)', is_active: true
+    default_invoice_template: '',
+    is_active: true
   });
 
   // Grant Access Form
@@ -66,25 +70,28 @@ export default function AdminLandlords() {
     }
 
     // Contact Phone validation: must be digits only and exactly 10 digits
-    if (addFormData.contact_details && !/^[0-9]{10}$/.test(addFormData.contact_details.trim())) {
+    const cleanPhone = (addFormData.contact_details || '').trim();
+    if (cleanPhone && !/^[0-9]{10}$/.test(cleanPhone)) {
       setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets or special characters).');
       return;
     }
 
-    // PAN validation: standard 10 alphanumeric characters (5 letters, 4 numbers, 1 letter)
-    if (addFormData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan.trim().toUpperCase())) {
-      setError('Invalid PAN format. Must be 10 characters (5 uppercase letters, 4 numbers, 1 letter, e.g. ABCDE1234F).');
+    // PAN validation: alphanumeric characters up to 20 characters if provided
+    const cleanPan = (addFormData.pan || '').trim().toUpperCase();
+    if (cleanPan && !/^[A-Z0-9]{3,20}$/.test(cleanPan)) {
+      setError('PAN must be alphanumeric characters (e.g. ABCDE1234F).');
       return;
     }
 
-    // GSTIN validation: 15 alphanumeric characters
+    // GSTIN validation: alphanumeric characters
     if (addFormData.gst_registered && !addFormData.gstin.trim()) {
       setError('GSTIN is required when GST Registered Entity is checked.');
       return;
     }
 
-    if (addFormData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin.trim().toUpperCase())) {
-      setError('Invalid GSTIN format. Must be 15 characters (e.g. 33AAAAA0000A1Z5).');
+    const cleanGstin = (addFormData.gstin || '').trim().toUpperCase();
+    if (cleanGstin && !/^[A-Z0-9]{3,20}$/.test(cleanGstin)) {
+      setError('Invalid GSTIN format. Must be alphanumeric characters (e.g. 33AAAAA0000A1Z5).');
       return;
     }
 
@@ -92,8 +99,12 @@ export default function AdminLandlords() {
     setError('');
     setSuccessMsg('');
     try {
-      const res = await fetch('/api/master-data/landlords', {
-        method: 'POST',
+      const isEdit = !!addFormData.id;
+      const url = isEdit ? `/api/master-data/landlords/${addFormData.id}` : '/api/master-data/landlords';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...addFormData,
@@ -106,19 +117,46 @@ export default function AdminLandlords() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create landlord');
+        throw new Error(data.error || (isEdit ? 'Failed to update landlord' : 'Failed to create landlord'));
       }
-      setSuccessMsg(`Landlord "${addFormData.name}" added successfully.`);
+      setSuccessMsg(isEdit ? `Landlord "${addFormData.name}" updated successfully.` : `Landlord "${addFormData.name}" added successfully.`);
       setAddModalOpen(false);
+      const defaultTpl = templatesList.find((t) => t.isDefault) || templatesList[0];
       setAddFormData({
+        id: null,
         name: '', email: '', pan: '', gstin: '', contact_details: '',
-        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
-        });
+        billing_address: '', gst_registered: false,
+        default_invoice_template: defaultTpl ? defaultTpl.name : '',
+        is_active: true
+      });
       fetchLandlords();
     } catch (err) {
       setError(err.message || 'Failed to add landlord.');
     } finally {
       setAddingLandlord(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch('/api/ragul/templates');
+      if (res.ok) {
+        const json = await res.json();
+        const tpls = json.data || [];
+        setTemplatesList(tpls);
+        if (tpls.length > 0) {
+          const def = tpls.find((t) => t.isDefault) || tpls[0];
+          setAddFormData((prev) => ({
+            ...prev,
+            default_invoice_template: prev.default_invoice_template || def.name
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load invoice templates from database:', e);
+    } finally {
+      setLoadingTemplates(false);
     }
   };
 
@@ -140,6 +178,7 @@ export default function AdminLandlords() {
 
   useEffect(() => {
     fetchLandlords();
+    fetchTemplates();
   }, []);
 
   // Status Update (Approve / Activate / Deactivate)
@@ -237,9 +276,23 @@ export default function AdminLandlords() {
           <button
             className="btn btn-primary"
             onClick={() => {
+              const def = templatesList.find((t) => t.isDefault) || templatesList[0];
+              setAddFormData({
+                id: null,
+                name: '',
+                email: '',
+                pan: '',
+                gstin: '',
+                contact_details: '',
+                billing_address: '',
+                gst_registered: false,
+                default_invoice_template: def ? def.name : '',
+                is_active: true
+              });
               setAddModalOpen(true);
               setError('');
               setSuccessMsg('');
+              fetchTemplates();
             }}
           >
             + Add Landlord
@@ -259,10 +312,31 @@ export default function AdminLandlords() {
           fontSize: '0.85rem',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '8px'
         }}>
-          <AlertCircle size={16} />
-          <span>{error}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#b91c1c',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              lineHeight: 1,
+              padding: '0 4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="Dismiss error"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -277,10 +351,31 @@ export default function AdminLandlords() {
           fontSize: '0.85rem',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '8px'
         }}>
-          <CheckCircle size={16} />
-          <span>{successMsg}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle size={16} />
+            <span>{successMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMsg('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#15803d',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              lineHeight: 1,
+              padding: '0 4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="Dismiss message"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -442,9 +537,12 @@ export default function AdminLandlords() {
                                   contact_details: l.contact_details || '',
                                   billing_address: l.billing_address || '',
                                   gst_registered: !!l.gst_registered,
-                                  default_invoice_template: l.default_invoice_template || 'Template A (Standard)',
+                                  default_invoice_template: l.default_invoice_template || (templatesList.find((t) => t.isDefault)?.name || templatesList[0]?.name || ''),
                                   is_active: (l.status || '').toUpperCase() === 'ACTIVE'
                                 });
+                                setError('');
+                                setSuccessMsg('');
+                                fetchTemplates();
                                 setAddModalOpen(true);
                             }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={13} /> Edit</button>
 
@@ -814,14 +912,15 @@ export default function AdminLandlords() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                  Add New Landlord
+                  {addFormData.id ? 'Edit Landlord' : 'Add New Landlord'}
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  Create a new landlord record in the database
+                  {addFormData.id ? 'Update landlord record and invoice preferences' : 'Create a new landlord record in the database'}
                 </p>
               </div>
               <button
-                onClick={() => setAddModalOpen(false)}
+                type="button"
+                onClick={() => { setAddModalOpen(false); setError(''); }}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -833,6 +932,45 @@ export default function AdminLandlords() {
                 <X size={20} />
               </button>
             </div>
+
+            {error && (
+              <div style={{
+                padding: '10px 14px',
+                background: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '8px',
+                color: '#b91c1c',
+                marginBottom: '16px',
+                fontSize: '0.84rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setError('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#b91c1c',
+                    cursor: 'pointer',
+                    fontSize: '1.2rem',
+                    lineHeight: 1,
+                    padding: '0 4px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleAddLandlordSubmit}>
               <div style={{ marginBottom: '14px' }}>
@@ -924,11 +1062,11 @@ export default function AdminLandlords() {
                     type="text"
                     value={addFormData.pan}
                     onChange={(e) => {
-                      const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                      const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
                       setAddFormData({ ...addFormData, pan: cleanPan });
                     }}
                     placeholder="ABCDE1234F"
-                    maxLength={10}
+                    maxLength={20}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -941,15 +1079,15 @@ export default function AdminLandlords() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Format: ABCDE1234F
+                      Format: ABCDE1234F (Optional)
                     </span>
                     {addFormData.pan && (
                       <span style={{ 
                         fontSize: '0.72rem', 
                         fontWeight: 600,
-                        color: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
+                        color: /^[A-Z0-9]{3,20}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
                       }}>
-                        {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length}/10`}
+                        {/^[A-Z0-9]{3,20}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length} chars`}
                       </span>
                     )}
                   </div>
@@ -962,11 +1100,11 @@ export default function AdminLandlords() {
                     type="text"
                     value={addFormData.gstin}
                     onChange={(e) => {
-                      const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                      const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
                       setAddFormData({ ...addFormData, gstin: cleanGstin });
                     }}
                     placeholder="33AAAAA0000A1Z5"
-                    maxLength={15}
+                    maxLength={20}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -979,15 +1117,15 @@ export default function AdminLandlords() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      15 characters alphanumeric
+                      Alphanumeric format (e.g. 33AAAAA0000A1Z5)
                     </span>
                     {addFormData.gstin && (
                       <span style={{ 
                         fontSize: '0.72rem', 
                         fontWeight: 600,
-                        color: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
+                        color: /^[A-Z0-9]{3,20}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
                       }}>
-                        {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length}/15`}
+                        {/^[A-Z0-9]{3,20}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length} chars`}
                       </span>
                     )}
                   </div>
@@ -1028,7 +1166,7 @@ export default function AdminLandlords() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  Default Invoice Template
+                  Default Invoice Template {loadingTemplates ? '(Fetching from database...)' : ''}
                 </label>
                 <select
                   value={addFormData.default_invoice_template}
@@ -1041,13 +1179,27 @@ export default function AdminLandlords() {
                     fontSize: '0.88rem',
                     boxSizing: 'border-box'
                   }}
+                  required
                 >
-                  <option value="Template A (Standard)">Template A (Standard)</option>
-                  <option value="Template B (Compact)">Template B (Compact)</option>
-                  <option value="Template C (Corporate)">Template C (Corporate)</option>
-                  <option value="Template D (Modern Minimal)">Template D (Modern Minimal)</option>
-                  <option value="Template E (Detailed GST Breakdown)">Template E (Detailed GST Breakdown)</option>
+                  {templatesList.length === 0 && (
+                    <option value="">{loadingTemplates ? 'Loading templates from database...' : 'No templates found'}</option>
+                  )}
+                  {templatesList.map((tpl) => (
+                    <option key={tpl.id} value={tpl.name}>
+                      {tpl.name} {tpl.isDefault ? '★ (Active Default)' : ''}
+                    </option>
+                  ))}
+                  {addFormData.default_invoice_template && !templatesList.some((t) => t.name === addFormData.default_invoice_template) && (
+                    <option value={addFormData.default_invoice_template}>
+                      {addFormData.default_invoice_template} (Current)
+                    </option>
+                  )}
                 </select>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+                  {templatesList.length > 0
+                    ? `Loaded ${templatesList.length} templates from database`
+                    : 'Fetching invoice templates from database...'}
+                </div>
               </div>
 
                 <div style={{ marginBottom: '20px' }}>
@@ -1076,7 +1228,7 @@ export default function AdminLandlords() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => setAddModalOpen(false)}
+                  onClick={() => { setAddModalOpen(false); setError(''); }}
                   style={{
                     padding: '9px 16px',
                     background: '#f1f5f9',
@@ -1104,7 +1256,7 @@ export default function AdminLandlords() {
                     fontSize: '0.84rem'
                   }}
                 >
-                  {addingLandlord ? 'Saving...' : 'Add Landlord'}
+                  {addingLandlord ? 'Saving...' : (addFormData.id ? 'Save Changes' : 'Add Landlord')}
                 </button>
               </div>
             </form>
