@@ -194,10 +194,10 @@ exports.saveRentalRate = async (req, res) => {
     change_reason = 'Rate Revision'
   } = req.body;
 
-  if (!landlord_id || !property_id || !monthly_rent || !effective_from) {
+  if (!landlord_id || !property_id || !tenant_id || !monthly_rent || !effective_from) {
     return res.status(400).json({
       success: false,
-      error: 'Landlord, property, monthly rent, and effective-from date are required.'
+      error: 'Landlord, property, tenant, monthly rent, and effective-from date are required.'
     });
   }
 
@@ -224,11 +224,12 @@ exports.saveRentalRate = async (req, res) => {
     let overlapQuery = `
       SELECT rate_id, TO_CHAR(effective_from, 'YYYY-MM-DD') AS effective_from, TO_CHAR(effective_to, 'YYYY-MM-DD') AS effective_to
       FROM rentalrate
-      WHERE property_id = $1
-        AND status = 'Active'
+        WHERE property_id = $1
+          AND tenant_id = $2
+          AND status = 'Active'
     `;
-    const overlapParams = [property_id];
-    let pIdx = 2;
+    const overlapParams = [property_id, tenant_id || null];
+      let pIdx = 3;
 
     if (rate_id) {
       overlapQuery += ` AND rate_id != $${pIdx++}`;

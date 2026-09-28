@@ -107,7 +107,8 @@ export default function RentalRates() {
     setFormData((prev) => ({
       ...prev,
       landlord_id: landlordId,
-      property_id: '', // Always reset to Select Property so "Select Property" shows first
+      property_id: '',
+      tenant_id: '', // Reset tenant too
       gst_applicable: isGst,
       gst_rate: isGst ? 18 : 0,
       tax_supply_type: 'intra_state',
@@ -242,6 +243,16 @@ export default function RentalRates() {
   };
 
   // Available properties for selected landlord (or all if none selected)
+  const availableTenants = masterData.tenants.filter(t => {
+    if (formData.property_id) {
+      return String(t.property_id) === String(formData.property_id);
+    }
+    if (formData.landlord_id) {
+      return String(t.landlord_id) === String(formData.landlord_id);
+    }
+    return true;
+  });
+
   const availableProperties = formData.landlord_id
     ? masterData.properties.filter((p) => String(p.landlord_id) === String(formData.landlord_id))
     : masterData.properties;
@@ -328,6 +339,7 @@ export default function RentalRates() {
             <tr>
               <th>Landlord</th>
               <th>Property</th>
+                <th>Tenant</th>
               <th>Base Monthly Rent</th>
               <th>Maintenance & Parking</th>
               <th>GST Rate / Supply</th>
@@ -338,13 +350,13 @@ export default function RentalRates() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   Loading rental rates...
                 </td>
               </tr>
             ) : filteredRates.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748b' }}>
                   No rental rates matching your filter criteria.
                 </td>
               </tr>
@@ -366,13 +378,13 @@ export default function RentalRates() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{rate.property_name}</div>
-                      {rate.tenant_name && rate.tenant_name !== 'N/A' && (
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                          Tenant: {rate.tenant_name}
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{rate.property_name}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>
+                          {rate.tenant_name && rate.tenant_name !== 'N/A' ? rate.tenant_name : <span style={{ color: '#94a3b8' }}>Unassigned</span>}
                         </div>
-                      )}
-                    </td>
+                      </td>
                     <td style={{ fontWeight: 600, color: '#0f172a' }}>
                       ₹{parseFloat(rate.monthly_rent).toLocaleString('en-IN')}
                     </td>
@@ -444,15 +456,7 @@ export default function RentalRates() {
           >
             Previous
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
-            <button
-              key={pNum}
-              className={`page-btn ${page === pNum ? 'active' : ''}`}
-              onClick={() => setPage(pNum)}
-            >
-              {pNum}
-            </button>
-          ))}
+          
           <button
             className="page-btn"
             disabled={page >= totalPages}
@@ -482,6 +486,7 @@ export default function RentalRates() {
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
                 Define Rental Rate Revision
               </h3>
+                
               <button
                 onClick={() => setModalOpen(false)}
                 style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748b', lineHeight: 1 }}
@@ -505,51 +510,76 @@ export default function RentalRates() {
               )}
 
               {/* Landlord & Property Selection (Row 0) */}
-              <div className="flex-row" style={{ marginBottom: '10px', gap: '12px' }}>
-                <div className="form-group flex-1" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ marginBottom: '4px', fontSize: '0.82rem' }}>Landlord Selection *</label>
-                  <select
-                    className="form-input"
-                    value={formData.landlord_id}
-                    onChange={(e) => handleLandlordChange(e.target.value)}
-                    required
-                    style={{ height: '36px', fontSize: '0.84rem' }}
-                  >
-                    <option value="">Select Landlord</option>
-                    {masterData.landlords
-                      .filter((l) => l.is_active !== false)
-                      .map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.name}{l.email ? ` (${l.email})` : ""}
-                        </option>
-                      ))}
-                  </select>
+                <div className="flex-row" style={{ marginBottom: '10px', gap: '12px' }}>
+                  <div className="form-group flex-1" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ marginBottom: '4px', fontSize: '0.82rem' }}>Landlord Selection *</label>
+                    <select
+                      className="form-input"
+                      value={formData.landlord_id || ''}
+                      onChange={(e) => handleLandlordChange(e.target.value)}
+                      required
+                      style={{ height: '36px', fontSize: '0.84rem' }}
+                    >
+                      <option value="">Select Landlord</option>
+                      {masterData.landlords
+                        
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.name}{l.email ? ` (${l.email})` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group flex-1" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ marginBottom: '4px', fontSize: '0.82rem' }}>Property Selection *</label>
+                    <select
+                      className="form-input"
+                      value={formData.property_id || ''}
+                      onChange={(e) => setFormData({ ...formData, property_id: e.target.value, tenant_id: '' })}
+                      required
+                      style={{ height: '36px', fontSize: '0.84rem' }}
+                    >
+                      <option value="">
+                        {formData.landlord_id && availableProperties.length === 0
+                          ? 'No properties found'
+                          : 'Select Property'}
+                      </option>
+                      {availableProperties
+                        
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.property_type})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="form-group flex-1" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ marginBottom: '4px', fontSize: '0.82rem' }}>Property Selection *</label>
-                  <select
-                    className="form-input"
-                    value={formData.property_id}
-                    onChange={(e) => setFormData({ ...formData, property_id: e.target.value })}
-                    required
-                    style={{ height: '36px', fontSize: '0.84rem' }}
-                  >
-                    <option value="">
-                      {formData.landlord_id && availableProperties.length === 0
-                        ? 'No properties found for this landlord'
-                        : 'Select Property'}
-                    </option>
-                    {availableProperties
-                      .filter((p) => p.is_active !== false)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.property_type})
+                {/* Tenant Selection */}
+                <div className="flex-row" style={{ marginBottom: '10px', gap: '12px' }}>
+                  <div className="form-group flex-1" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ marginBottom: '4px', fontSize: '0.82rem' }}>Tenant Selection *</label>
+                    <select
+                      className="form-input"
+                      value={formData.tenant_id || ''}
+                      onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                      required
+                      style={{ height: '36px', fontSize: '0.84rem' }}
+                    >
+                      <option value="">
+                        {formData.property_id && availableTenants.length === 0
+                          ? 'No tenants found for this property'
+                          : 'Select Tenant'}
+                      </option>
+                      {availableTenants.map((t) => (
+                        <option key={t.tenant_id} value={t.tenant_id}>
+                          {t.tenant_name} {t.tenant_pan ? `(${t.tenant_pan})` : ""}
                         </option>
                       ))}
-                  </select>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
               {/* Effective Dates (Row 1) */}
               <div className="flex-row" style={{ marginBottom: '10px', gap: '12px' }}>
