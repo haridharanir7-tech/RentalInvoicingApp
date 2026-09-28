@@ -42,7 +42,7 @@ export default function Navbar() {
                 fontWeight: 700,
                 color: isAdmin ? '#2563eb' : '#059669'
               }}>
-                Role: {user.role} {user.landlord_name ? `(${user.landlord_name})` : ''}
+                Role: {user.role}
               </span>
             </div>
           </div>
