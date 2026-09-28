@@ -229,7 +229,7 @@ const dbAdapter = {
     await checkPgConnection();
     if (isPgAvailable) {
       try {
-        const allowedPgFields = ['full_name', 'email', 'role', 'landlord_id', 'status', 'last_login'];
+        const allowedPgFields = ['full_name', 'email', 'role', 'landlord_id', 'status', 'last_login', 'password_hash', 'reset_token', 'reset_token_expiry'];
         const fields = [];
         const values = [];
         let idx = 1;
@@ -245,7 +245,7 @@ const dbAdapter = {
             UPDATE users
             SET ${fields.join(', ')}
             WHERE user_id::text = $${idx}
-            RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login;
+            RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login, reset_token, reset_token_expiry;
           `, values);
           pgUpdated = res.rows[0];
         }

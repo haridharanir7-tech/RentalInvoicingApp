@@ -133,7 +133,8 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    if (user.status !== 'Active') {
+    const statusUpper = (user.status || '').toUpperCase();
+    if (statusUpper !== 'ACTIVE') {
       return res.status(403).json({
         success: false,
         message: 'Cannot reset password for a deactivated account.'
@@ -187,6 +188,14 @@ const resetPassword = async (req, res) => {
     const user = await dbAdapter.getUserByEmail(email);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const statusUpper = (user.status || '').toUpperCase();
+    if (statusUpper !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot reset password for a deactivated account.'
+      });
     }
 
     if (!user.reset_token || user.reset_token !== reset_token) {
