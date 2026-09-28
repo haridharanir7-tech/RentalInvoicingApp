@@ -35,7 +35,8 @@ export default function AdminDashboard() {
   const [hoveredBar, setHoveredBar] = useState(null);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
   const [filterYear, setFilterYear] = useState('2026');
-  const [filterMonth, setFilterMonth] = useState('ALL');
+  const [month1, setMonth1] = useState('09');
+  const [month2, setMonth2] = useState('10');
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -183,28 +184,68 @@ export default function AdminDashboard() {
       count: m.invoicesGenerated || m.count || fromInv?.count || 0
     };
   });
-  // Filter monthly billing data by selected year and month
-  const filteredBillingData = monthlyBillingData.filter(m => {
-    const [y, mo] = (m.period || '').split('-');
-    const matchYear = filterYear === 'ALL' || y === filterYear;
-    const matchMonth = filterMonth === 'ALL' || mo === filterMonth;
-    return matchYear && matchMonth;
+  // Month options for the two dropdowns
+  const MONTH_OPTIONS = [
+    { value: '01', label: '01 - Jan' },
+    { value: '02', label: '02 - Feb' },
+    { value: '03', label: '03 - Mar' },
+    { value: '04', label: '04 - Apr' },
+    { value: '05', label: '05 - May' },
+    { value: '06', label: '06 - Jun' },
+    { value: '07', label: '07 - Jul' },
+    { value: '08', label: '08 - Aug' },
+    { value: '09', label: '09 - Sep' },
+    { value: '10', label: '10 - Oct' },
+    { value: '11', label: '11 - Nov' },
+    { value: '12', label: '12 - Dec' }
+  ];
+
+  // Backend chart monthly revenue map fallback
+  const chartMonthlyRevMap = {};
+  (charts.monthlyRevenue || []).forEach(m => {
+    if (m.period) chartMonthlyRevMap[m.period] = m;
+  });
+
+  // The two selected billing periods
+  const period1 = `${filterYear}-${month1}`;
+  const period2 = `${filterYear}-${month2}`;
+  const selectedPeriods = month1 === month2 ? [period1] : [period1, period2];
+
+  // Build billing data for the two selected months
+  const displayBillingData = selectedPeriods.map(p => {
+    const fromInv = invoicePeriodMap[p];
+    const fromChart = chartMonthlyRevMap[p];
+    const rent = Number(fromChart?.rent ?? fromInv?.rent ?? 0);
+    const maintenance = Number(fromChart?.maintenance ?? fromInv?.maintenance ?? 0);
+    const parking = Number(fromChart?.parking ?? fromInv?.parking ?? 0);
+    const gst = Number(fromChart?.gst ?? fromInv?.gst ?? 0);
+    const total = Number(fromChart?.billed ?? fromInv?.total ?? 0) || (rent + maintenance + parking + gst);
+    return {
+      period: p,
+      rent,
+      maintenance,
+      parking,
+      gst,
+      total,
+      rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
+      maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
+      parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
+      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
+      count: fromChart?.count || fromChart?.invoicesGenerated || fromInv?.count || 0
+    };
   });
 
   const maxGroupedBarVal = Math.max(
-    ...filteredBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
+    ...displayBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
     1
   );
 
-  // Invoices filtered by active selection for accurate counts in color cards
-  const filteredInvoices = (recentInvoices || []).filter(inv => {
-    const [y, mo] = (inv.billing_period || '').split('-');
-    const matchYear = filterYear === 'ALL' || y === filterYear;
-    const matchMonth = filterMonth === 'ALL' || mo === filterMonth;
-    return matchYear && matchMonth;
-  });
+  // Invoices filtered by the two selected periods for accurate counts in color cards
+  const filteredInvoices = (recentInvoices || []).filter(inv =>
+    selectedPeriods.includes(inv.billing_period)
+  );
 
-  // Separate count, amount, and percentage for each color category
+  // Separate count, amount, and percentage for each color category based on active two months
   const colorCounts = [
     {
       key: 'rent',
@@ -212,7 +253,7 @@ export default function AdminDashboard() {
       color: '#2563eb',
       bgColor: '#eff6ff',
       borderColor: '#bfdbfe',
-      amount: filteredBillingData.reduce((sum, m) => sum + m.rent, 0),
+      amount: displayBillingData.reduce((sum, m) => sum + m.rent, 0),
       count: filteredInvoices.filter(i => Number(i.rent_amount || 0) > 0).length
     },
     {
@@ -221,7 +262,7 @@ export default function AdminDashboard() {
       color: '#8b5cf6',
       bgColor: '#f5f3ff',
       borderColor: '#ddd6fe',
-      amount: filteredBillingData.reduce((sum, m) => sum + m.maintenance, 0),
+      amount: displayBillingData.reduce((sum, m) => sum + m.maintenance, 0),
       count: filteredInvoices.filter(i => Number(i.maintenance_charges || 0) > 0).length
     },
     {
@@ -230,7 +271,7 @@ export default function AdminDashboard() {
       color: '#06b6d4',
       bgColor: '#ecfeff',
       borderColor: '#a5f3fc',
-      amount: filteredBillingData.reduce((sum, m) => sum + m.parking, 0),
+      amount: displayBillingData.reduce((sum, m) => sum + m.parking, 0),
       count: filteredInvoices.filter(i => Number(i.parking_charges || 0) > 0).length
     },
     {
@@ -239,7 +280,7 @@ export default function AdminDashboard() {
       color: '#f59e0b',
       bgColor: '#fffbeb',
       borderColor: '#fde68a',
-      amount: filteredBillingData.reduce((sum, m) => sum + m.gst, 0),
+      amount: displayBillingData.reduce((sum, m) => sum + m.gst, 0),
       count: filteredInvoices.filter(i => Number(i.gst_amount || 0) > 0).length
     }
   ];
@@ -579,137 +620,137 @@ export default function AdminDashboard() {
                 Monthly Billing Breakdown
               </h3>
 
-              {/* Month and Year Filter in Top Right */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* Month Selector */}
-                <select
-                  value={filterMonth}
-                  onChange={(e) => setFilterMonth(e.target.value)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    cursor: 'pointer',
-                    outline: 'none'
-                  }}
-                  title="Select Month"
-                >
-                  <option value="ALL">All Months</option>
-                  <option value="01">01 - Jan</option>
-                  <option value="02">02 - Feb</option>
-                  <option value="03">03 - Mar</option>
-                  <option value="04">04 - Apr</option>
-                  <option value="05">05 - May</option>
-                  <option value="06">06 - Jun</option>
-                  <option value="07">07 - Jul</option>
-                  <option value="08">08 - Aug</option>
-                  <option value="09">09 - Sep (Active)</option>
-                  <option value="10">10 - Oct (Active)</option>
-                  <option value="11">11 - Nov</option>
-                  <option value="12">12 - Dec</option>
-                </select>
-
+              {/* Month 1, Month 2 & Year Selection in Top Right */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 {/* Year Selector */}
-                <select
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  style={{
-                    padding: '6px 10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '7px',
-                    cursor: 'pointer',
-                    outline: 'none'
-                  }}
-                  title="Select Year"
-                >
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2027">2027</option>
-                  <option value="ALL">All Years</option>
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Year:</span>
+                  <select
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                    title="Select Year"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2027">2027</option>
+                  </select>
+                </div>
+
+                {/* Month 1 Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 1:</span>
+                  <select
+                    value={month1}
+                    onChange={(e) => setMonth1(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                    title="Select Month 1"
+                  >
+                    {MONTH_OPTIONS.map(m => {
+                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
+                      return (
+                        <option key={m.value} value={m.value}>
+                          {m.label} {isActive ? '•' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Month 2 Selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 2:</span>
+                  <select
+                    value={month2}
+                    onChange={(e) => setMonth2(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                    title="Select Month 2"
+                  >
+                    {MONTH_OPTIONS.map(m => {
+                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
+                      return (
+                        <option key={m.value} value={m.value}>
+                          {m.label} {isActive ? '•' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             </div>
 
-            {filteredBillingData.length === 0 ? (
-              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
-                <Calendar size={32} style={{ margin: '0 auto 10px auto', display: 'block', color: '#94a3b8' }} />
-                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>
-                  No Billing Records Found
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '6px 0 16px 0' }}>
-                  No invoices found for {filterMonth === 'ALL' ? 'all months in ' : `month ${filterMonth} of `}{filterYear === 'ALL' ? 'any year' : filterYear}.
-                </p>
-                <button
-                  onClick={() => { setFilterYear('2026'); setFilterMonth('ALL'); }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 14px',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '8px',
-                    color: '#2563eb',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <RefreshCw size={13} />
-                  Reset to Available Months (2026-09, 2026-10)
-                </button>
-              </div>
-            ) : (
-              <div style={{ position: 'relative', paddingTop: '8px' }}>
-                {/* Active Bar Tooltip if hovered */}
-                {hoveredBar && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 60,
-                    background: '#0f172a',
-                    color: '#ffffff',
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: hoveredBar.color, display: 'inline-block' }} />
-                    <span style={{ fontWeight: 600 }}>{hoveredBar.period} • {hoveredBar.label}:</span>
-                    <strong style={{ color: '#38bdf8' }}>{formatCurrency(hoveredBar.amount)}</strong>
-                    <span style={{ color: '#94a3b8' }}>({hoveredBar.pct}% of month total)</span>
-                  </div>
-                )}
-
-                {/* Plot Area with Ground Baseline */}
+            <div style={{ position: 'relative', paddingTop: '8px' }}>
+              {/* Active Bar Tooltip if hovered */}
+              {hoveredBar && (
                 <div style={{
+                  position: 'absolute',
+                  top: '-12px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 60,
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.75rem',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
                   display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-around',
-                  minHeight: '220px',
-                  paddingTop: '24px',
-                  paddingBottom: '0px',
-                  position: 'relative',
-                  borderBottom: '2px solid #cbd5e1'
+                  alignItems: 'center',
+                  gap: '10px'
                 }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: hoveredBar.color, display: 'inline-block' }} />
+                  <span style={{ fontWeight: 600 }}>{hoveredBar.period} • {hoveredBar.label}:</span>
+                  <strong style={{ color: '#38bdf8' }}>{formatCurrency(hoveredBar.amount)}</strong>
+                  <span style={{ color: '#94a3b8' }}>({hoveredBar.pct}% of month total)</span>
+                </div>
+              )}
 
-                  {filteredBillingData.map((m, mIdx) => {
+              {/* Plot Area with Ground Baseline */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-around',
+                minHeight: '220px',
+                paddingTop: '24px',
+                paddingBottom: '0px',
+                position: 'relative',
+                borderBottom: '2px solid #cbd5e1'
+              }}>
+
+                {displayBillingData.map((m, mIdx) => {
                     const maxBarHeight = 150;
                     const categories = [
                       { key: 'rent', label: 'Base Rent', color: '#2563eb', amount: m.rent, pct: m.rentPct, tag: 'Rent' },
@@ -809,7 +850,7 @@ export default function AdminDashboard() {
                   paddingTop: '8px',
                   paddingBottom: '4px'
                 }}>
-                  {filteredBillingData.map((m, mIdx) => (
+                  {displayBillingData.map((m, mIdx) => (
                     <div
                       key={m.period || mIdx}
                       style={{
@@ -843,7 +884,6 @@ export default function AdminDashboard() {
                 </div>
 
               </div>
-            )}
           </div>
 
           {/* Color Breakdown & Individual Counts */}
