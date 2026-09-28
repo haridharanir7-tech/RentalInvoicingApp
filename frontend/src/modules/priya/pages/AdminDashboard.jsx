@@ -31,7 +31,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
-  const [selectedBillingMonth, setSelectedBillingMonth] = useState('All');
   const [hoveredStackedIdx, setHoveredStackedIdx] = useState(null);
   const [hoveredTrendIdx, setHoveredTrendIdx] = useState(null);
   const [hoveredPropertyIdx, setHoveredPropertyIdx] = useState(null);
@@ -137,21 +136,40 @@ export default function AdminDashboard() {
     });
   };
 
-  // 1. Chart 1 Data: Individual Monthly Invoices Composition (Stacked Bar Chart)
+  // 1. Chart 1 Data: Monthly Billing Composition (Stacked Bar Chart)
   // Relationship: Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
-  const allInvoiceItems = (recentInvoices || []).map(inv => {
-    const rent = Number(inv.rent_amount || 0);
-    const maintenance = Number(inv.maintenance_charges || 0);
-    const parking = Number(inv.parking_charges || 0);
-    const gst = Number(inv.gst_amount || 0);
-    const total = Number(inv.total_amount || 0) || (rent + maintenance + parking + gst) || 1;
+  const invoicePeriodMap = {};
+  (recentInvoices || []).forEach(inv => {
+    const p = inv.billing_period || 'Unknown';
+    if (!invoicePeriodMap[p]) {
+      invoicePeriodMap[p] = { period: p, rent: 0, maintenance: 0, parking: 0, gst: 0, total: 0, count: 0 };
+    }
+    const r = Number(inv.rent_amount || 0);
+    const m = Number(inv.maintenance_charges || 0);
+    const pk = Number(inv.parking_charges || 0);
+    const g = Number(inv.gst_amount || 0);
+    const tot = Number(inv.total_amount || 0) || (r + m + pk + g);
+    invoicePeriodMap[p].rent += r;
+    invoicePeriodMap[p].maintenance += m;
+    invoicePeriodMap[p].parking += pk;
+    invoicePeriodMap[p].gst += g;
+    invoicePeriodMap[p].total += tot;
+    invoicePeriodMap[p].count += 1;
+  });
+
+  const basePeriods = (charts.monthlyRevenue?.length > 0)
+    ? charts.monthlyRevenue
+    : Object.keys(invoicePeriodMap).sort().map(p => ({ period: p, ...invoicePeriodMap[p] }));
+
+  const monthlyBillingData = basePeriods.map(m => {
+    const fromInv = invoicePeriodMap[m.period];
+    const rent = Number(m.rent || fromInv?.rent || 0);
+    const maintenance = Number(m.maintenance ?? fromInv?.maintenance ?? 0);
+    const parking = Number(m.parking ?? fromInv?.parking ?? 0);
+    const gst = Number(m.gst ?? fromInv?.gst ?? 0);
+    const total = Number(m.billed || 0) || (rent + maintenance + parking + gst) || Number(fromInv?.total || 1);
     return {
-      id: inv.id,
-      invoiceNumber: inv.invoice_number || `INV #${inv.id}`,
-      period: inv.billing_period || 'Unknown',
-      tenant: inv.tenant_name || inv.tenant || 'Tenant',
-      property: inv.property_title || inv.property || '',
-      status: inv.status || 'Draft',
+      period: m.period,
       rent,
       maintenance,
       parking,
@@ -160,19 +178,13 @@ export default function AdminDashboard() {
       rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
       maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
       parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
-      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0'
+      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
+      count: m.invoicesGenerated || m.count || fromInv?.count || 0
     };
-  }).sort((a, b) => a.period.localeCompare(b.period) || (Number(a.id) || 0) - (Number(b.id) || 0));
+  });
+  const maxMonthlyBilling = Math.max(...monthlyBillingData.map(m => m.total), 1);
 
-  const availablePeriods = Array.from(new Set(allInvoiceItems.map(i => i.period))).filter(Boolean).sort();
-
-  const displayedInvoiceBars = selectedBillingMonth === 'All'
-    ? allInvoiceItems
-    : allInvoiceItems.filter(i => i.period === selectedBillingMonth);
-
-  const maxInvoiceBarAmount = Math.max(...displayedInvoiceBars.map(m => m.total), 1);
-
-  // Separate count, amount, and percentage for each color category in current view
+  // Separate count, amount, and percentage for each color category
   const colorCounts = [
     {
       key: 'rent',
@@ -180,26 +192,26 @@ export default function AdminDashboard() {
       color: '#2563eb',
       bgColor: '#eff6ff',
       borderColor: '#bfdbfe',
-      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.rent, 0),
-      count: displayedInvoiceBars.filter(i => i.rent > 0).length
+      amount: monthlyBillingData.reduce((sum, m) => sum + m.rent, 0),
+      count: (recentInvoices || []).filter(i => Number(i.rent_amount || 0) > 0).length
     },
     {
       key: 'maintenance',
-      label: 'Maintenance',
+      label: 'Maintenance Charges',
       color: '#8b5cf6',
       bgColor: '#f5f3ff',
       borderColor: '#ddd6fe',
-      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.maintenance, 0),
-      count: displayedInvoiceBars.filter(i => i.maintenance > 0).length
+      amount: monthlyBillingData.reduce((sum, m) => sum + m.maintenance, 0),
+      count: (recentInvoices || []).filter(i => Number(i.maintenance_charges || 0) > 0).length
     },
     {
       key: 'parking',
-      label: 'Parking',
+      label: 'Parking Charges',
       color: '#06b6d4',
       bgColor: '#ecfeff',
       borderColor: '#a5f3fc',
-      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.parking, 0),
-      count: displayedInvoiceBars.filter(i => i.parking > 0).length
+      amount: monthlyBillingData.reduce((sum, m) => sum + m.parking, 0),
+      count: (recentInvoices || []).filter(i => Number(i.parking_charges || 0) > 0).length
     },
     {
       key: 'gst',
@@ -207,41 +219,19 @@ export default function AdminDashboard() {
       color: '#f59e0b',
       bgColor: '#fffbeb',
       borderColor: '#fde68a',
-      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.gst, 0),
-      count: displayedInvoiceBars.filter(i => i.gst > 0).length
+      amount: monthlyBillingData.reduce((sum, m) => sum + m.gst, 0),
+      count: (recentInvoices || []).filter(i => Number(i.gst_amount || 0) > 0).length
     }
   ];
   const totalBilledInView = colorCounts.reduce((sum, c) => sum + c.amount, 0) || 1;
 
-  // Period map for aggregated monthly trend (Chart 2)
-  const invoicePeriodMap = {};
-  allInvoiceItems.forEach(inv => {
-    const p = inv.period;
-    if (!invoicePeriodMap[p]) {
-      invoicePeriodMap[p] = { period: p, billed: 0, gst: 0, rent: 0, maintenance: 0, parking: 0, count: 0 };
-    }
-    invoicePeriodMap[p].billed += inv.total;
-    invoicePeriodMap[p].gst += inv.gst;
-    invoicePeriodMap[p].rent += inv.rent;
-    invoicePeriodMap[p].maintenance += inv.maintenance;
-    invoicePeriodMap[p].parking += inv.parking;
-    invoicePeriodMap[p].count += 1;
-  });
-
-  const basePeriods = (charts.monthlyRevenue?.length > 0)
-    ? charts.monthlyRevenue
-    : Object.values(invoicePeriodMap).sort((a, b) => a.period.localeCompare(b.period));
-
   // 2. Chart 2 Data: Monthly Revenue & GST Trend (Line Chart)
   // Relationship: Total Billed Amount <-> GST Collected over time
-  const trendData = basePeriods.map(m => {
-    const fromMap = invoicePeriodMap[m.period];
-    return {
-      period: m.period,
-      billed: Number(m.billed ?? m.total ?? fromMap?.billed ?? 0),
-      gst: Number(m.gst ?? fromMap?.gst ?? 0)
-    };
-  });
+  const trendData = monthlyBillingData.map(m => ({
+    period: m.period,
+    billed: Number(m.total || 0),
+    gst: Number(m.gst || 0)
+  }));
   const maxTrendVal = Math.max(...trendData.map(t => Math.max(t.billed, t.gst)), 1) * 1.15;
   const lineSvgWidth = 520;
   const lineSvgHeight = 220;
@@ -607,67 +597,25 @@ export default function AdminDashboard() {
                   Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
                 </p>
               </div>
-              {/* Month Filter Pills & Type Badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 600, marginRight: '2px' }}>Period:</span>
-                <button
-                  onClick={() => setSelectedBillingMonth('All')}
-                  style={{
-                    padding: '3px 8px',
-                    fontSize: '0.70rem',
-                    fontWeight: 700,
-                    borderRadius: '6px',
-                    border: '1px solid',
-                    borderColor: selectedBillingMonth === 'All' ? '#2563eb' : '#cbd5e1',
-                    background: selectedBillingMonth === 'All' ? '#2563eb' : '#f8fafc',
-                    color: selectedBillingMonth === 'All' ? '#ffffff' : '#475569',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  All ({allInvoiceItems.length})
-                </button>
-                {availablePeriods.map(p => {
-                  const count = allInvoiceItems.filter(i => i.period === p).length;
-                  const isSel = selectedBillingMonth === p;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setSelectedBillingMonth(p)}
-                      style={{
-                        padding: '3px 8px',
-                        fontSize: '0.70rem',
-                        fontWeight: 700,
-                        borderRadius: '6px',
-                        border: '1px solid',
-                        borderColor: isSel ? '#2563eb' : '#cbd5e1',
-                        background: isSel ? '#2563eb' : '#f8fafc',
-                        color: isSel ? '#ffffff' : '#475569',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      {p} ({count})
-                    </button>
-                  );
-                })}
-              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
+                Stacked Bar
+              </span>
             </div>
 
-            {displayedInvoiceBars.length === 0 ? (
+            {monthlyBillingData.length === 0 ? (
               <div style={{ padding: '50px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                No invoice records available.
+                No monthly billing records available.
               </div>
             ) : (
-              <div style={{ minHeight: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', gap: '12px', paddingTop: '24px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0', overflowX: 'auto' }}>
-                {displayedInvoiceBars.map((inv, idx) => {
+              <div style={{ minHeight: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', gap: '20px', paddingTop: '24px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
+                {monthlyBillingData.map((m, idx) => {
                   const maxBarHeight = 150;
-                  const totalBarHeight = Math.max(Math.round((inv.total / maxInvoiceBarAmount) * maxBarHeight), 48);
+                  const totalBarHeight = Math.max(Math.round((m.total / maxMonthlyBilling) * maxBarHeight), 50);
                   const isHovered = hoveredStackedIdx === idx;
 
                   return (
                     <div
-                      key={inv.id || idx}
+                      key={m.period || idx}
                       onMouseEnter={() => setHoveredStackedIdx(idx)}
                       onMouseLeave={() => setHoveredStackedIdx(null)}
                       style={{
@@ -676,10 +624,7 @@ export default function AdminDashboard() {
                         alignItems: 'center',
                         gap: '8px',
                         cursor: 'pointer',
-                        position: 'relative',
-                        flex: '1 1 0',
-                        maxWidth: '90px',
-                        minWidth: '60px'
+                        position: 'relative'
                       }}
                     >
                       {/* Tooltip on hover */}
@@ -687,9 +632,6 @@ export default function AdminDashboard() {
                         <div style={{
                           position: 'absolute',
                           bottom: `${totalBarHeight + 36}px`,
-                          left: idx === 0 ? '0px' : (idx === displayedInvoiceBars.length - 1 ? 'auto' : '50%'),
-                          right: idx === displayedInvoiceBars.length - 1 ? '0px' : 'auto',
-                          transform: (idx === 0 || idx === displayedInvoiceBars.length - 1) ? 'none' : 'translateX(-50%)',
                           zIndex: 50,
                           background: '#0f172a',
                           color: '#ffffff',
@@ -701,44 +643,40 @@ export default function AdminDashboard() {
                           pointerEvents: 'none',
                           lineHeight: '1.5'
                         }}>
-                          <div style={{ fontWeight: 700, borderBottom: '1px solid #334155', paddingBottom: '4px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{inv.invoiceNumber}</span>
-                            <span style={{ fontSize: '0.68rem', color: '#94a3b8', background: '#1e293b', padding: '1px 6px', borderRadius: '4px' }}>{inv.period}</span>
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginBottom: '6px' }}>
-                            Tenant: <strong style={{ color: '#ffffff' }}>{inv.tenant}</strong>
+                          <div style={{ fontWeight: 700, borderBottom: '1px solid #334155', paddingBottom: '4px', marginBottom: '6px' }}>
+                            Period: {m.period}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#93c5fd' }}>
                             <span>Base Rent:</span>
-                            <strong>{formatCurrency(inv.rent)} ({inv.rentPct}%)</strong>
+                            <strong>{formatCurrency(m.rent)} ({m.rentPct}%)</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c4b5fd' }}>
                             <span>Maintenance:</span>
-                            <strong>{formatCurrency(inv.maintenance)} ({inv.maintenancePct}%)</strong>
+                            <strong>{formatCurrency(m.maintenance)} ({m.maintenancePct}%)</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#67e8f9' }}>
                             <span>Parking:</span>
-                            <strong>{formatCurrency(inv.parking)} ({inv.parkingPct}%)</strong>
+                            <strong>{formatCurrency(m.parking)} ({m.parkingPct}%)</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fde68a' }}>
                             <span>GST (18%):</span>
-                            <strong>{formatCurrency(inv.gst)} ({inv.gstPct}%)</strong>
+                            <strong>{formatCurrency(m.gst)} ({m.gstPct}%)</strong>
                           </div>
                           <div style={{ borderTop: '1px solid #334155', paddingTop: '4px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#38bdf8' }}>
                             <span>Total Invoice:</span>
-                            <span>{formatCurrency(inv.total)}</span>
+                            <span>{formatCurrency(m.total)}</span>
                           </div>
                         </div>
                       )}
 
                       {/* Total Amount Label above bar */}
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {formatCurrency(inv.total)}
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                        {formatCurrency(m.total)}
                       </span>
 
                       {/* Stacked Vertical Bar */}
                       <div style={{
-                        width: '46px',
+                        width: '56px',
                         height: `${totalBarHeight}px`,
                         display: 'flex',
                         flexDirection: 'column-reverse',
@@ -750,71 +688,66 @@ export default function AdminDashboard() {
                         border: '1px solid #cbd5e1'
                       }}>
                         {/* Segment 1 (Bottom): Base Rent */}
-                        {inv.rent > 0 && (
+                        {m.rent > 0 && (
                           <div
                             style={{
-                              flex: inv.rent,
+                              flex: m.rent,
                               background: '#2563eb',
                               width: '100%',
                               minHeight: '4px',
                               transition: 'all 0.3s ease'
                             }}
-                            title={`Base Rent: ${formatCurrency(inv.rent)} (${inv.rentPct}%)`}
+                            title={`Base Rent: ${formatCurrency(m.rent)} (${m.rentPct}%)`}
                           />
                         )}
                         {/* Segment 2: Maintenance Charges */}
-                        {inv.maintenance > 0 && (
+                        {m.maintenance > 0 && (
                           <div
                             style={{
-                              flex: inv.maintenance,
+                              flex: m.maintenance,
                               background: '#8b5cf6',
                               width: '100%',
-                              minHeight: '4px',
+                              minHeight: '6px',
+                              flexShrink: 0,
                               transition: 'all 0.3s ease'
                             }}
-                            title={`Maintenance Charges: ${formatCurrency(inv.maintenance)} (${inv.maintenancePct}%)`}
+                            title={`Maintenance Charges: ${formatCurrency(m.maintenance)} (${m.maintenancePct}%)`}
                           />
                         )}
                         {/* Segment 3: Parking Charges */}
-                        {inv.parking > 0 && (
+                        {m.parking > 0 && (
                           <div
                             style={{
-                              flex: inv.parking,
+                              flex: m.parking,
                               background: '#06b6d4',
                               width: '100%',
-                              minHeight: '4px',
+                              minHeight: '8px',
+                              flexShrink: 0,
                               transition: 'all 0.3s ease'
                             }}
-                            title={`Parking Charges: ${formatCurrency(inv.parking)} (${inv.parkingPct}%)`}
+                            title={`Parking Charges: ${formatCurrency(m.parking)} (${m.parkingPct}%)`}
                           />
                         )}
                         {/* Segment 4 (Top): GST */}
-                        {inv.gst > 0 && (
+                        {m.gst > 0 && (
                           <div
                             style={{
-                              flex: inv.gst,
+                              flex: m.gst,
                               background: '#f59e0b',
                               width: '100%',
-                              minHeight: '4px',
+                              minHeight: '6px',
+                              flexShrink: 0,
                               transition: 'all 0.3s ease'
                             }}
-                            title={`GST (18%): ${formatCurrency(inv.gst)} (${inv.gstPct}%)`}
+                            title={`GST (18%): ${formatCurrency(m.gst)} (${m.gstPct}%)`}
                           />
                         )}
                       </div>
 
-                      {/* Invoice Label & Period below bar */}
-                      <div style={{ textAlign: 'center', lineHeight: '1.2', marginTop: '2px' }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1e293b' }}>
-                          {inv.invoiceNumber}
-                        </div>
-                        <div style={{ fontSize: '0.67rem', color: '#64748b', fontWeight: 500 }}>
-                          {inv.period}
-                        </div>
-                        <div style={{ fontSize: '0.66rem', color: '#2563eb', fontWeight: 600, maxWidth: '64px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={inv.tenant}>
-                          {inv.tenant}
-                        </div>
-                      </div>
+                      {/* Period Label */}
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                        {m.period}
+                      </span>
                     </div>
                   );
                 })}
