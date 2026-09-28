@@ -87,8 +87,8 @@ export default function LandlordManagement() {
       contact_details: landlord.contact_details || '',
       billing_address: landlord.billing_address || '',
       gst_registered: !!landlord.gst_registered,
-      default_invoice_template: landlord.default_invoice_template || 'Template A (Standard)',
-        is_active: landlord.is_active !== false
+      default_invoice_template: landlord.default_invoice_template || (templates[0]?.name || ''),
+      is_active: landlord.is_active !== false
     });
     setEditingId(landlord.id);
     setShowForm(true);
@@ -150,7 +150,7 @@ export default function LandlordManagement() {
         contact_details: formData.contact_details || '',
         billing_address: formData.billing_address || '',
         gst_registered: !!formData.gst_registered,
-        default_invoice_template: formData.default_invoice_template || 'Template A (Standard)',
+        default_invoice_template: formData.default_invoice_template || (templates[0]?.name || ''),
         is_active: formData.is_active !== false
       };
 
@@ -247,21 +247,28 @@ export default function LandlordManagement() {
               </div>
 
               <div className="form-group">
-                  <label>Default Invoice Template *</label>
-                  <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange} required>
+                <label>Default Invoice Template *</label>
+                <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange} required>
+                  {templates.length === 0 ? (
+                    <option value="">Loading templates from database...</option>
+                  ) : (
                     <option value="">Select a template...</option>
-                    {templates.map(t => (
-                      <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                    {templates.length === 0 && (
-                      <>
-                        <option value="Template A (Standard)">Template A (Standard)</option>
-                        <option value="Template B (Detailed)">Template B (Detailed)</option>
-                        <option value="Template C (Compact)">Template C (Compact)</option>
-                      </>
-                    )}
-                  </select>
+                  )}
+                  {templates.map(t => (
+                    <option key={t.id} value={t.name}>
+                      {t.name} {t.isDefault ? '★ (Active Default)' : ''}
+                    </option>
+                  ))}
+                  {formData.default_invoice_template && !templates.some(t => t.name === formData.default_invoice_template) && (
+                    <option value={formData.default_invoice_template}>
+                      {formData.default_invoice_template} (Current)
+                    </option>
+                  )}
+                </select>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+                  {templates.length > 0 ? `Loaded ${templates.length} templates from database` : 'Fetching templates from database...'}
                 </div>
+              </div>
 
                 <div className="form-group">
                   <label>Status *</label>
