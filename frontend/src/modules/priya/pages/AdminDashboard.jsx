@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
   const [hoveredStackedIdx, setHoveredStackedIdx] = useState(null);
+  const [hoveredBar, setHoveredBar] = useState(null);
   const [hoveredTrendIdx, setHoveredTrendIdx] = useState(null);
   const [hoveredPropertyIdx, setHoveredPropertyIdx] = useState(null);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
@@ -183,6 +184,10 @@ export default function AdminDashboard() {
     };
   });
   const maxMonthlyBilling = Math.max(...monthlyBillingData.map(m => m.total), 1);
+  const maxGroupedBarVal = Math.max(
+    ...monthlyBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
+    1
+  );
 
   // Separate count, amount, and percentage for each color category
   const colorCounts = [
@@ -575,7 +580,7 @@ export default function AdminDashboard() {
         gap: '20px',
         marginBottom: '28px'
       }}>
-        {/* Chart 1: Monthly Billing Composition – Stacked Bar Chart */}
+        {/* Chart 1: Monthly Billing Breakdown – Grouped Bar Chart (From X-Axis Ground) */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -591,14 +596,14 @@ export default function AdminDashboard() {
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Layers size={18} color="#2563eb" />
-                  1. Monthly Billing Composition
+                  1. Monthly Billing Breakdown (From Ground Baseline)
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
+                  Rent, Maintenance, Parking & GST each starting directly from x-axis ground (y = 0)
                 </p>
               </div>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
-                Stacked Bar
+                Grouped Bar Chart
               </span>
             </div>
 
@@ -607,150 +612,198 @@ export default function AdminDashboard() {
                 No monthly billing records available.
               </div>
             ) : (
-              <div style={{ minHeight: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', gap: '20px', paddingTop: '24px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
-                {monthlyBillingData.map((m, idx) => {
-                  const maxBarHeight = 150;
-                  const totalBarHeight = Math.max(Math.round((m.total / maxMonthlyBilling) * maxBarHeight), 50);
-                  const isHovered = hoveredStackedIdx === idx;
+              <div style={{ position: 'relative', paddingTop: '8px' }}>
+                {/* Active Bar Tooltip if hovered */}
+                {hoveredBar && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 60,
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: hoveredBar.color, display: 'inline-block' }} />
+                    <span style={{ fontWeight: 600 }}>{hoveredBar.period} • {hoveredBar.label}:</span>
+                    <strong style={{ color: '#38bdf8' }}>{formatCurrency(hoveredBar.amount)}</strong>
+                    <span style={{ color: '#94a3b8' }}>({hoveredBar.pct}% of month total)</span>
+                  </div>
+                )}
 
-                  return (
+                {/* Plot Area with Ground Baseline */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'space-around',
+                  minHeight: '220px',
+                  paddingTop: '24px',
+                  paddingBottom: '0px',
+                  position: 'relative',
+                  borderBottom: '3px solid #334155' /* The Solid X-Axis Ground */
+                }}>
+                  {/* Background Gridlines */}
+                  <div style={{ position: 'absolute', left: 0, right: 0, top: '25px', borderBottom: '1px dashed #e2e8f0', pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', left: 0, right: 0, top: '55%', borderBottom: '1px dashed #f1f5f9', pointerEvents: 'none' }} />
+
+                  {monthlyBillingData.map((m, mIdx) => {
+                    const maxBarHeight = 150;
+                    const categories = [
+                      { key: 'rent', label: 'Base Rent', color: '#2563eb', amount: m.rent, pct: m.rentPct, tag: 'Rent' },
+                      { key: 'maintenance', label: 'Maintenance', color: '#8b5cf6', amount: m.maintenance, pct: m.maintenancePct, tag: 'Maint' },
+                      { key: 'parking', label: 'Parking', color: '#06b6d4', amount: m.parking, pct: m.parkingPct, tag: 'Park' },
+                      { key: 'gst', label: 'GST (18%)', color: '#f59e0b', amount: m.gst, pct: m.gstPct, tag: 'GST' }
+                    ];
+
+                    return (
+                      <div
+                        key={m.period || mIdx}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {/* Month Total & Invoices badge above the cluster */}
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          marginBottom: '4px'
+                        }}>
+                          <span style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0f172a' }}>
+                            {formatCurrency(m.total)}
+                          </span>
+                          <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600 }}>
+                            {m.count} inv
+                          </span>
+                        </div>
+
+                        {/* 4 Grouped Bars Standing Side-by-Side directly from the Ground Baseline (y = 0) */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                          gap: '6px',
+                          background: 'rgba(241, 245, 249, 0.45)',
+                          padding: '0 8px',
+                          borderRadius: '6px 6px 0 0'
+                        }}>
+                          {categories.map(cat => {
+                            const barHeight = cat.amount > 0
+                              ? Math.max(Math.round((cat.amount / maxGroupedBarVal) * maxBarHeight), 8)
+                              : 2;
+                            const isHovered = hoveredBar?.period === m.period && hoveredBar?.key === cat.key;
+
+                            return (
+                              <div
+                                key={cat.key}
+                                onMouseEnter={() => setHoveredBar({
+                                  period: m.period,
+                                  key: cat.key,
+                                  label: cat.label,
+                                  color: cat.color,
+                                  amount: cat.amount,
+                                  pct: cat.pct,
+                                  monthTotal: m.total
+                                })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {/* Individual Bar rising from ground baseline */}
+                                <div
+                                  style={{
+                                    width: '24px',
+                                    height: `${barHeight}px`,
+                                    background: cat.amount > 0 ? cat.color : '#e2e8f0',
+                                    borderRadius: '4px 4px 0 0',
+                                    transition: 'all 0.15s ease',
+                                    transform: isHovered ? 'scaleY(1.05) scaleX(1.08)' : 'scale(1)',
+                                    transformOrigin: 'bottom',
+                                    boxShadow: isHovered ? `0 0 10px ${cat.color}` : 'none',
+                                    border: cat.amount === 0 ? '1px dashed #cbd5e1' : 'none'
+                                  }}
+                                  title={`${m.period} - ${cat.label}: ${formatCurrency(cat.amount)} (${cat.pct}%)`}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Subcategory markers and Period labels directly below the Ground Line */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  paddingTop: '8px',
+                  paddingBottom: '4px'
+                }}>
+                  {monthlyBillingData.map((m, mIdx) => (
                     <div
-                      key={m.period || idx}
-                      onMouseEnter={() => setHoveredStackedIdx(idx)}
-                      onMouseLeave={() => setHoveredStackedIdx(null)}
+                      key={m.period || mIdx}
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        position: 'relative'
+                        gap: '2px'
                       }}
                     >
-                      {/* Tooltip on hover */}
-                      {isHovered && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: `${totalBarHeight + 36}px`,
-                          zIndex: 50,
-                          background: '#0f172a',
-                          color: '#ffffff',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '0.74rem',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-                          minWidth: '220px',
-                          pointerEvents: 'none',
-                          lineHeight: '1.5'
-                        }}>
-                          <div style={{ fontWeight: 700, borderBottom: '1px solid #334155', paddingBottom: '4px', marginBottom: '6px' }}>
-                            Period: {m.period}
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#93c5fd' }}>
-                            <span>Base Rent:</span>
-                            <strong>{formatCurrency(m.rent)} ({m.rentPct}%)</strong>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c4b5fd' }}>
-                            <span>Maintenance:</span>
-                            <strong>{formatCurrency(m.maintenance)} ({m.maintenancePct}%)</strong>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#67e8f9' }}>
-                            <span>Parking:</span>
-                            <strong>{formatCurrency(m.parking)} ({m.parkingPct}%)</strong>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fde68a' }}>
-                            <span>GST (18%):</span>
-                            <strong>{formatCurrency(m.gst)} ({m.gstPct}%)</strong>
-                          </div>
-                          <div style={{ borderTop: '1px solid #334155', paddingTop: '4px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#38bdf8' }}>
-                            <span>Total Invoice:</span>
-                            <span>{formatCurrency(m.total)}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Total Amount Label above bar */}
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
-                        {formatCurrency(m.total)}
-                      </span>
-
-                      {/* Stacked Vertical Bar */}
-                      <div style={{
-                        width: '56px',
-                        height: `${totalBarHeight}px`,
-                        display: 'flex',
-                        flexDirection: 'column-reverse',
-                        borderRadius: '6px 6px 0 0',
-                        overflow: 'hidden',
-                        boxShadow: isHovered ? '0 4px 14px rgba(37,99,235,0.35)' : '0 2px 6px rgba(0,0,0,0.08)',
-                        transform: isHovered ? 'scale(1.06)' : 'scale(1)',
-                        transition: 'all 0.2s ease',
-                        border: '1px solid #cbd5e1'
-                      }}>
-                        {/* Segment 1 (Bottom): Base Rent */}
-                        {m.rent > 0 && (
-                          <div
-                            style={{
-                              flex: m.rent,
-                              background: '#2563eb',
-                              width: '100%',
-                              minHeight: '4px',
-                              transition: 'all 0.3s ease'
-                            }}
-                            title={`Base Rent: ${formatCurrency(m.rent)} (${m.rentPct}%)`}
-                          />
-                        )}
-                        {/* Segment 2: Maintenance Charges */}
-                        {m.maintenance > 0 && (
-                          <div
-                            style={{
-                              flex: m.maintenance,
-                              background: '#8b5cf6',
-                              width: '100%',
-                              minHeight: '6px',
-                              flexShrink: 0,
-                              transition: 'all 0.3s ease'
-                            }}
-                            title={`Maintenance Charges: ${formatCurrency(m.maintenance)} (${m.maintenancePct}%)`}
-                          />
-                        )}
-                        {/* Segment 3: Parking Charges */}
-                        {m.parking > 0 && (
-                          <div
-                            style={{
-                              flex: m.parking,
-                              background: '#06b6d4',
-                              width: '100%',
-                              minHeight: '8px',
-                              flexShrink: 0,
-                              transition: 'all 0.3s ease'
-                            }}
-                            title={`Parking Charges: ${formatCurrency(m.parking)} (${m.parkingPct}%)`}
-                          />
-                        )}
-                        {/* Segment 4 (Top): GST */}
-                        {m.gst > 0 && (
-                          <div
-                            style={{
-                              flex: m.gst,
-                              background: '#f59e0b',
-                              width: '100%',
-                              minHeight: '6px',
-                              flexShrink: 0,
-                              transition: 'all 0.3s ease'
-                            }}
-                            title={`GST (18%): ${formatCurrency(m.gst)} (${m.gstPct}%)`}
-                          />
-                        )}
+                      {/* Sub-labels right under each of the 4 bars */}
+                      <div style={{ display: 'flex', gap: '6px', padding: '0 8px', marginBottom: '4px' }}>
+                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#2563eb', fontWeight: 700 }}>Rent</span>
+                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#8b5cf6', fontWeight: 700 }}>Maint</span>
+                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#06b6d4', fontWeight: 700 }}>Park</span>
+                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#f59e0b', fontWeight: 700 }}>GST</span>
                       </div>
-
-                      {/* Period Label */}
-                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                      {/* Period Pill */}
+                      <span style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        padding: '2px 10px',
+                        borderRadius: '6px'
+                      }}>
                         {m.period}
                       </span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+
+                {/* Ground Line Indicator Footer */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.68rem',
+                  color: '#64748b',
+                  marginTop: '4px',
+                  padding: '0 6px'
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '12px', height: '2.5px', background: '#334155', display: 'inline-block' }} />
+                    <strong>X-Axis Ground (y = ₹0)</strong> — All charges rise from baseline
+                  </span>
+                  <span>Hover any bar for details</span>
+                </div>
               </div>
             )}
           </div>
