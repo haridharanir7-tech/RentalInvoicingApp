@@ -536,6 +536,8 @@ const dbAdapter = {
             i.property_id, 
             i.tenant_id, 
             COALESCE(i.rent_amount, 0) AS rent_amount, 
+            COALESCE(i.maintenance_charges, 0) AS maintenance_charges,
+            COALESCE(i.parking_charges, 0) AS parking_charges,
             COALESCE(i.additional_charges, i.addinational_charges, 0) AS additional_charges, 
             COALESCE(i.gst_amount, 0) AS gst_amount, 
             COALESCE(i.total_amount, 0) AS total_amount, 

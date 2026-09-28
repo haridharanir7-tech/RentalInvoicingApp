@@ -29,18 +29,40 @@ const getAdminDashboard = async (req, res) => {
     const pendingApprovalsCount = pendingLandlordUsers.length;
 
     // 2. Charts Data
-    // Chart 1: Monthly Revenue Trend
+    // Chart 1: Monthly Revenue Trend & Invoices Count
     const monthlyRevenueMap = {};
     allInvoices.forEach(inv => {
       const period = inv.billing_period || 'Unknown';
       if (!monthlyRevenueMap[period]) {
-        monthlyRevenueMap[period] = { period, billed: 0, collected: 0, count: 0 };
+        monthlyRevenueMap[period] = {
+          period,
+          billed: 0,
+          collected: 0,
+          count: 0,
+          invoicesGenerated: 0,
+          draftCount: 0,
+          finalizedCount: 0,
+          rent: 0,
+          maintenance: 0,
+          parking: 0,
+          gst: 0
+        };
       }
       monthlyRevenueMap[period].billed += Number(inv.total_amount || 0);
       if (inv.status === 'Sent') {
         monthlyRevenueMap[period].collected += Number(inv.total_amount || 0);
       }
       monthlyRevenueMap[period].count += 1;
+      monthlyRevenueMap[period].invoicesGenerated += 1;
+      if (inv.status === 'Draft') {
+        monthlyRevenueMap[period].draftCount += 1;
+      } else {
+        monthlyRevenueMap[period].finalizedCount += 1;
+      }
+      monthlyRevenueMap[period].rent += Number(inv.rent_amount || 0);
+      monthlyRevenueMap[period].maintenance += Number(inv.maintenance_charges || 0);
+      monthlyRevenueMap[period].parking += Number(inv.parking_charges || 0);
+      monthlyRevenueMap[period].gst += Number(inv.gst_amount || 0);
     });
     const monthlyRevenueChart = Object.values(monthlyRevenueMap).sort((a, b) => a.period.localeCompare(b.period));
 
@@ -65,10 +87,22 @@ const getAdminDashboard = async (req, res) => {
       Vacated: allTenants.filter(t => t.status === 'Vacated').length
     };
 
-    // Chart 5: GST Collection Summary
+    // Chart 5: Charges Breakdown (Maintenance, Parking, Rent, GST)
     const totalGst = allInvoices.reduce((acc, curr) => acc + Number(curr.gst_amount || 0), 0);
     const taxableRent = allInvoices.reduce((acc, curr) => acc + Number(curr.rent_amount || 0), 0);
+    const maintenanceCharges = allInvoices.reduce((acc, curr) => acc + Number(curr.maintenance_charges || 0), 0);
+    const parkingCharges = allInvoices.reduce((acc, curr) => acc + Number(curr.parking_charges || 0), 0);
     const additionalCharges = allInvoices.reduce((acc, curr) => acc + Number(curr.additional_charges || 0), 0);
+    const grandTotal = taxableRent + additionalCharges + totalGst;
+
+    const chargesBreakdown = {
+      rent: taxableRent,
+      maintenance: maintenanceCharges,
+      parking: parkingCharges,
+      otherCharges: Math.max(0, additionalCharges - (maintenanceCharges + parkingCharges)),
+      gst: totalGst,
+      grandTotal
+    };
 
     return res.status(200).json({
       success: true,
@@ -79,6 +113,7 @@ const getAdminDashboard = async (req, res) => {
           totalTenants,
           totalInvoices,
           totalRevenue,
+          totalBilled: grandTotal,
           pendingApprovalsCount
         },
         charts: {
@@ -90,9 +125,12 @@ const getAdminDashboard = async (req, res) => {
           gstSummary: {
             taxableRent,
             additionalCharges,
+            maintenanceCharges,
+            parkingCharges,
             totalGst,
-            grandTotal: taxableRent + additionalCharges + totalGst
-          }
+            grandTotal
+          },
+          chargesBreakdown
         },
         recentInvoices: [...allInvoices].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0))
       }
@@ -145,12 +183,41 @@ const getLandlordDashboard = async (req, res) => {
     invoices.forEach(inv => {
       const period = inv.billing_period || 'Unknown';
       if (!monthlyRevenueMap[period]) {
-        monthlyRevenueMap[period] = { period, billed: 0, count: 0 };
+        monthlyRevenueMap[period] = {
+          period,
+          billed: 0,
+          count: 0,
+          invoicesGenerated: 0,
+          rent: 0,
+          maintenance: 0,
+          parking: 0,
+          gst: 0
+        };
       }
       monthlyRevenueMap[period].billed += Number(inv.total_amount || 0);
       monthlyRevenueMap[period].count += 1;
+      monthlyRevenueMap[period].invoicesGenerated += 1;
+      monthlyRevenueMap[period].rent += Number(inv.rent_amount || 0);
+      monthlyRevenueMap[period].maintenance += Number(inv.maintenance_charges || 0);
+      monthlyRevenueMap[period].parking += Number(inv.parking_charges || 0);
+      monthlyRevenueMap[period].gst += Number(inv.gst_amount || 0);
     });
     const monthlyRevenueChart = Object.values(monthlyRevenueMap).sort((a, b) => a.period.localeCompare(b.period));
+
+    // Charges Breakdown for this landlord
+    const totalRent = invoices.reduce((acc, curr) => acc + Number(curr.rent_amount || 0), 0);
+    const totalMaintenance = invoices.reduce((acc, curr) => acc + Number(curr.maintenance_charges || 0), 0);
+    const totalParking = invoices.reduce((acc, curr) => acc + Number(curr.parking_charges || 0), 0);
+    const totalGst = invoices.reduce((acc, curr) => acc + Number(curr.gst_amount || 0), 0);
+    const grandTotal = totalRent + totalMaintenance + totalParking + totalGst;
+
+    const chargesBreakdown = {
+      rent: totalRent,
+      maintenance: totalMaintenance,
+      parking: totalParking,
+      gst: totalGst,
+      grandTotal
+    };
 
     // Status breakdown
     const invoiceStatus = {
@@ -180,15 +247,17 @@ const getLandlordDashboard = async (req, res) => {
           myInvoices: myInvoicesCount,
           pendingInvoices: pendingInvoicesCount,
           occupancyRate,
-          myRevenue
+          myRevenue,
+          myTotalBilled: grandTotal
         },
         charts: {
           monthlyRevenue: monthlyRevenueChart,
-          invoiceStatus
+          invoiceStatus,
+          chargesBreakdown
         },
         invoices: invoices.slice(0, 5),
-          properties: properties.slice(0, 5),
-          tenants: tenants.slice(0, 5)
+        properties: properties.slice(0, 5),
+        tenants: tenants.slice(0, 5)
       }
     });
   } catch (err) {
