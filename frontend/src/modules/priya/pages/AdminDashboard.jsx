@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
-  const [invoicePageSize, setInvoicePageSize] = useState(2);
+  const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -666,33 +666,8 @@ export default function AdminDashboard() {
 
         {/* Pagination Container matching Landlords module */}
         <div className="pagination-container">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
-            <span>
-              Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices ({recentInvoices.length} total)
-            </span>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
-              <span>Per page:</span>
-              <select
-                value={invoicePageSize}
-                onChange={(e) => {
-                  setInvoicePageSize(Number(e.target.value));
-                  setInvoicePage(1);
-                }}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '0.82rem',
-                  color: '#334155',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value={2}>2</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-              </select>
-            </div>
+          <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+            Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices ({recentInvoices.length} total)
           </div>
           <div className="pagination-controls">
             <button
