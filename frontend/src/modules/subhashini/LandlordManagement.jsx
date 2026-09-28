@@ -116,15 +116,17 @@ export default function LandlordManagement() {
       return setError('Name is required');
     }
     
-    if (formData.pan && !/^[A-Z0-9]{10}$/i.test(formData.pan.trim())) {
-      return setError('Invalid PAN format (10 characters, e.g. ABCDE1234F)');
+    const cleanPan = (formData.pan || '').trim().toUpperCase();
+    if (cleanPan && !/^[A-Z0-9]{5,10}$/.test(cleanPan)) {
+      return setError('Invalid PAN format (up to 10 alphanumeric characters, e.g. ABCDE1234F)');
     }
 
     if (formData.gst_registered && !formData.gstin) {
       return setError('GSTIN is required when GST Registered is checked');
     }
 
-    if (formData.gstin && !/^[A-Z0-9]{15}$/i.test(formData.gstin.trim())) {
+    const cleanGstin = (formData.gstin || '').trim().toUpperCase();
+    if (cleanGstin && !/^[A-Z0-9]{10,16}$/.test(cleanGstin)) {
       return setError('Invalid GSTIN format (15 characters, e.g. 33AAAAA0000A1Z5)');
     }
 

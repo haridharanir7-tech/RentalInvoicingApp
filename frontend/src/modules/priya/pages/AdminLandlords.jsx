@@ -70,14 +70,16 @@ export default function AdminLandlords() {
     }
 
     // Contact Phone validation: must be digits only and exactly 10 digits
-    if (addFormData.contact_details && !/^[0-9]{10}$/.test(addFormData.contact_details.trim())) {
+    const cleanPhone = (addFormData.contact_details || '').trim();
+    if (cleanPhone && !/^[0-9]{10}$/.test(cleanPhone)) {
       setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets or special characters).');
       return;
     }
 
-    // PAN validation: 10 alphanumeric characters (standard e.g. ABCDE1234F or test PANs)
-    if (addFormData.pan && !/^[A-Z0-9]{10}$/.test(addFormData.pan.trim().toUpperCase())) {
-      setError('PAN must be 10 characters (e.g. ABCDE1234F).');
+    // PAN validation: alphanumeric characters up to 10 characters if provided
+    const cleanPan = (addFormData.pan || '').trim().toUpperCase();
+    if (cleanPan && !/^[A-Z0-9]{5,10}$/.test(cleanPan)) {
+      setError('PAN must be up to 10 alphanumeric characters (e.g. ABCDE1234F).');
       return;
     }
 
@@ -87,7 +89,8 @@ export default function AdminLandlords() {
       return;
     }
 
-    if (addFormData.gstin && !/^[A-Z0-9]{15}$/.test(addFormData.gstin.trim().toUpperCase())) {
+    const cleanGstin = (addFormData.gstin || '').trim().toUpperCase();
+    if (cleanGstin && !/^[A-Z0-9]{10,16}$/.test(cleanGstin)) {
       setError('Invalid GSTIN format. Must be 15 alphanumeric characters (e.g. 33AAAAA0000A1Z5).');
       return;
     }
