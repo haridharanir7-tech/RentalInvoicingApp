@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
+  const [hoveredSlice, setHoveredSlice] = useState(null);
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -100,8 +101,34 @@ export default function AdminDashboard() {
   ].filter(s => s.amount > 0);
 
   const totalChargesAmount = pieSegments.reduce((acc, curr) => acc + curr.amount, 0) || 1;
-  const donutRadius = 60;
-  const donutCircumference = 2 * Math.PI * donutRadius;
+  const pieRadius = 85;
+  const pieCenter = 100;
+  let runningAngle = -Math.PI / 2;
+  const calculatedSlices = pieSegments.map((seg, idx) => {
+    const fraction = seg.amount / totalChargesAmount;
+    const sliceAngle = fraction * 2 * Math.PI;
+    const startAngle = runningAngle;
+    const endAngle = runningAngle + sliceAngle;
+    runningAngle = endAngle;
+
+    const x1 = pieCenter + pieRadius * Math.cos(startAngle);
+    const y1 = pieCenter + pieRadius * Math.sin(startAngle);
+    const x2 = pieCenter + pieRadius * Math.cos(endAngle);
+    const y2 = pieCenter + pieRadius * Math.sin(endAngle);
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+    const pathData = fraction >= 0.999
+      ? null
+      : `M ${pieCenter} ${pieCenter} L ${x1.toFixed(3)} ${y1.toFixed(3)} A ${pieRadius} ${pieRadius} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+
+    return {
+      ...seg,
+      index: idx,
+      fraction,
+      percentage: (fraction * 100).toFixed(1),
+      pathData
+    };
+  });
 
   return (
     <div style={{ maxWidth: '1380px', margin: '0 auto', padding: '10px 0 40px 0' }}>
@@ -472,7 +499,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                Charges & Fee Distribution (Pie Graph)
+                Charges Breakdown (Pie Graph)
               </h3>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
                 Breakdown of Maintenance, Parking, Base Rent & GST
@@ -482,79 +509,103 @@ export default function AdminDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '230px' }}>
-            {/* SVG Donut / Pie Graph */}
-            <div style={{ position: 'relative', width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="180" height="180" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
-                {(() => {
-                  let accumulated = 0;
-                  return pieSegments.map((item, idx) => {
-                    const strokeDash = (item.amount / totalChargesAmount) * donutCircumference;
-                    const strokeOffset = -accumulated;
-                    accumulated += strokeDash;
-                    return (
-                      <circle
-                        key={idx}
-                        cx="100"
-                        cy="100"
-                        r={donutRadius}
-                        fill="transparent"
-                        stroke={item.color}
-                        strokeWidth="24"
-                        strokeDasharray={`${strokeDash} ${donutCircumference - strokeDash}`}
-                        strokeDashoffset={strokeOffset}
-                        strokeLinecap="butt"
-                        style={{ transition: 'stroke-dasharray 0.5s ease' }}
-                      />
-                    );
-                  });
-                })()}
-              </svg>
+            {/* Solid SVG Pie Graph */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'relative', width: '190px', height: '190px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="190" height="190" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
+                  <filter id="pieShadow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
+                  </filter>
+                  <g filter="url(#pieShadow)">
+                    {calculatedSlices.map((slice) => {
+                      const isHovered = hoveredSlice === slice.index;
+                      if (!slice.pathData) {
+                        return (
+                          <circle
+                            key={slice.index}
+                            cx={pieCenter}
+                            cy={pieCenter}
+                            r={pieRadius}
+                            fill={slice.color}
+                            stroke="#ffffff"
+                            strokeWidth="2.5"
+                            onMouseEnter={() => setHoveredSlice(slice.index)}
+                            onMouseLeave={() => setHoveredSlice(null)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        );
+                      }
+                      return (
+                        <path
+                          key={slice.index}
+                          d={slice.pathData}
+                          fill={slice.color}
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                          strokeLinejoin="round"
+                          opacity={hoveredSlice !== null && !isHovered ? 0.65 : 1}
+                          onMouseEnter={() => setHoveredSlice(slice.index)}
+                          onMouseLeave={() => setHoveredSlice(null)}
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s ease, transform 0.2s ease',
+                            transformOrigin: `${pieCenter}px ${pieCenter}px`,
+                            transform: isHovered ? 'scale(1.04)' : 'scale(1)'
+                          }}
+                        >
+                          <title>{`${slice.label}: ${formatCurrency(slice.amount)} (${slice.percentage}%)`}</title>
+                        </path>
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+
+              {/* Total volume badge under the solid pie chart */}
               <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                pointerEvents: 'none'
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '4px 12px',
+                fontSize: '0.74rem',
+                color: '#475569',
+                fontWeight: 600,
+                textAlign: 'center'
               }}>
-                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Total
-                </span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
-                  {formatCurrency(totalChargesAmount)}
-                </span>
+                Total Portfolio: <strong style={{ color: '#0f172a' }}>{formatCurrency(totalChargesAmount)}</strong>
               </div>
             </div>
 
             {/* Breakdown Legend with % & Values */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' }}>
-              {pieSegments.map((item, idx) => {
-                const pct = ((item.amount / totalChargesAmount) * 100).toFixed(1);
+              {calculatedSlices.map((item) => {
+                const isHovered = hoveredSlice === item.index;
                 return (
                   <div
-                    key={idx}
+                    key={item.index}
+                    onMouseEnter={() => setHoveredSlice(item.index)}
+                    onMouseLeave={() => setHoveredSlice(null)}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '8px 12px',
-                      background: '#f8fafc',
+                      background: isHovered ? '#eff6ff' : '#f8fafc',
                       borderRadius: '8px',
-                      border: '1px solid #f1f5f9'
+                      border: isHovered ? `1px solid ${item.color}` : '1px solid #f1f5f9',
+                      transition: 'all 0.15s ease',
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color, display: 'inline-block' }} />
+                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color, display: 'inline-block' }} />
                       <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{item.label}</span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{formatCurrency(item.amount)}</div>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{pct}%</span>
+                      <span style={{ fontSize: '0.72rem', color: isHovered ? item.color : '#64748b', fontWeight: 700 }}>
+                        {item.percentage}%
+                      </span>
                     </div>
                   </div>
                 );
