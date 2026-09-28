@@ -146,6 +146,28 @@ export default function InvoiceTemplatesView({
 
   const selectedTemplateId = propSelectedTemplateId !== undefined ? propSelectedTemplateId : internalSelectedId;
 
+  // Template currently being previewed on the screen (defaults to the active selected template)
+  const [previewTemplateId, setPreviewTemplateId] = useState(selectedTemplateId);
+
+  // Sync previewTemplateId when selectedTemplateId resolves
+  useEffect(() => {
+    if (selectedTemplateId) {
+      setPreviewTemplateId((curr) => curr || selectedTemplateId);
+    }
+  }, [selectedTemplateId]);
+
+  const currentPreviewId = previewTemplateId || selectedTemplateId;
+
+  // Active template derived from the preview selection
+  const activeTemplate =
+    templateList.find((t) => t.id === currentPreviewId) ||
+    templateList.find((t) => t.id === selectedTemplateId) ||
+    propActiveTemplate ||
+    templateList[0] ||
+    DEFAULT_TEMPLATES[0];
+
+  const isSelected = activeTemplate.id === selectedTemplateId;
+
   // Read & ensure valid template on page load and when templateList changes
   useEffect(() => {
     try {
@@ -184,28 +206,25 @@ export default function InvoiceTemplatesView({
     }
   }, [propSelectedTemplateId]);
 
-  // Handler for template selection: updates state, preview, localStorage, and default
+  // Handler for selecting a template as active/default
   function handleSelectTemplate(tplId) {
-    setInternalSelectedId(tplId);
+    const targetId = tplId || currentPreviewId;
+    setInternalSelectedId(targetId);
+    setPreviewTemplateId(targetId);
     if (propSetSelectedTemplateId) {
-      propSetSelectedTemplateId(tplId);
+      propSetSelectedTemplateId(targetId);
     }
     try {
-      localStorage.setItem("selectedInvoiceTemplate", tplId);
+      localStorage.setItem("selectedInvoiceTemplate", targetId);
     } catch (e) {
       console.warn("Failed to save selectedInvoiceTemplate to localStorage", e);
     }
     if (onSetDefault) {
-      onSetDefault(tplId);
+      onSetDefault(targetId);
     }
+    const matched = templateList.find((t) => t.id === targetId);
+    showMessage?.(`✓ Template "${matched?.name || targetId}" selected as default template!`);
   }
-
-  // Active template derived from the current selection
-  const activeTemplate =
-    templateList.find((t) => t.id === selectedTemplateId) ||
-    propActiveTemplate ||
-    templateList[0] ||
-    DEFAULT_TEMPLATES[0];
 
   // Popup Modal visibility state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -475,12 +494,13 @@ export default function InvoiceTemplatesView({
 
           <div className="template-items-wrap">
             {templateList.map((tpl) => {
-              const isSelected = tpl.id === selectedTemplateId;
+              const isThisSelected = tpl.id === selectedTemplateId;
+              const isThisViewing = tpl.id === currentPreviewId;
               return (
                 <div
                   key={tpl.id}
-                  className={`template-tab-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => handleSelectTemplate(tpl.id)}
+                  className={`template-tab-item ${isThisViewing ? "viewing" : ""} ${isThisSelected ? "selected" : ""}`}
+                  onClick={() => setPreviewTemplateId(tpl.id)}
                 >
                   <div className="template-tab-meta">
                     <span className="template-tab-name">{tpl.name}</span>
@@ -493,7 +513,7 @@ export default function InvoiceTemplatesView({
                       className="template-color-dot"
                       style={{ backgroundColor: tpl.header || "#1d4ed8" }}
                     />
-                    {isSelected && (
+                    {isThisSelected && (
                       <span className="template-default-indicator" title="Active / Default Template">
                         ●
                       </span>
@@ -527,46 +547,25 @@ export default function InvoiceTemplatesView({
             </div>
 
             <div className="preview-toolbar-actions">
-              {/* Customize / Edit Button: OPENS THE MODAL TO EDIT THIS TEMPLATE! */}
-              <button
-                type="button"
-                className="btn-action-customize"
-                onClick={handleOpenEditModal}
-                title="Customize template layout, colors & details"
-              >
-                <Edit3 size={15} /> Customize
-              </button>
-
-              {/* Clean Download PDF Button */}
-              <button
-                type="button"
-                className="btn-action-primary"
-                onClick={handleDownloadPdf}
-                title="Download or Print PDF"
-              >
-                <Download size={15} /> Download PDF
-              </button>
-
-              {/* Print Button */}
-              <button
-                type="button"
-                className="btn-action-secondary"
-                onClick={handleDownloadPdf}
-                title="Print active invoice"
-              >
-                <Printer size={15} /> Print
-              </button>
-
-              {/* Bulk ZIP Button */}
-              <button
-                type="button"
-                className="btn-action-zip"
-                onClick={handleBulkZipDownload}
-                disabled={isZipping}
-                title="Download all tenant invoices in ZIP package"
-              >
-                <Archive size={15} /> {isZipping ? "Packing ZIP..." : "Bulk ZIP"}
-              </button>
+              {isSelected ? (
+                <button
+                  type="button"
+                  className="btn-action-selected"
+                  onClick={() => handleSelectTemplate(currentPreviewId)}
+                  title="Currently active default template"
+                >
+                  <Check size={16} /> Selected
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-action-primary"
+                  onClick={() => handleSelectTemplate(currentPreviewId)}
+                  title="Select this template as default"
+                >
+                  <Check size={16} /> Select
+                </button>
+              )}
             </div>
           </div>
 
