@@ -487,11 +487,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Exactly 4 Informative Dashboard Charts */}
-      <div style={{
+      {/* Exactly 4 Informative Dashboard Charts - Two Charts in a Row */}
+      <style>{`
+        .dashboard-charts-2col {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 20px;
+          margin-bottom: 28px;
+        }
+        @media (max-width: 900px) {
+          .dashboard-charts-2col {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="dashboard-charts-2col" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
-        gap: '24px',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: '20px',
         marginBottom: '28px'
       }}>
         {/* Chart 1: Monthly Billing Composition – Stacked Bar Chart */}
