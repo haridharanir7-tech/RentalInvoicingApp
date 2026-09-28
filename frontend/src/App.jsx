@@ -156,6 +156,10 @@ export default function App() {
               path="/admin/invoice_template"
               element={<Navigate to="/admin/invoice-template" replace />}
             />
+            <Route
+              path="/admin/invoice-templates"
+              element={<Navigate to="/admin/invoice-template" replace />}
+            />
 
             {/* 9. Occupancy Report (Subhashini) */}
             <Route
@@ -269,6 +273,10 @@ export default function App() {
               path="/landlord/invoice_template"
               element={<Navigate to="/landlord/dashboard" replace />}
             />
+            <Route
+              path="/landlord/invoice-templates"
+              element={<Navigate to="/landlord/dashboard" replace />}
+            />
 
             {/* 7. GST Report */}
             <Route
@@ -321,14 +329,10 @@ export default function App() {
               }
             />
 
-            {/* Ragul Module Route */}
+            {/* Ragul Module Route (Legacy redirect) */}
             <Route
               path="/ragul/*"
-              element={
-                <AppLayout>
-                  <RagulModule />
-                </AppLayout>
-              }
+              element={<RootRedirect />}
             />
           </Route>
 

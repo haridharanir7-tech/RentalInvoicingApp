@@ -239,14 +239,6 @@ export default function LandlordDashboard() {
               {landlord?.gst_registered ? 'GST Registered' : 'Non-GST / Exempt'}
             </div>
           </div>
-
-          {/* Detail 8: Default Invoice Template */}
-          <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Invoice Template</div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0f172a', marginTop: '3px' }}>
-              {landlord?.default_invoice_template || 'Template A (Standard)'}
-            </div>
-          </div>
         </div>
       </div>
 
