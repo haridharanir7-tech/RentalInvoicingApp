@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [hoveredStackedIdx, setHoveredStackedIdx] = useState(null);
   const [hoveredBar, setHoveredBar] = useState(null);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
+  const [filterYear, setFilterYear] = useState('2026');
+  const [filterMonth, setFilterMonth] = useState('ALL');
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -181,11 +183,26 @@ export default function AdminDashboard() {
       count: m.invoicesGenerated || m.count || fromInv?.count || 0
     };
   });
-  const maxMonthlyBilling = Math.max(...monthlyBillingData.map(m => m.total), 1);
+  // Filter monthly billing data by selected year and month
+  const filteredBillingData = monthlyBillingData.filter(m => {
+    const [y, mo] = (m.period || '').split('-');
+    const matchYear = filterYear === 'ALL' || y === filterYear;
+    const matchMonth = filterMonth === 'ALL' || mo === filterMonth;
+    return matchYear && matchMonth;
+  });
+
   const maxGroupedBarVal = Math.max(
-    ...monthlyBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
+    ...filteredBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
     1
   );
+
+  // Invoices filtered by active selection for accurate counts in color cards
+  const filteredInvoices = (recentInvoices || []).filter(inv => {
+    const [y, mo] = (inv.billing_period || '').split('-');
+    const matchYear = filterYear === 'ALL' || y === filterYear;
+    const matchMonth = filterMonth === 'ALL' || mo === filterMonth;
+    return matchYear && matchMonth;
+  });
 
   // Separate count, amount, and percentage for each color category
   const colorCounts = [
@@ -195,8 +212,8 @@ export default function AdminDashboard() {
       color: '#2563eb',
       bgColor: '#eff6ff',
       borderColor: '#bfdbfe',
-      amount: monthlyBillingData.reduce((sum, m) => sum + m.rent, 0),
-      count: (recentInvoices || []).filter(i => Number(i.rent_amount || 0) > 0).length
+      amount: filteredBillingData.reduce((sum, m) => sum + m.rent, 0),
+      count: filteredInvoices.filter(i => Number(i.rent_amount || 0) > 0).length
     },
     {
       key: 'maintenance',
@@ -204,8 +221,8 @@ export default function AdminDashboard() {
       color: '#8b5cf6',
       bgColor: '#f5f3ff',
       borderColor: '#ddd6fe',
-      amount: monthlyBillingData.reduce((sum, m) => sum + m.maintenance, 0),
-      count: (recentInvoices || []).filter(i => Number(i.maintenance_charges || 0) > 0).length
+      amount: filteredBillingData.reduce((sum, m) => sum + m.maintenance, 0),
+      count: filteredInvoices.filter(i => Number(i.maintenance_charges || 0) > 0).length
     },
     {
       key: 'parking',
@@ -213,8 +230,8 @@ export default function AdminDashboard() {
       color: '#06b6d4',
       bgColor: '#ecfeff',
       borderColor: '#a5f3fc',
-      amount: monthlyBillingData.reduce((sum, m) => sum + m.parking, 0),
-      count: (recentInvoices || []).filter(i => Number(i.parking_charges || 0) > 0).length
+      amount: filteredBillingData.reduce((sum, m) => sum + m.parking, 0),
+      count: filteredInvoices.filter(i => Number(i.parking_charges || 0) > 0).length
     },
     {
       key: 'gst',
@@ -222,8 +239,8 @@ export default function AdminDashboard() {
       color: '#f59e0b',
       bgColor: '#fffbeb',
       borderColor: '#fde68a',
-      amount: monthlyBillingData.reduce((sum, m) => sum + m.gst, 0),
-      count: (recentInvoices || []).filter(i => Number(i.gst_amount || 0) > 0).length
+      amount: filteredBillingData.reduce((sum, m) => sum + m.gst, 0),
+      count: filteredInvoices.filter(i => Number(i.gst_amount || 0) > 0).length
     }
   ];
   const totalBilledInView = colorCounts.reduce((sum, c) => sum + c.amount, 0) || 1;
@@ -549,16 +566,107 @@ export default function AdminDashboard() {
           justifyContent: 'space-between'
         }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Layers size={18} color="#2563eb" />
                 Monthly Billing Breakdown
               </h3>
+
+              {/* Month and Year Filter in Top Right */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Month Selector */}
+                <select
+                  value={filterMonth}
+                  onChange={(e) => setFilterMonth(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '7px',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                  title="Select Month"
+                >
+                  <option value="ALL">All Months</option>
+                  <option value="01">01 - Jan</option>
+                  <option value="02">02 - Feb</option>
+                  <option value="03">03 - Mar</option>
+                  <option value="04">04 - Apr</option>
+                  <option value="05">05 - May</option>
+                  <option value="06">06 - Jun</option>
+                  <option value="07">07 - Jul</option>
+                  <option value="08">08 - Aug</option>
+                  <option value="09">09 - Sep (Active)</option>
+                  <option value="10">10 - Oct (Active)</option>
+                  <option value="11">11 - Nov</option>
+                  <option value="12">12 - Dec</option>
+                </select>
+
+                {/* Year Selector */}
+                <select
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '7px',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                  title="Select Year"
+                >
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2027">2027</option>
+                  <option value="ALL">All Years</option>
+                </select>
+              </div>
             </div>
 
-            {monthlyBillingData.length === 0 ? (
-              <div style={{ padding: '50px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                No monthly billing records available.
+            {filteredBillingData.length === 0 ? (
+              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748b' }}>
+                <Calendar size={32} style={{ margin: '0 auto 10px auto', display: 'block', color: '#94a3b8' }} />
+                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem' }}>
+                  No Billing Records Found
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '6px 0 16px 0' }}>
+                  No invoices found for {filterMonth === 'ALL' ? 'all months in ' : `month ${filterMonth} of `}{filterYear === 'ALL' ? 'any year' : filterYear}.
+                </p>
+                <button
+                  onClick={() => { setFilterYear('2026'); setFilterMonth('ALL'); }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '8px',
+                    color: '#2563eb',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <RefreshCw size={13} />
+                  Reset to Available Months (2026-09, 2026-10)
+                </button>
               </div>
             ) : (
               <div style={{ position: 'relative', paddingTop: '8px' }}>
@@ -601,7 +709,7 @@ export default function AdminDashboard() {
                   borderBottom: '2px solid #cbd5e1'
                 }}>
 
-                  {monthlyBillingData.map((m, mIdx) => {
+                  {filteredBillingData.map((m, mIdx) => {
                     const maxBarHeight = 150;
                     const categories = [
                       { key: 'rent', label: 'Base Rent', color: '#2563eb', amount: m.rent, pct: m.rentPct, tag: 'Rent' },
@@ -701,7 +809,7 @@ export default function AdminDashboard() {
                   paddingTop: '8px',
                   paddingBottom: '4px'
                 }}>
-                  {monthlyBillingData.map((m, mIdx) => (
+                  {filteredBillingData.map((m, mIdx) => (
                     <div
                       key={m.period || mIdx}
                       style={{
