@@ -21,7 +21,8 @@ import {
   Phone,
   CreditCard,
   FileText,
-  Layers
+  Layers,
+  KeyRound
 } from 'lucide-react';
 
 export default function LandlordDashboard() {
@@ -348,21 +349,46 @@ export default function LandlordDashboard() {
               My Landlord Account & Business Profile
             </h3>
           </div>
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 12px',
-            borderRadius: '9999px',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            background: '#eff6ff',
-            color: '#1d4ed8',
-            border: '1px solid #bfdbfe'
-          }}>
-            <ShieldCheck size={14} color="#2563eb" />
-            Verified Account ({landlord?.status || 'Active'})
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/landlord/change-password')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                background: '#f8fafc',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+              title="Change your account password"
+            >
+              <KeyRound size={14} color="#2563eb" />
+              Change Password
+            </button>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              background: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #bfdbfe'
+            }}>
+              <ShieldCheck size={14} color="#2563eb" />
+              Verified Account ({landlord?.status || 'Active'})
+            </span>
+          </div>
         </div>
 
         <div style={{

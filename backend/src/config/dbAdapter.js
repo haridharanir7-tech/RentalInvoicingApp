@@ -150,6 +150,7 @@ const dbAdapter = {
             u.user_id AS id, 
             u.full_name, 
             u.email, 
+            u.password_hash,
             u.role, 
             u.landlord_id, 
             u.status, 

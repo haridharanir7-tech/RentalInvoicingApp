@@ -11,7 +11,8 @@ import {
   FileCode,
   PieChart,
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import { useAuth } from '../modules/priya/context/AuthContext';
 
@@ -176,6 +177,16 @@ export default function Sidebar() {
             <NavLink to="/landlord/occupancy-report" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <PieChart size={18} />
               <span>Occupancy Report</span>
+            </NavLink>
+
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '14px 12px 4px 12px' }}>
+              Security
+            </div>
+
+            {/* 9. Change Password */}
+            <NavLink to="/landlord/change-password" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <KeyRound size={18} />
+              <span>Change Password</span>
             </NavLink>
           </>
         )}
