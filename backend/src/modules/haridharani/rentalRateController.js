@@ -50,12 +50,13 @@ exports.getPropertiesAndTenants = async (req, res) => {
       SELECT 
         l.id, 
         l.name, 
-        COALESCE(l.email, u.email, '') AS email, 
+        MAX(COALESCE(l.email, u.email, '')) AS email, 
         l.gst_registered, 
         l.gstin, 
         COALESCE(l.is_active, true) AS is_active 
       FROM landlords l
       LEFT JOIN users u ON u.landlord_id = l.id
+      GROUP BY l.id, l.name, l.gst_registered, l.gstin, l.is_active
       ORDER BY l.name ASC
     `;
     const landlordsResult = await db.query(landlordsQuery);
