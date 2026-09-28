@@ -11,6 +11,8 @@ import {
   Clock,
   ArrowUpRight,
   PieChart,
+  TrendingUp,
+  Layers,
   CheckCircle2,
   AlertTriangle,
   FilePlus,
@@ -29,7 +31,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
-  const [hoveredSlice, setHoveredSlice] = useState(null);
+  const [hoveredStackedIdx, setHoveredStackedIdx] = useState(null);
+  const [hoveredTrendIdx, setHoveredTrendIdx] = useState(null);
+  const [hoveredPropertyIdx, setHoveredPropertyIdx] = useState(null);
+  const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -80,51 +85,132 @@ export default function AdminDashboard() {
     invoicePage * invoicePageSize
   );
 
-  // Charges Breakdown for Pie Graph (Maintenance, Parking, Base Rent, GST)
-  const chargesBreakdown = charts.chargesBreakdown || {
-    rent: charts.gstSummary?.taxableRent || 0,
-    maintenance: charts.gstSummary?.maintenanceCharges || 0,
-    parking: charts.gstSummary?.parkingCharges || 0,
-    gst: charts.gstSummary?.totalGst || 0,
-    grandTotal: charts.gstSummary?.grandTotal || 0
+  // Helper to compute SVG pie slices from items
+  const computePieSlices = (items, total, radius = 78, center = 100) => {
+    if (!total || total <= 0) return [];
+    const nonZero = items.filter(i => i.value > 0);
+    if (nonZero.length === 1) {
+      return items.map((item, idx) => ({
+        ...item,
+        index: idx,
+        fraction: item.value / total,
+        percentage: ((item.value / total) * 100).toFixed(1),
+        pathData: null,
+        isFullCircle: item.value > 0
+      }));
+    }
+    let currentAngle = -Math.PI / 2;
+    return items.map((item, idx) => {
+      if (item.value <= 0) {
+        return {
+          ...item,
+          index: idx,
+          fraction: 0,
+          percentage: '0.0',
+          pathData: null,
+          isFullCircle: false
+        };
+      }
+      const fraction = item.value / total;
+      const sliceAngle = fraction * 2 * Math.PI;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + sliceAngle;
+      currentAngle = endAngle;
+
+      const x1 = center + radius * Math.cos(startAngle);
+      const y1 = center + radius * Math.sin(startAngle);
+      const x2 = center + radius * Math.cos(endAngle);
+      const y2 = center + radius * Math.sin(endAngle);
+      const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+      const pathData = `M ${center} ${center} L ${x1.toFixed(3)} ${y1.toFixed(3)} A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+
+      return {
+        ...item,
+        index: idx,
+        fraction,
+        percentage: (fraction * 100).toFixed(1),
+        pathData,
+        isFullCircle: false
+      };
+    });
   };
 
-  const pieSegments = [
-    { label: 'Base Rent', amount: Number(chargesBreakdown.rent || 0), color: '#2563eb' },
-    { label: 'Maintenance Charges', amount: Number(chargesBreakdown.maintenance || 0), color: '#8b5cf6' },
-    { label: 'Parking Charges', amount: Number(chargesBreakdown.parking || 0), color: '#059669' },
-    { label: 'GST (18%)', amount: Number(chargesBreakdown.gst || 0), color: '#f59e0b' }
-  ].filter(s => s.amount > 0);
-
-  const totalChargesAmount = pieSegments.reduce((acc, curr) => acc + curr.amount, 0) || 1;
-  const pieRadius = 85;
-  const pieCenter = 100;
-  let runningAngle = -Math.PI / 2;
-  const calculatedSlices = pieSegments.map((seg, idx) => {
-    const fraction = seg.amount / totalChargesAmount;
-    const sliceAngle = fraction * 2 * Math.PI;
-    const startAngle = runningAngle;
-    const endAngle = runningAngle + sliceAngle;
-    runningAngle = endAngle;
-
-    const x1 = pieCenter + pieRadius * Math.cos(startAngle);
-    const y1 = pieCenter + pieRadius * Math.sin(startAngle);
-    const x2 = pieCenter + pieRadius * Math.cos(endAngle);
-    const y2 = pieCenter + pieRadius * Math.sin(endAngle);
-    const largeArc = sliceAngle > Math.PI ? 1 : 0;
-
-    const pathData = fraction >= 0.999
-      ? null
-      : `M ${pieCenter} ${pieCenter} L ${x1.toFixed(3)} ${y1.toFixed(3)} A ${pieRadius} ${pieRadius} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
-
+  // 1. Chart 1 Data: Monthly Billing Composition (Stacked Bar Chart)
+  // Relationship: Base Rent + Maintenance/Parking Charges + GST = Total Invoice Amount
+  const monthlyBillingData = (charts.monthlyRevenue || []).map(m => {
+    const rent = Number(m.rent || 0);
+    const maintParking = Number(m.maintenance || 0) + Number(m.parking || 0);
+    const gst = Number(m.gst || 0);
+    const total = Number(m.billed || 0) || (rent + maintParking + gst) || 1;
     return {
-      ...seg,
-      index: idx,
-      fraction,
-      percentage: (fraction * 100).toFixed(1),
-      pathData
+      period: m.period,
+      rent,
+      maintParking,
+      gst,
+      total,
+      rentPct: ((rent / total) * 100).toFixed(1),
+      maintParkingPct: ((maintParking / total) * 100).toFixed(1),
+      gstPct: ((gst / total) * 100).toFixed(1),
+      count: m.invoicesGenerated || m.count || 0
     };
   });
+  const maxMonthlyBilling = Math.max(...monthlyBillingData.map(m => m.total), 1);
+
+  // 2. Chart 2 Data: Monthly Revenue & GST Trend (Line Chart)
+  // Relationship: Total Billed Amount <-> GST Collected over time
+  const trendData = (charts.monthlyRevenue || []).map(m => ({
+    period: m.period,
+    billed: Number(m.billed || 0),
+    gst: Number(m.gst || 0)
+  }));
+  const maxTrendVal = Math.max(...trendData.map(t => Math.max(t.billed, t.gst)), 1) * 1.15;
+  const lineSvgWidth = 520;
+  const lineSvgHeight = 220;
+  const linePad = { top: 35, right: 35, bottom: 40, left: 75 };
+  const linePlotWidth = lineSvgWidth - linePad.left - linePad.right;
+  const linePlotHeight = lineSvgHeight - linePad.top - linePad.bottom;
+
+  const trendPoints = trendData.map((d, i) => {
+    const x = trendData.length === 1
+      ? linePad.left + linePlotWidth / 2
+      : linePad.left + (i / (trendData.length - 1)) * linePlotWidth;
+    const yBilled = linePad.top + linePlotHeight - (d.billed / maxTrendVal) * linePlotHeight;
+    const yGst = linePad.top + linePlotHeight - (d.gst / maxTrendVal) * linePlotHeight;
+    return { ...d, x, yBilled, yGst };
+  });
+
+  const billedLinePath = trendPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.yBilled.toFixed(1)}`).join(' ');
+  const gstLinePath = trendPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.yGst.toFixed(1)}`).join(' ');
+  const billedAreaPath = trendPoints.length > 0
+    ? `${billedLinePath} L ${trendPoints[trendPoints.length - 1].x.toFixed(1)} ${(linePad.top + linePlotHeight).toFixed(1)} L ${trendPoints[0].x.toFixed(1)} ${(linePad.top + linePlotHeight).toFixed(1)} Z`
+    : '';
+
+  // 3. Chart 3 Data: Property Type Distribution (Pie Chart)
+  // Relationship: Total Properties -> Commercial + Residential
+  const propertyTypesData = charts.propertyTypes || {};
+  const commercialProps = Number(propertyTypesData.Commercial || 0);
+  const residentialProps = Number(propertyTypesData.Residential || 0);
+  const totalPropertiesCount = commercialProps + residentialProps || summaryCards.totalProperties || 1;
+  const propertyPieItems = [
+    { label: 'Commercial Properties', value: commercialProps, color: '#2563eb' },
+    { label: 'Residential Properties', value: residentialProps, color: '#10b981' }
+  ];
+  const propertySlices = computePieSlices(propertyPieItems, totalPropertiesCount);
+
+  // 4. Chart 4 Data: Invoice Status Distribution (Pie Chart)
+  // Relationship: Total Invoices -> Draft + Generated + Sent
+  const invoiceStatusData = charts.invoiceStatus || {};
+  const draftInvoices = Number(invoiceStatusData.Draft || 0);
+  const generatedInvoices = Number(invoiceStatusData.Generated || 0);
+  const sentInvoices = Number(invoiceStatusData.Sent || 0);
+  const totalInvoicesCount = draftInvoices + generatedInvoices + sentInvoices || summaryCards.totalInvoices || 1;
+  const invoicePieItems = [
+    { label: 'Draft Invoices', value: draftInvoices, color: '#64748b' },
+    { label: 'Generated Invoices', value: generatedInvoices, color: '#3b82f6' },
+    { label: 'Sent Invoices', value: sentInvoices, color: '#10b981' }
+  ];
+  const invoiceSlices = computePieSlices(invoicePieItems, totalInvoicesCount);
 
   return (
     <div style={{ maxWidth: '1380px', margin: '0 auto', padding: '10px 0 40px 0' }}>
@@ -401,270 +487,641 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main Charts Section */}
+      {/* Exactly 4 Informative Dashboard Charts */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
-        gap: '20px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
+        gap: '24px',
         marginBottom: '28px'
       }}>
-        {/* Card 1: Charges Breakdown Pie Graph */}
+        {/* Chart 1: Monthly Billing Composition – Stacked Bar Chart */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
           border: '1px solid #e2e8f0',
           padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                Charges Breakdown (Pie Graph)
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                Breakdown of Maintenance, Parking, Base Rent & GST
-              </p>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={18} color="#2563eb" />
+                  1. Monthly Billing Composition
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Base Rent + Maintenance/Parking Charges + GST = Total Invoice Amount
+                </p>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
+                Stacked Bar
+              </span>
             </div>
-            <PieChart size={20} color="#8b5cf6" />
+
+            {monthlyBillingData.length === 0 ? (
+              <div style={{ padding: '50px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                No monthly billing records available.
+              </div>
+            ) : (
+              <div style={{ minHeight: '220px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', gap: '20px', paddingTop: '24px', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0' }}>
+                {monthlyBillingData.map((m, idx) => {
+                  const maxBarHeight = 150;
+                  const totalBarHeight = Math.max(Math.round((m.total / maxMonthlyBilling) * maxBarHeight), 44);
+                  const rentH = Math.round((m.rent / m.total) * totalBarHeight);
+                  const maintH = Math.round((m.maintParking / m.total) * totalBarHeight);
+                  const gstH = Math.max(totalBarHeight - rentH - maintH, m.gst > 0 ? 4 : 0);
+                  const isHovered = hoveredStackedIdx === idx;
+
+                  return (
+                    <div
+                      key={idx}
+                      onMouseEnter={() => setHoveredStackedIdx(idx)}
+                      onMouseLeave={() => setHoveredStackedIdx(null)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        position: 'relative'
+                      }}
+                    >
+                      {/* Tooltip on hover */}
+                      {isHovered && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: `${totalBarHeight + 42}px`,
+                          zIndex: 20,
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '0.74rem',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                          minWidth: '200px',
+                          pointerEvents: 'none',
+                          lineHeight: '1.5'
+                        }}>
+                          <div style={{ fontWeight: 700, borderBottom: '1px solid #334155', paddingBottom: '4px', marginBottom: '6px' }}>
+                            Period: {m.period}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#93c5fd' }}>
+                            <span>Base Rent:</span>
+                            <strong>{formatCurrency(m.rent)} ({m.rentPct}%)</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c4b5fd' }}>
+                            <span>Maint / Parking:</span>
+                            <strong>{formatCurrency(m.maintParking)} ({m.maintParkingPct}%)</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fde68a' }}>
+                            <span>GST (18%):</span>
+                            <strong>{formatCurrency(m.gst)} ({m.gstPct}%)</strong>
+                          </div>
+                          <div style={{ borderTop: '1px solid #334155', paddingTop: '4px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: '#38bdf8' }}>
+                            <span>Total Invoice:</span>
+                            <span>{formatCurrency(m.total)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Total Amount Label above bar */}
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                        {formatCurrency(m.total)}
+                      </span>
+
+                      {/* Stacked Vertical Bar */}
+                      <div style={{
+                        width: '54px',
+                        height: `${totalBarHeight}px`,
+                        display: 'flex',
+                        flexDirection: 'column-reverse',
+                        borderRadius: '8px 8px 0 0',
+                        overflow: 'hidden',
+                        boxShadow: isHovered ? '0 4px 12px rgba(37,99,235,0.3)' : '0 2px 6px rgba(0,0,0,0.08)',
+                        transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+                        transition: 'all 0.2s ease',
+                        border: '1px solid #cbd5e1'
+                      }}>
+                        {/* Segment 1 (Bottom): Base Rent */}
+                        <div
+                          style={{
+                            height: `${rentH}px`,
+                            background: '#2563eb',
+                            transition: 'height 0.3s'
+                          }}
+                          title={`Base Rent: ${formatCurrency(m.rent)}`}
+                        />
+                        {/* Segment 2 (Middle): Maintenance & Parking Charges */}
+                        {maintH > 0 && (
+                          <div
+                            style={{
+                              height: `${maintH}px`,
+                              background: '#8b5cf6',
+                              transition: 'height 0.3s'
+                            }}
+                            title={`Maintenance & Parking: ${formatCurrency(m.maintParking)}`}
+                          />
+                        )}
+                        {/* Segment 3 (Top): GST */}
+                        {gstH > 0 && (
+                          <div
+                            style={{
+                              height: `${gstH}px`,
+                              background: '#f59e0b',
+                              transition: 'height 0.3s'
+                            }}
+                            title={`GST: ${formatCurrency(m.gst)}`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Period Label */}
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
+                        {m.period}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '230px' }}>
-            {/* Solid SVG Pie Graph */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-              <div style={{ position: 'relative', width: '190px', height: '190px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="190" height="190" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
-                  <filter id="pieShadow" x="-10%" y="-10%" width="120%" height="120%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
-                  </filter>
-                  <g filter="url(#pieShadow)">
-                    {calculatedSlices.map((slice) => {
-                      const isHovered = hoveredSlice === slice.index;
-                      if (!slice.pathData) {
+          {/* Legend */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px', fontSize: '0.76rem', color: '#64748b', flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#2563eb', display: 'inline-block' }} />
+              Base Rent
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6', display: 'inline-block' }} />
+              Maintenance & Parking
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
+              GST (18%)
+            </span>
+          </div>
+        </div>
+
+        {/* Chart 2: Monthly Revenue & GST Trend – Line Chart */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={18} color="#0d9488" />
+                  2. Monthly Revenue & GST Trend
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Total Billed Amount ↔ GST Collected over time
+                </p>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '3px 8px', borderRadius: '6px' }}>
+                Line Chart
+              </span>
+            </div>
+
+            {trendPoints.length === 0 ? (
+              <div style={{ padding: '50px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                No trend data available yet.
+              </div>
+            ) : (
+              <div style={{ minHeight: '220px', position: 'relative' }}>
+                <svg width="100%" height="220" viewBox={`0 0 ${lineSvgWidth} ${lineSvgHeight}`} style={{ overflow: 'visible' }}>
+                  <defs>
+                    <linearGradient id="billedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizontal Gridlines */}
+                  {[0, 0.5, 1].map((pct, i) => {
+                    const y = linePad.top + linePlotHeight * (1 - pct);
+                    const val = maxTrendVal * pct;
+                    return (
+                      <g key={i}>
+                        <line
+                          x1={linePad.left}
+                          y1={y}
+                          x2={lineSvgWidth - linePad.right}
+                          y2={y}
+                          stroke="#e2e8f0"
+                          strokeDasharray={pct === 0 ? 'none' : '4 4'}
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={linePad.left - 8}
+                          y={y + 4}
+                          textAnchor="end"
+                          fontSize="10"
+                          fill="#94a3b8"
+                          fontWeight="600"
+                        >
+                          {formatCurrency(val)}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Area fill under Billed line */}
+                  {billedAreaPath && (
+                    <path d={billedAreaPath} fill="url(#billedGrad)" />
+                  )}
+
+                  {/* Total Billed Line */}
+                  <path
+                    d={billedLinePath}
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* GST Collected Line */}
+                  <path
+                    d={gstLinePath}
+                    fill="none"
+                    stroke="#0d9488"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Data Points & Value Badges */}
+                  {trendPoints.map((p, idx) => {
+                    const isHovered = hoveredTrendIdx === idx;
+                    return (
+                      <g
+                        key={idx}
+                        onMouseEnter={() => setHoveredTrendIdx(idx)}
+                        onMouseLeave={() => setHoveredTrendIdx(null)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {/* Hover vertical guide line */}
+                        {isHovered && (
+                          <line
+                            x1={p.x}
+                            y1={linePad.top}
+                            x2={p.x}
+                            y2={linePad.top + linePlotHeight}
+                            stroke="#94a3b8"
+                            strokeDasharray="3 3"
+                            strokeWidth="1.5"
+                          />
+                        )}
+
+                        {/* Billed Marker Node */}
+                        <circle
+                          cx={p.x}
+                          cy={p.yBilled}
+                          r={isHovered ? 7 : 5.5}
+                          fill="#2563eb"
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                        />
+                        {/* Billed Value Badge */}
+                        <text
+                          x={p.x}
+                          y={p.yBilled - 10}
+                          textAnchor="middle"
+                          fontSize="11"
+                          fontWeight="800"
+                          fill="#1e40af"
+                        >
+                          {formatCurrency(p.billed)}
+                        </text>
+
+                        {/* GST Marker Node */}
+                        <circle
+                          cx={p.x}
+                          cy={p.yGst}
+                          r={isHovered ? 7 : 5.5}
+                          fill="#0d9488"
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                        />
+                        {/* GST Value Badge */}
+                        <text
+                          x={p.x}
+                          y={p.yGst + (p.yGst > linePad.top + linePlotHeight - 15 ? -10 : 16)}
+                          textAnchor="middle"
+                          fontSize="11"
+                          fontWeight="800"
+                          fill="#0f766e"
+                        >
+                          {formatCurrency(p.gst)}
+                        </text>
+
+                        {/* X-Axis Period Label */}
+                        <text
+                          x={p.x}
+                          y={linePad.top + linePlotHeight + 22}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fontWeight="700"
+                          fill="#0f172a"
+                        >
+                          {p.period}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '16px', fontSize: '0.76rem', color: '#64748b' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '18px', height: '3px', background: '#2563eb', display: 'inline-block', borderRadius: '2px' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb', marginLeft: '-13px', marginRight: '6px' }} />
+              Total Billed Amount
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '18px', height: '3px', background: '#0d9488', display: 'inline-block', borderRadius: '2px' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d9488', marginLeft: '-13px', marginRight: '6px' }} />
+              GST Collected
+            </span>
+          </div>
+        </div>
+
+        {/* Chart 3: Property Type Distribution – Pie Chart */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={18} color="#2563eb" />
+                  3. Property Type Distribution
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Total Properties → Commercial + Residential
+                </p>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
+                Pie Chart
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '210px' }}>
+              {/* Solid SVG Pie */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <div style={{ position: 'relative', width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="180" height="180" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
+                    <filter id="propPieShadow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
+                    </filter>
+                    <g filter="url(#propPieShadow)">
+                      {propertySlices.map((slice) => {
+                        const isHovered = hoveredPropertyIdx === slice.index;
+                        if (slice.isFullCircle) {
+                          return (
+                            <circle
+                              key={slice.index}
+                              cx="100"
+                              cy="100"
+                              r="78"
+                              fill={slice.color}
+                              stroke="#ffffff"
+                              strokeWidth="2.5"
+                              onMouseEnter={() => setHoveredPropertyIdx(slice.index)}
+                              onMouseLeave={() => setHoveredPropertyIdx(null)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          );
+                        }
+                        if (!slice.pathData) return null;
                         return (
-                          <circle
+                          <path
                             key={slice.index}
-                            cx={pieCenter}
-                            cy={pieCenter}
-                            r={pieRadius}
+                            d={slice.pathData}
                             fill={slice.color}
                             stroke="#ffffff"
                             strokeWidth="2.5"
-                            onMouseEnter={() => setHoveredSlice(slice.index)}
-                            onMouseLeave={() => setHoveredSlice(null)}
-                            style={{ cursor: 'pointer' }}
-                          />
+                            strokeLinejoin="round"
+                            opacity={hoveredPropertyIdx !== null && !isHovered ? 0.65 : 1}
+                            onMouseEnter={() => setHoveredPropertyIdx(slice.index)}
+                            onMouseLeave={() => setHoveredPropertyIdx(null)}
+                            style={{
+                              cursor: 'pointer',
+                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              transformOrigin: '100px 100px',
+                              transform: isHovered ? 'scale(1.04)' : 'scale(1)'
+                            }}
+                          >
+                            <title>{`${slice.label}: ${slice.value} units (${slice.percentage}%)`}</title>
+                          </path>
                         );
-                      }
-                      return (
-                        <path
-                          key={slice.index}
-                          d={slice.pathData}
-                          fill={slice.color}
-                          stroke="#ffffff"
-                          strokeWidth="2.5"
-                          strokeLinejoin="round"
-                          opacity={hoveredSlice !== null && !isHovered ? 0.65 : 1}
-                          onMouseEnter={() => setHoveredSlice(slice.index)}
-                          onMouseLeave={() => setHoveredSlice(null)}
-                          style={{
-                            cursor: 'pointer',
-                            transition: 'opacity 0.2s ease, transform 0.2s ease',
-                            transformOrigin: `${pieCenter}px ${pieCenter}px`,
-                            transform: isHovered ? 'scale(1.04)' : 'scale(1)'
-                          }}
-                        >
-                          <title>{`${slice.label}: ${formatCurrency(slice.amount)} (${slice.percentage}%)`}</title>
-                        </path>
-                      );
-                    })}
-                  </g>
-                </svg>
-              </div>
-
-              {/* Total volume badge under the solid pie chart */}
-              <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '4px 12px',
-                fontSize: '0.74rem',
-                color: '#475569',
-                fontWeight: 600,
-                textAlign: 'center'
-              }}>
-                Total Portfolio: <strong style={{ color: '#0f172a' }}>{formatCurrency(totalChargesAmount)}</strong>
-              </div>
-            </div>
-
-            {/* Breakdown Legend with % & Values */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' }}>
-              {calculatedSlices.map((item) => {
-                const isHovered = hoveredSlice === item.index;
-                return (
-                  <div
-                    key={item.index}
-                    onMouseEnter={() => setHoveredSlice(item.index)}
-                    onMouseLeave={() => setHoveredSlice(null)}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '8px 12px',
-                      background: isHovered ? '#eff6ff' : '#f8fafc',
-                      borderRadius: '8px',
-                      border: isHovered ? `1px solid ${item.color}` : '1px solid #f1f5f9',
-                      transition: 'all 0.15s ease',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color, display: 'inline-block' }} />
-                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{item.label}</span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{formatCurrency(item.amount)}</div>
-                      <span style={{ fontSize: '0.72rem', color: isHovered ? item.color : '#64748b', fontWeight: 700 }}>
-                        {item.percentage}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Invoice Lifecycle Status */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Receipt size={18} color="#ea580c" />
-            Invoice Lifecycle Status
-          </h3>
-          <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 16px 0' }}>
-            Breakdown of Draft, Generated, and Sent invoices
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>Draft</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#475569' }}>{charts.invoiceStatus?.Draft || 0}</div>
-            </div>
-            <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#1d4ed8' }}>Generated</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e40af' }}>{charts.invoiceStatus?.Generated || 0}</div>
-            </div>
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#047857' }}>Sent</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#065f46' }}>{charts.invoiceStatus?.Sent || 0}</div>
-            </div>
-          </div>
-
-          {summaryCards.totalInvoices > 0 && (
-            <div>
-              <div style={{ height: '8px', borderRadius: '4px', display: 'flex', overflow: 'hidden' }}>
-                <div style={{ flex: charts.invoiceStatus?.Draft || 0, background: '#94a3b8' }} title="Draft" />
-                <div style={{ flex: charts.invoiceStatus?.Generated || 0, background: '#3b82f6' }} title="Generated" />
-                <div style={{ flex: charts.invoiceStatus?.Sent || 0, background: '#10b981' }} title="Sent" />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Secondary Analytics Row (GST Summary & Properties Overview) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-        gap: '20px',
-        marginBottom: '28px'
-      }}>
-
-        {/* Card 2: GST & Tax Summary */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={18} color="#0d9488" />
-            GST & Tax Summary
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: '#64748b' }}>Taxable Base Rent:</span>
-              <strong style={{ color: '#0f172a' }}>{formatCurrency(charts.gstSummary?.taxableRent)}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: '#64748b' }}>Maintenance Charges:</span>
-              <strong style={{ color: '#8b5cf6' }}>{formatCurrency(chargesBreakdown.maintenance)}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: '#64748b' }}>Parking Charges:</span>
-              <strong style={{ color: '#059669' }}>{formatCurrency(chargesBreakdown.parking)}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: '#64748b' }}>Total GST Collected (18%):</span>
-              <strong style={{ color: '#0d9488' }}>{formatCurrency(charts.gstSummary?.totalGst)}</strong>
-            </div>
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>Grand Total Billed:</span>
-              <strong style={{ fontWeight: 800, color: '#2563eb' }}>{formatCurrency(charts.gstSummary?.grandTotal)}</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Property & Tenant Overview */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Building2 size={18} color="#7c3aed" />
-            Estate Portfolio Distribution
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>Commercial Properties:</span>
-                <strong>{charts.propertyTypes?.Commercial || 0} Units</strong>
-              </div>
-              <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                      })}
+                    </g>
+                  </svg>
+                </div>
                 <div style={{
-                  width: `${summaryCards.totalProperties > 0 ? ((charts.propertyTypes?.Commercial || 0) / summaryCards.totalProperties) * 100 : 0}%`,
-                  height: '100%',
-                  background: '#7c3aed'
-                }} />
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '4px 12px',
+                  fontSize: '0.74rem',
+                  color: '#475569',
+                  fontWeight: 600,
+                  textAlign: 'center'
+                }}>
+                  Total Portfolio: <strong style={{ color: '#0f172a' }}>{totalPropertiesCount} Units</strong>
+                </div>
+              </div>
+
+              {/* Legend & Breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '200px' }}>
+                {propertySlices.map((item) => {
+                  const isHovered = hoveredPropertyIdx === item.index;
+                  return (
+                    <div
+                      key={item.index}
+                      onMouseEnter={() => setHoveredPropertyIdx(item.index)}
+                      onMouseLeave={() => setHoveredPropertyIdx(null)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        background: isHovered ? '#eff6ff' : '#f8fafc',
+                        borderRadius: '8px',
+                        border: isHovered ? `1px solid ${item.color}` : '1px solid #f1f5f9',
+                        transition: 'all 0.15s ease',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color, display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>{item.label}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{item.value} units</div>
+                        <span style={{ fontSize: '0.72rem', color: isHovered ? item.color : '#64748b', fontWeight: 700 }}>
+                          {item.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>Residential Properties:</span>
-                <strong>{charts.propertyTypes?.Residential || 0} Units</strong>
+        {/* Chart 4: Invoice Status Distribution – Pie Chart */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          padding: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Receipt size={18} color="#ea580c" />
+                  4. Invoice Status Distribution
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Total Invoices → Draft + Generated + Sent
+                </p>
               </div>
-              <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '3px 8px', borderRadius: '6px' }}>
+                Pie Chart
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '210px' }}>
+              {/* Solid SVG Pie */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <div style={{ position: 'relative', width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="180" height="180" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
+                    <filter id="invPieShadow" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
+                    </filter>
+                    <g filter="url(#invPieShadow)">
+                      {invoiceSlices.map((slice) => {
+                        const isHovered = hoveredInvoiceIdx === slice.index;
+                        if (slice.isFullCircle) {
+                          return (
+                            <circle
+                              key={slice.index}
+                              cx="100"
+                              cy="100"
+                              r="78"
+                              fill={slice.color}
+                              stroke="#ffffff"
+                              strokeWidth="2.5"
+                              onMouseEnter={() => setHoveredInvoiceIdx(slice.index)}
+                              onMouseLeave={() => setHoveredInvoiceIdx(null)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          );
+                        }
+                        if (!slice.pathData) return null;
+                        return (
+                          <path
+                            key={slice.index}
+                            d={slice.pathData}
+                            fill={slice.color}
+                            stroke="#ffffff"
+                            strokeWidth="2.5"
+                            strokeLinejoin="round"
+                            opacity={hoveredInvoiceIdx !== null && !isHovered ? 0.65 : 1}
+                            onMouseEnter={() => setHoveredInvoiceIdx(slice.index)}
+                            onMouseLeave={() => setHoveredInvoiceIdx(null)}
+                            style={{
+                              cursor: 'pointer',
+                              transition: 'opacity 0.2s ease, transform 0.2s ease',
+                              transformOrigin: '100px 100px',
+                              transform: isHovered ? 'scale(1.04)' : 'scale(1)'
+                            }}
+                          >
+                            <title>{`${slice.label}: ${slice.value} invoices (${slice.percentage}%)`}</title>
+                          </path>
+                        );
+                      })}
+                    </g>
+                  </svg>
+                </div>
                 <div style={{
-                  width: `${summaryCards.totalProperties > 0 ? ((charts.propertyTypes?.Residential || 0) / summaryCards.totalProperties) * 100 : 0}%`,
-                  height: '100%',
-                  background: '#3b82f6'
-                }} />
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '4px 12px',
+                  fontSize: '0.74rem',
+                  color: '#475569',
+                  fontWeight: 600,
+                  textAlign: 'center'
+                }}>
+                  Total Invoices: <strong style={{ color: '#0f172a' }}>{totalInvoicesCount} Records</strong>
+                </div>
               </div>
-            </div>
 
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span style={{ color: '#64748b' }}>Total Portfolio Area:</span>
-              <strong style={{ color: '#0f172a' }}>{charts.totalAreaSqft?.toLocaleString() || 0} sq.ft</strong>
+              {/* Legend & Breakdown */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '200px' }}>
+                {invoiceSlices.map((item) => {
+                  const isHovered = hoveredInvoiceIdx === item.index;
+                  return (
+                    <div
+                      key={item.index}
+                      onMouseEnter={() => setHoveredInvoiceIdx(item.index)}
+                      onMouseLeave={() => setHoveredInvoiceIdx(null)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        background: isHovered ? '#eff6ff' : '#f8fafc',
+                        borderRadius: '8px',
+                        border: isHovered ? `1px solid ${item.color}` : '1px solid #f1f5f9',
+                        transition: 'all 0.15s ease',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color, display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>{item.label}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{item.value} records</div>
+                        <span style={{ fontSize: '0.72rem', color: isHovered ? item.color : '#64748b', fontWeight: 700 }}>
+                          {item.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
