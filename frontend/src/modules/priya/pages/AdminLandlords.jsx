@@ -40,7 +40,10 @@ export default function AdminLandlords() {
   const [accessModalOpen, setAccessModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addingLandlord, setAddingLandlord] = useState(false);
+  const [templatesList, setTemplatesList] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [addFormData, setAddFormData] = useState({
+    id: null,
     name: '',
     email: '',
     pan: '',
@@ -48,7 +51,8 @@ export default function AdminLandlords() {
     contact_details: '',
     billing_address: '',
     gst_registered: false,
-    default_invoice_template: 'Template A (Standard)', is_active: true
+    default_invoice_template: '',
+    is_active: true
   });
 
   // Grant Access Form
@@ -110,15 +114,42 @@ export default function AdminLandlords() {
       }
       setSuccessMsg(`Landlord "${addFormData.name}" added successfully.`);
       setAddModalOpen(false);
+      const defaultTpl = templatesList.find((t) => t.isDefault) || templatesList[0];
       setAddFormData({
+        id: null,
         name: '', email: '', pan: '', gstin: '', contact_details: '',
-        billing_address: '', gst_registered: false, default_invoice_template: 'Template A (Standard)', is_active: true
-        });
+        billing_address: '', gst_registered: false,
+        default_invoice_template: defaultTpl ? defaultTpl.name : '',
+        is_active: true
+      });
       fetchLandlords();
     } catch (err) {
       setError(err.message || 'Failed to add landlord.');
     } finally {
       setAddingLandlord(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch('/api/ragul/templates');
+      if (res.ok) {
+        const json = await res.json();
+        const tpls = json.data || [];
+        setTemplatesList(tpls);
+        if (tpls.length > 0) {
+          const def = tpls.find((t) => t.isDefault) || tpls[0];
+          setAddFormData((prev) => ({
+            ...prev,
+            default_invoice_template: prev.default_invoice_template || def.name
+          }));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load invoice templates from database:', e);
+    } finally {
+      setLoadingTemplates(false);
     }
   };
 
@@ -140,6 +171,7 @@ export default function AdminLandlords() {
 
   useEffect(() => {
     fetchLandlords();
+    fetchTemplates();
   }, []);
 
   // Status Update (Approve / Activate / Deactivate)
@@ -237,9 +269,23 @@ export default function AdminLandlords() {
           <button
             className="btn btn-primary"
             onClick={() => {
+              const def = templatesList.find((t) => t.isDefault) || templatesList[0];
+              setAddFormData({
+                id: null,
+                name: '',
+                email: '',
+                pan: '',
+                gstin: '',
+                contact_details: '',
+                billing_address: '',
+                gst_registered: false,
+                default_invoice_template: def ? def.name : '',
+                is_active: true
+              });
               setAddModalOpen(true);
               setError('');
               setSuccessMsg('');
+              fetchTemplates();
             }}
           >
             + Add Landlord
@@ -442,9 +488,10 @@ export default function AdminLandlords() {
                                   contact_details: l.contact_details || '',
                                   billing_address: l.billing_address || '',
                                   gst_registered: !!l.gst_registered,
-                                  default_invoice_template: l.default_invoice_template || 'Template A (Standard)',
+                                  default_invoice_template: l.default_invoice_template || (templatesList.find((t) => t.isDefault)?.name || templatesList[0]?.name || ''),
                                   is_active: (l.status || '').toUpperCase() === 'ACTIVE'
                                 });
+                                fetchTemplates();
                                 setAddModalOpen(true);
                             }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={13} /> Edit</button>
 
@@ -1030,7 +1077,7 @@ export default function AdminLandlords() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  Default Invoice Template
+                  Default Invoice Template {loadingTemplates ? '(Fetching from database...)' : ''}
                 </label>
                 <select
                   value={addFormData.default_invoice_template}
@@ -1043,13 +1090,27 @@ export default function AdminLandlords() {
                     fontSize: '0.88rem',
                     boxSizing: 'border-box'
                   }}
+                  required
                 >
-                  <option value="Template A (Standard)">Template A (Standard)</option>
-                  <option value="Template B (Compact)">Template B (Compact)</option>
-                  <option value="Template C (Corporate)">Template C (Corporate)</option>
-                  <option value="Template D (Modern Minimal)">Template D (Modern Minimal)</option>
-                  <option value="Template E (Detailed GST Breakdown)">Template E (Detailed GST Breakdown)</option>
+                  {templatesList.length === 0 && (
+                    <option value="">{loadingTemplates ? 'Loading templates from database...' : 'No templates found'}</option>
+                  )}
+                  {templatesList.map((tpl) => (
+                    <option key={tpl.id} value={tpl.name}>
+                      {tpl.name} {tpl.isDefault ? '★ (Active Default)' : ''}
+                    </option>
+                  ))}
+                  {addFormData.default_invoice_template && !templatesList.some((t) => t.name === addFormData.default_invoice_template) && (
+                    <option value={addFormData.default_invoice_template}>
+                      {addFormData.default_invoice_template} (Current)
+                    </option>
+                  )}
                 </select>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+                  {templatesList.length > 0
+                    ? `Loaded ${templatesList.length} templates from database`
+                    : 'Fetching invoice templates from database...'}
+                </div>
               </div>
 
                 <div style={{ marginBottom: '20px' }}>
