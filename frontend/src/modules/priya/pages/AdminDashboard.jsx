@@ -592,19 +592,11 @@ export default function AdminDashboard() {
           justifyContent: 'space-between'
         }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Layers size={18} color="#2563eb" />
-                  1. Monthly Billing Breakdown (From Ground Baseline)
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  Rent, Maintenance, Parking & GST each starting directly from x-axis ground (y = 0)
-                </p>
-              </div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
-                Grouped Bar Chart
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={18} color="#2563eb" />
+                Monthly Billing Breakdown
+              </h3>
             </div>
 
             {monthlyBillingData.length === 0 ? (
@@ -649,11 +641,8 @@ export default function AdminDashboard() {
                   paddingTop: '24px',
                   paddingBottom: '0px',
                   position: 'relative',
-                  borderBottom: '3px solid #334155' /* The Solid X-Axis Ground */
+                  borderBottom: '2px solid #cbd5e1'
                 }}>
-                  {/* Background Gridlines */}
-                  <div style={{ position: 'absolute', left: 0, right: 0, top: '25px', borderBottom: '1px dashed #e2e8f0', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', left: 0, right: 0, top: '55%', borderBottom: '1px dashed #f1f5f9', pointerEvents: 'none' }} />
 
                   {monthlyBillingData.map((m, mIdx) => {
                     const maxBarHeight = 150;
@@ -788,22 +777,6 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {/* Ground Line Indicator Footer */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.68rem',
-                  color: '#64748b',
-                  marginTop: '4px',
-                  padding: '0 6px'
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: '12px', height: '2.5px', background: '#334155', display: 'inline-block' }} />
-                    <strong>X-Axis Ground (y = ₹0)</strong> — All charges rise from baseline
-                  </span>
-                  <span>Hover any bar for details</span>
-                </div>
               </div>
             )}
           </div>
