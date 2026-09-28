@@ -172,6 +172,47 @@ export default function AdminDashboard() {
 
   const maxInvoiceBarAmount = Math.max(...displayedInvoiceBars.map(m => m.total), 1);
 
+  // Separate count, amount, and percentage for each color category in current view
+  const colorCounts = [
+    {
+      key: 'rent',
+      label: 'Base Rent',
+      color: '#2563eb',
+      bgColor: '#eff6ff',
+      borderColor: '#bfdbfe',
+      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.rent, 0),
+      count: displayedInvoiceBars.filter(i => i.rent > 0).length
+    },
+    {
+      key: 'maintenance',
+      label: 'Maintenance',
+      color: '#8b5cf6',
+      bgColor: '#f5f3ff',
+      borderColor: '#ddd6fe',
+      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.maintenance, 0),
+      count: displayedInvoiceBars.filter(i => i.maintenance > 0).length
+    },
+    {
+      key: 'parking',
+      label: 'Parking',
+      color: '#06b6d4',
+      bgColor: '#ecfeff',
+      borderColor: '#a5f3fc',
+      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.parking, 0),
+      count: displayedInvoiceBars.filter(i => i.parking > 0).length
+    },
+    {
+      key: 'gst',
+      label: 'GST (18%)',
+      color: '#f59e0b',
+      bgColor: '#fffbeb',
+      borderColor: '#fde68a',
+      amount: displayedInvoiceBars.reduce((sum, i) => sum + i.gst, 0),
+      count: displayedInvoiceBars.filter(i => i.gst > 0).length
+    }
+  ];
+  const totalBilledInView = colorCounts.reduce((sum, c) => sum + c.amount, 0) || 1;
+
   // Period map for aggregated monthly trend (Chart 2)
   const invoicePeriodMap = {};
   allInvoiceItems.forEach(inv => {
@@ -645,15 +686,18 @@ export default function AdminDashboard() {
                       {isHovered && (
                         <div style={{
                           position: 'absolute',
-                          bottom: `${totalBarHeight + 46}px`,
-                          zIndex: 30,
+                          bottom: `${totalBarHeight + 36}px`,
+                          left: idx === 0 ? '0px' : (idx === displayedInvoiceBars.length - 1 ? 'auto' : '50%'),
+                          right: idx === displayedInvoiceBars.length - 1 ? '0px' : 'auto',
+                          transform: (idx === 0 || idx === displayedInvoiceBars.length - 1) ? 'none' : 'translateX(-50%)',
+                          zIndex: 50,
                           background: '#0f172a',
                           color: '#ffffff',
                           padding: '10px 14px',
                           borderRadius: '8px',
                           fontSize: '0.74rem',
-                          boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-                          minWidth: '230px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                          minWidth: '220px',
                           pointerEvents: 'none',
                           lineHeight: '1.5'
                         }}>
@@ -778,24 +822,46 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Legend */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px', fontSize: '0.76rem', color: '#64748b', flexWrap: 'wrap' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#2563eb', display: 'inline-block' }} />
-              Base Rent
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6', display: 'inline-block' }} />
-              Maintenance Charges
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4', display: 'inline-block' }} />
-              Parking Charges
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
-              GST (18%)
-            </span>
+          {/* Color Breakdown & Individual Counts */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: '8px',
+            marginTop: '16px',
+            paddingTop: '12px',
+            borderTop: '1px solid #f1f5f9'
+          }}>
+            {colorCounts.map((c, i) => {
+              const pct = ((c.amount / totalBilledInView) * 100).toFixed(1);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    background: c.bgColor,
+                    border: `1px solid ${c.borderColor}`,
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.label}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 800, color: c.color, margin: '2px 0' }}>
+                    {formatCurrency(c.amount)}
+                  </div>
+                  <div style={{ fontSize: '0.67rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span><strong>{c.count}</strong> inv</span>
+                    <span style={{ fontWeight: 700, color: '#475569' }}>{pct}%</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
