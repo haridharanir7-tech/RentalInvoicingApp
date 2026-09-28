@@ -202,7 +202,7 @@ export default function LandlordDashboard() {
           {/* Detail 2: Landlord ID */}
           <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Landlord ID</div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#2563eb', marginTop: '3px' }}>#{landlord?.id}</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#2563eb', marginTop: '3px' }}>{landlord?.id ?? '—'}</div>
           </div>
 
           {/* Detail 3: Registered Email */}
