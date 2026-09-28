@@ -29,6 +29,8 @@ export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [invoicePage, setInvoicePage] = useState(1);
+  const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -71,6 +73,12 @@ export default function AdminDashboard() {
     summaryCards: { totalLandlords: 0, totalProperties: 0, totalTenants: 0, totalInvoices: 0, totalRevenue: 0, pendingApprovalsCount: 0 },
     charts: { monthlyRevenue: [], invoiceStatus: { Draft: 0, Generated: 0, Sent: 0 }, propertyTypes: { Commercial: 0, Residential: 0 }, tenantStatus: { Active: 0, NoticePeriod: 0, Vacated: 0 }, gstSummary: {} }
   };
+
+  const totalInvoicePages = Math.ceil((recentInvoices?.length || 0) / invoicePageSize) || 1;
+  const paginatedInvoices = (recentInvoices || []).slice(
+    (invoicePage - 1) * invoicePageSize,
+    invoicePage * invoicePageSize
+  );
 
   // Compute maximum monthly revenue for chart scaling
   const maxRevenue = Math.max(...(charts.monthlyRevenue?.map(m => m.billed) || [10000]), 10000);
@@ -604,14 +612,14 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentInvoices.length === 0 ? (
+              {paginatedInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
                     No invoices recorded in database yet.
                   </td>
                 </tr>
               ) : (
-                recentInvoices.map((inv, idx) => (
+                paginatedInvoices.map((inv, idx) => (
                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px 14px', fontWeight: 600, color: '#2563eb' }}>
                       {inv.invoice_number}
@@ -650,6 +658,47 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Container */}
+        <div className="pagination-container" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '16px',
+          paddingTop: '14px',
+          borderTop: '1px solid #e2e8f0'
+        }}>
+          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+            Showing {recentInvoices.length > 0 ? (invoicePage - 1) * invoicePageSize + 1 : 0} to {Math.min(invoicePage * invoicePageSize, recentInvoices.length)} of {recentInvoices.length} invoices
+          </div>
+          {totalInvoicePages > 1 && (
+            <div className="pagination-controls" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                className="page-btn"
+                disabled={invoicePage <= 1}
+                onClick={() => setInvoicePage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalInvoicePages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  className={`page-btn ${invoicePage === pageNum ? 'active' : ''}`}
+                  onClick={() => setInvoicePage(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                className="page-btn"
+                disabled={invoicePage >= totalInvoicePages}
+                onClick={() => setInvoicePage((p) => Math.min(totalInvoicePages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

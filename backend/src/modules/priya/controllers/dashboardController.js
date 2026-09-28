@@ -94,7 +94,7 @@ const getAdminDashboard = async (req, res) => {
             grandTotal: taxableRent + additionalCharges + totalGst
           }
         },
-        recentInvoices: allInvoices.slice(0, 5)
+        recentInvoices: [...allInvoices].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0))
       }
     });
   } catch (err) {
