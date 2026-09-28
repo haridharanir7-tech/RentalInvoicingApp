@@ -87,8 +87,8 @@ export default function LandlordManagement() {
       contact_details: landlord.contact_details || '',
       billing_address: landlord.billing_address || '',
       gst_registered: !!landlord.gst_registered,
-      default_invoice_template: landlord.default_invoice_template || (templates[0]?.name || ''),
-      is_active: landlord.is_active !== false
+      default_invoice_template: landlord.default_invoice_template || 'Template A (Standard)',
+        is_active: landlord.is_active !== false
     });
     setEditingId(landlord.id);
     setShowForm(true);
@@ -116,16 +116,16 @@ export default function LandlordManagement() {
       return setError('Name is required');
     }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
-      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    if (formData.pan && !/^[A-Z0-9]{10}$/i.test(formData.pan.trim())) {
+      return setError('Invalid PAN format (10 characters, e.g. ABCDE1234F)');
     }
 
     if (formData.gst_registered && !formData.gstin) {
       return setError('GSTIN is required when GST Registered is checked');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
-      return setError('Invalid GSTIN format');
+    if (formData.gstin && !/^[A-Z0-9]{15}$/i.test(formData.gstin.trim())) {
+      return setError('Invalid GSTIN format (15 characters, e.g. 33AAAAA0000A1Z5)');
     }
 
     if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
@@ -150,7 +150,7 @@ export default function LandlordManagement() {
         contact_details: formData.contact_details || '',
         billing_address: formData.billing_address || '',
         gst_registered: !!formData.gst_registered,
-        default_invoice_template: formData.default_invoice_template || (templates[0]?.name || ''),
+        default_invoice_template: formData.default_invoice_template || 'Template A (Standard)',
         is_active: formData.is_active !== false
       };
 
@@ -247,28 +247,21 @@ export default function LandlordManagement() {
               </div>
 
               <div className="form-group">
-                <label>Default Invoice Template *</label>
-                <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange} required>
-                  {templates.length === 0 ? (
-                    <option value="">Loading templates from database...</option>
-                  ) : (
+                  <label>Default Invoice Template *</label>
+                  <select className="form-input" name="default_invoice_template" value={formData.default_invoice_template} onChange={handleChange} required>
                     <option value="">Select a template...</option>
-                  )}
-                  {templates.map(t => (
-                    <option key={t.id} value={t.name}>
-                      {t.name} {t.isDefault ? '★ (Active Default)' : ''}
-                    </option>
-                  ))}
-                  {formData.default_invoice_template && !templates.some(t => t.name === formData.default_invoice_template) && (
-                    <option value={formData.default_invoice_template}>
-                      {formData.default_invoice_template} (Current)
-                    </option>
-                  )}
-                </select>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
-                  {templates.length > 0 ? `Loaded ${templates.length} templates from database` : 'Fetching templates from database...'}
+                    {templates.map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                    {templates.length === 0 && (
+                      <>
+                        <option value="Template A (Standard)">Template A (Standard)</option>
+                        <option value="Template B (Detailed)">Template B (Detailed)</option>
+                        <option value="Template C (Compact)">Template C (Compact)</option>
+                      </>
+                    )}
+                  </select>
                 </div>
-              </div>
 
                 <div className="form-group">
                   <label>Status *</label>

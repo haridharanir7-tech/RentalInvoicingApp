@@ -75,9 +75,9 @@ export default function AdminLandlords() {
       return;
     }
 
-    // PAN validation: standard 10 alphanumeric characters (5 letters, 4 numbers, 1 letter)
-    if (addFormData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan.trim().toUpperCase())) {
-      setError('Invalid PAN format. Must be 10 characters (5 uppercase letters, 4 numbers, 1 letter, e.g. ABCDE1234F).');
+    // PAN validation: 10 alphanumeric characters (standard e.g. ABCDE1234F or test PANs)
+    if (addFormData.pan && !/^[A-Z0-9]{10}$/.test(addFormData.pan.trim().toUpperCase())) {
+      setError('PAN must be 10 characters (e.g. ABCDE1234F).');
       return;
     }
 
@@ -87,8 +87,8 @@ export default function AdminLandlords() {
       return;
     }
 
-    if (addFormData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin.trim().toUpperCase())) {
-      setError('Invalid GSTIN format. Must be 15 characters (e.g. 33AAAAA0000A1Z5).');
+    if (addFormData.gstin && !/^[A-Z0-9]{15}$/.test(addFormData.gstin.trim().toUpperCase())) {
+      setError('Invalid GSTIN format. Must be 15 alphanumeric characters (e.g. 33AAAAA0000A1Z5).');
       return;
     }
 
@@ -96,8 +96,12 @@ export default function AdminLandlords() {
     setError('');
     setSuccessMsg('');
     try {
-      const res = await fetch('/api/master-data/landlords', {
-        method: 'POST',
+      const isEdit = !!addFormData.id;
+      const url = isEdit ? `/api/master-data/landlords/${addFormData.id}` : '/api/master-data/landlords';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...addFormData,
@@ -996,9 +1000,9 @@ export default function AdminLandlords() {
                       <span style={{ 
                         fontSize: '0.72rem', 
                         fontWeight: 600,
-                        color: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
+                        color: /^[A-Z0-9]{10}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
                       }}>
-                        {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length}/10`}
+                        {/^[A-Z0-9]{10}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length}/10`}
                       </span>
                     )}
                   </div>
@@ -1034,9 +1038,9 @@ export default function AdminLandlords() {
                       <span style={{ 
                         fontSize: '0.72rem', 
                         fontWeight: 600,
-                        color: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
+                        color: /^[A-Z0-9]{15}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
                       }}>
-                        {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length}/15`}
+                        {/^[A-Z0-9]{15}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length}/15`}
                       </span>
                     )}
                   </div>
