@@ -137,12 +137,12 @@ export default function AdminDashboard() {
   };
 
   // 1. Chart 1 Data: Monthly Billing Composition (Stacked Bar Chart)
-  // Relationship: Base Rent + Maintenance/Parking Charges + GST = Total Invoice Amount
+  // Relationship: Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
   const invoicePeriodMap = {};
   (recentInvoices || []).forEach(inv => {
     const p = inv.billing_period || 'Unknown';
     if (!invoicePeriodMap[p]) {
-      invoicePeriodMap[p] = { rent: 0, maintParking: 0, gst: 0, total: 0, count: 0 };
+      invoicePeriodMap[p] = { rent: 0, maintenance: 0, parking: 0, gst: 0, total: 0, count: 0 };
     }
     const r = Number(inv.rent_amount || 0);
     const m = Number(inv.maintenance_charges || 0);
@@ -150,7 +150,8 @@ export default function AdminDashboard() {
     const g = Number(inv.gst_amount || 0);
     const tot = Number(inv.total_amount || 0) || (r + m + pk + g);
     invoicePeriodMap[p].rent += r;
-    invoicePeriodMap[p].maintParking += (m + pk);
+    invoicePeriodMap[p].maintenance += m;
+    invoicePeriodMap[p].parking += pk;
     invoicePeriodMap[p].gst += g;
     invoicePeriodMap[p].total += tot;
     invoicePeriodMap[p].count += 1;
@@ -163,17 +164,20 @@ export default function AdminDashboard() {
   const monthlyBillingData = basePeriods.map(m => {
     const fromInv = invoicePeriodMap[m.period];
     const rent = Number(m.rent || fromInv?.rent || 0);
-    const maintParking = (Number(m.maintenance || 0) + Number(m.parking || 0)) || Number(fromInv?.maintParking || 0);
+    const maintenance = Number(m.maintenance ?? fromInv?.maintenance ?? 0);
+    const parking = Number(m.parking ?? fromInv?.parking ?? 0);
     const gst = Number(m.gst ?? fromInv?.gst ?? 0);
-    const total = Number(m.billed || 0) || (rent + maintParking + gst) || Number(fromInv?.total || 1);
+    const total = Number(m.billed || 0) || (rent + maintenance + parking + gst) || Number(fromInv?.total || 1);
     return {
       period: m.period,
       rent,
-      maintParking,
+      maintenance,
+      parking,
       gst,
       total,
       rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
-      maintParkingPct: total > 0 ? ((maintParking / total) * 100).toFixed(1) : '0.0',
+      maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
+      parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
       gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
       count: m.invoicesGenerated || m.count || fromInv?.count || 0
     };
@@ -549,7 +553,7 @@ export default function AdminDashboard() {
                   1. Monthly Billing Composition
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  Base Rent + Maintenance/Parking Charges + GST = Total Invoice Amount
+                  Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
                 </p>
               </div>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
@@ -566,9 +570,6 @@ export default function AdminDashboard() {
                 {monthlyBillingData.map((m, idx) => {
                   const maxBarHeight = 150;
                   const totalBarHeight = Math.max(Math.round((m.total / maxMonthlyBilling) * maxBarHeight), 44);
-                  const rentH = Math.round((m.rent / m.total) * totalBarHeight);
-                  const maintH = Math.round((m.maintParking / m.total) * totalBarHeight);
-                  const gstH = Math.max(totalBarHeight - rentH - maintH, m.gst > 0 ? 4 : 0);
                   const isHovered = hoveredStackedIdx === idx;
 
                   return (
@@ -597,7 +598,7 @@ export default function AdminDashboard() {
                           borderRadius: '8px',
                           fontSize: '0.74rem',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-                          minWidth: '200px',
+                          minWidth: '220px',
                           pointerEvents: 'none',
                           lineHeight: '1.5'
                         }}>
@@ -609,8 +610,12 @@ export default function AdminDashboard() {
                             <strong>{formatCurrency(m.rent)} ({m.rentPct}%)</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#c4b5fd' }}>
-                            <span>Maint / Parking:</span>
-                            <strong>{formatCurrency(m.maintParking)} ({m.maintParkingPct}%)</strong>
+                            <span>Maintenance:</span>
+                            <strong>{formatCurrency(m.maintenance)} ({m.maintenancePct}%)</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#67e8f9' }}>
+                            <span>Parking:</span>
+                            <strong>{formatCurrency(m.parking)} ({m.parkingPct}%)</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fde68a' }}>
                             <span>GST (18%):</span>
@@ -654,20 +659,33 @@ export default function AdminDashboard() {
                             title={`Base Rent: ${formatCurrency(m.rent)} (${m.rentPct}%)`}
                           />
                         )}
-                        {/* Segment 2 (Middle): Maintenance & Parking Charges */}
-                        {m.maintParking > 0 && (
+                        {/* Segment 2: Maintenance Charges */}
+                        {m.maintenance > 0 && (
                           <div
                             style={{
-                              flex: m.maintParking,
+                              flex: m.maintenance,
                               background: '#8b5cf6',
                               width: '100%',
                               minHeight: '4px',
                               transition: 'all 0.3s ease'
                             }}
-                            title={`Maintenance & Parking: ${formatCurrency(m.maintParking)} (${m.maintParkingPct}%)`}
+                            title={`Maintenance Charges: ${formatCurrency(m.maintenance)} (${m.maintenancePct}%)`}
                           />
                         )}
-                        {/* Segment 3 (Top): GST */}
+                        {/* Segment 3: Parking Charges */}
+                        {m.parking > 0 && (
+                          <div
+                            style={{
+                              flex: m.parking,
+                              background: '#06b6d4',
+                              width: '100%',
+                              minHeight: '4px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            title={`Parking Charges: ${formatCurrency(m.parking)} (${m.parkingPct}%)`}
+                          />
+                        )}
+                        {/* Segment 4 (Top): GST */}
                         {m.gst > 0 && (
                           <div
                             style={{
@@ -701,7 +719,11 @@ export default function AdminDashboard() {
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6', display: 'inline-block' }} />
-              Maintenance & Parking
+              Maintenance Charges
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4', display: 'inline-block' }} />
+              Parking Charges
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
