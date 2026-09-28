@@ -136,12 +136,12 @@ export default function TenantManagement() {
       return setError('Property is required');
     }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
-      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    if (formData.pan && !/^[A-Z0-9]{3,20}$/i.test(formData.pan.trim())) {
+      return setError('Invalid PAN format (alphanumeric characters, e.g. ABCDE1234F)');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
-      return setError('Invalid GSTIN format');
+    if (formData.gstin && !/^[A-Z0-9]{3,20}$/i.test(formData.gstin.trim())) {
+      return setError('Invalid GSTIN format (alphanumeric characters, e.g. 33AAAAA0000A1Z5)');
     }
 
     if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {

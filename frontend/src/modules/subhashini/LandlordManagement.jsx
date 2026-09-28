@@ -117,8 +117,8 @@ export default function LandlordManagement() {
     }
     
     const cleanPan = (formData.pan || '').trim().toUpperCase();
-    if (cleanPan && !/^[A-Z0-9]{5,10}$/.test(cleanPan)) {
-      return setError('Invalid PAN format (up to 10 alphanumeric characters, e.g. ABCDE1234F)');
+    if (cleanPan && !/^[A-Z0-9]{3,20}$/.test(cleanPan)) {
+      return setError('Invalid PAN format (alphanumeric characters, e.g. ABCDE1234F)');
     }
 
     if (formData.gst_registered && !formData.gstin) {
@@ -126,8 +126,8 @@ export default function LandlordManagement() {
     }
 
     const cleanGstin = (formData.gstin || '').trim().toUpperCase();
-    if (cleanGstin && !/^[A-Z0-9]{10,16}$/.test(cleanGstin)) {
-      return setError('Invalid GSTIN format (15 characters, e.g. 33AAAAA0000A1Z5)');
+    if (cleanGstin && !/^[A-Z0-9]{3,20}$/.test(cleanGstin)) {
+      return setError('Invalid GSTIN format (alphanumeric characters, e.g. 33AAAAA0000A1Z5)');
     }
 
     if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
