@@ -167,12 +167,9 @@ export default function LandlordDashboard() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: '0 0 3px 0' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               My Landlord Account & Business Profile
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-              Official records from Supabase PostgreSQL (Scoped strictly to Landlord ID: {landlord?.id})
-            </p>
           </div>
           <span style={{
             display: 'inline-flex',
