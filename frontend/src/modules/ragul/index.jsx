@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../priya/context/AuthContext';
 import InvoiceTemplatesView from './InvoiceTemplates';
 import './InvoiceTemplates.css';
 
@@ -87,6 +89,7 @@ const DEFAULT_TEMPLATES = [
 ];
 
 export default function RagulModule() {
+  const { user, isAdmin } = useAuth();
   const [templates, setTemplates] = useState(() => {
     try {
       const saved = localStorage.getItem('ragul_templates_5_v2');
@@ -239,6 +242,11 @@ export default function RagulModule() {
     fetch(`/api/ragul/set-default/${id}`, { method: 'POST' }).catch((err) =>
       console.warn('Set default warning:', err)
     );
+  }
+
+  // Access is strictly for Admin; landlords must not access the template designer
+  if (user && !isAdmin) {
+    return <Navigate to="/landlord/dashboard" replace />;
   }
 
   return (
