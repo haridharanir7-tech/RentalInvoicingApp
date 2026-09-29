@@ -75,6 +75,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Global Modern Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
 html, body, #root {
   min-height: 100%;
   margin: 0;
@@ -415,6 +432,33 @@ a {
   background: #ffffff;
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.table-container::-webkit-scrollbar,
+.hd-table-card::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track,
+.hd-table-card::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb,
+.hd-table-card::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 1px solid #f1f5f9;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover,
+.hd-table-card::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 table, .hd-table {
@@ -422,7 +466,15 @@ table, .hd-table {
   border-collapse: collapse;
   font-size: 0.88rem;
   text-align: left;
+}
+
+.table-fixed {
   table-layout: fixed;
+}
+
+.table-scroll {
+  table-layout: auto !important;
+  min-width: 1380px;
 }
 
 th, .hd-table th {
@@ -434,6 +486,7 @@ th, .hd-table th {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 td, .hd-table td {
@@ -441,8 +494,14 @@ td, .hd-table td {
   border-bottom: 1px solid var(--border-light);
   color: #1e293b;
   vertical-align: middle;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+}
+
+.cell-currency,
+.cell-nowrap {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  font-variant-numeric: tabular-nums;
 }
 
 tr:hover, .hd-table tr:hover {
@@ -609,6 +668,30 @@ tr:hover, .hd-table tr:hover {
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-color);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.modal-content::-webkit-scrollbar,
+.hd-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.hd-modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 14px 0;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.hd-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.hd-modal::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Action Button Hover States */

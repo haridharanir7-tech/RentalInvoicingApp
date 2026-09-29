@@ -334,17 +334,17 @@ export default function RentalRates() {
 
       {/* Rates Table Container */}
       <div className="table-container">
-        <table>
+        <table style={{ minWidth: '1100px' }}>
           <thead>
             <tr>
-              <th>Landlord</th>
-              <th>Property</th>
-                <th>Tenant</th>
-              <th>Base Monthly Rent</th>
-              <th>Maintenance & Parking</th>
-              <th>GST Rate / Supply</th>
-              <th>Effective Period</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Actions</th>
+              <th style={{ minWidth: '160px' }}>Landlord</th>
+              <th style={{ minWidth: '130px' }}>Property</th>
+              <th style={{ minWidth: '130px' }}>Tenant</th>
+              <th style={{ minWidth: '140px' }}>Base Monthly Rent</th>
+              <th style={{ minWidth: '170px' }}>Maintenance & Parking</th>
+              <th style={{ minWidth: '160px' }}>GST Rate / Supply</th>
+              <th style={{ minWidth: '160px' }}>Effective Period</th>
+              <th style={{ textAlign: 'center', minWidth: '220px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -412,7 +412,7 @@ export default function RentalRates() {
                         {rate.effective_from} to {rate.effective_to || 'Indefinite'}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button title="Edit" onClick={() => handleEditRate(rate)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dbeafe', background: '#eff6ff', color: '#2563eb', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}><Edit size={14} /> Edit</button>
                           <button title="Delete" onClick={() => handleDeleteRate(rate.rate_id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={14} /> Delete</button>
@@ -881,13 +881,57 @@ export default function RentalRates() {
                 />
               </div>
 
-              {/* Compact Calculation Summary Card */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-                  Taxable Subtotal: <strong>₹{subtotal.toLocaleString('en-IN')}</strong> {isLandlordGstRegistered && formData.gst_applicable && gstRateNum > 0 ? `• GST (${gstRateNum}%): ₹${totalGstAmount.toLocaleString('en-IN')}` : ' • 0% GST (Exempt)'}
-                </div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e40af' }}>
-                  Total: ₹{grandTotal.toLocaleString('en-IN')}/mo
+              {/* Itemized Calculation Summary Card */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  marginBottom: '14px',
+                  fontSize: '0.84rem'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                    <span>Monthly Rent:</span>
+                    <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                      ₹{baseRentNum.toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                    <span>Parking Charges:</span>
+                    <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                      ₹{parkNum.toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                    <span>Maintenance Charges:</span>
+                    <strong style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                      ₹{maintNum.toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                    <span>GST ({isLandlordGstRegistered && formData.gst_applicable && gstRateNum > 0 ? `${gstRateNum}%` : '0% Exempt'}):</span>
+                    <strong style={{ color: isLandlordGstRegistered && formData.gst_applicable && totalGstAmount > 0 ? '#2563eb' : '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                      ₹{totalGstAmount.toLocaleString('en-IN')}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      borderTop: '1px solid #cbd5e1',
+                      paddingTop: '8px',
+                      marginTop: '4px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>Total:</span>
+                    <span style={{ fontWeight: 800, color: '#1e40af', fontSize: '1.05rem', fontVariantNumeric: 'tabular-nums' }}>
+                      ₹{grandTotal.toLocaleString('en-IN')}/mo
+                    </span>
+                  </div>
                 </div>
               </div>
 
