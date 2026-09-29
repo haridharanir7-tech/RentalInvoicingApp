@@ -231,13 +231,14 @@ export default function Invoices() {
   // Open correction modal for Draft invoices
   const openCorrectModal = (invoice) => {
     setSelectedInvoice(invoice);
+    const isGst = Boolean(invoice.landlord_gst_registered);
     setCorrectionForm({
       rent_amount: invoice.rent_amount,
       maintenance_charges: invoice.maintenance_charges || 0,
       parking_charges: invoice.parking_charges || 0,
-      gst_rate: invoice.gst_rate || 18,
-      gst_applicable: invoice.gst_amount > 0,
-      tax_supply_type: invoice.tax_supply_type || 'intra_state',
+      gst_rate: isGst ? (invoice.gst_rate || 18) : 0,
+      gst_applicable: isGst,
+      tax_supply_type: isGst ? (invoice.tax_supply_type || 'intra_state') : 'intra_state',
       change_reason: ''
     });
     setCorrectModalOpen(true);
@@ -840,16 +841,34 @@ export default function Invoices() {
                   
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
-                  <label className="form-label">Tax Supply Type</label>
-                  <select
-                    className="form-input"
-                    value={correctionForm.tax_supply_type}
-                    onChange={(e) => setCorrectionForm({ ...correctionForm, tax_supply_type: e.target.value })}
-                  >
-                    <option value="intra_state">Intra-State (CGST + SGST)</option>
-                    <option value="inter_state">Inter-State (IGST)</option>
-                  </select>
-                  
+                  <label className="form-label">{selectedInvoice?.landlord_gst_registered ? 'Tax Supply Type' : 'Tax Status'}</label>
+                  {selectedInvoice?.landlord_gst_registered ? (
+                    <select
+                      className="form-input"
+                      value={correctionForm.tax_supply_type}
+                      onChange={(e) => setCorrectionForm({ ...correctionForm, tax_supply_type: e.target.value })}
+                    >
+                      <option value="intra_state">Intra-State (CGST + SGST)</option>
+                      <option value="inter_state">Inter-State (IGST)</option>
+                    </select>
+                  ) : (
+                    <div style={{
+                      padding: '9px 13px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      color: '#64748b',
+                      fontSize: '0.84rem',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      height: '42px'
+                    }}>
+                      <span className="badge badge-inactive" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>Non-GST</span>
+                      <span>Exempt from Tax (0%)</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
