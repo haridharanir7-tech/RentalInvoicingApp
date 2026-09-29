@@ -69,6 +69,17 @@ export default function Invoices() {
     fetchFilterOptions();
   }, [periodFilter, landlordFilter, propertyFilter, statusFilter, isLandlord, user?.landlord_id]);
 
+  // Pre-fetch invoice templates on mount so Download button works immediately
+  useEffect(() => {
+    axios.get('/api/ragul/templates')
+      .then(res => {
+        if (res.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setTemplates(res.data.data);
+        }
+      })
+      .catch(err => console.warn('Template pre-fetch warning:', err));
+  }, []);
+
   const fetchFilterOptions = async () => {
     try {
       const res = await axios.get(`${API_BASE}/properties-tenants`);
@@ -120,74 +131,80 @@ export default function Invoices() {
     }
   };
 
-  // Status Change Workflow (Draft > Generated > Sent)
-    const handleDownloadInvoice = async (inv) => {
+  // Download invoice PDF using the selected invoice data already fetched from Supabase.
+  // All invoice fields (rent, maint, parking, GST, totals, landlord, tenant, property)
+  // are already present in `inv` from the getInvoices() API call.
+  const handleDownloadInvoice = async (inv) => {
     try {
       setDownloadingId(inv.invoice_id);
       setActionError('');
 
-      let defaultTemplateId = inv.default_template_id;
-      let defaultInvoiceTemplate = inv.default_invoice_template;
-      
-
-      if (!defaultTemplateId && !defaultInvoiceTemplate) {
-        setActionError('No default invoice template is configured for this landlord.');
-        setDownloadingId(null);
-        return;
-      }
-
+      // Fetch templates if not already loaded
       let currentTemplates = templates;
       if (!currentTemplates || currentTemplates.length === 0) {
         try {
-          const tRes = await axios.get(`${API_BASE.replace('/haridharani', '/ragul')}/templates`);
-          if (tRes.data && tRes.data.data) {
+          const tRes = await axios.get('/api/ragul/templates');
+          if (tRes.data && Array.isArray(tRes.data.data) && tRes.data.data.length > 0) {
             currentTemplates = tRes.data.data;
             setTemplates(currentTemplates);
           }
-        } catch (tErr) {}
+        } catch (tErr) {
+          console.warn('Could not fetch templates:', tErr);
+        }
       }
 
-      let matchedTemplate = null;
-        
-        // Always prioritize the name matching since the Landlord form saves the template NAME in default_invoice_template
-        if (defaultInvoiceTemplate) {
-          const lowerVal = defaultInvoiceTemplate.toLowerCase();
-          matchedTemplate = currentTemplates.find(t => {
-            const tId = (t.id || '').toLowerCase();
-            const tName = (t.name || '').toLowerCase();
-            return tId === lowerVal || tName === lowerVal || tName.includes(lowerVal) || lowerVal.includes(tName);
-          });
-        }
-        
-        // Fallback to legacy ID
-        if (!matchedTemplate && defaultTemplateId) {
-          matchedTemplate = currentTemplates.find(t => String(t.id).toLowerCase() === String(defaultTemplateId).toLowerCase());
-        }
-        
-        if (!matchedTemplate) {
-        setActionError('Selected invoice template could not be found.');
+      if (!currentTemplates || currentTemplates.length === 0) {
+        setActionError('No invoice templates are configured. Please set up templates first.');
         setDownloadingId(null);
         return;
       }
 
+      // Match template by landlord preferred template name/id, fall back to default or first
+      let matchedTemplate = null;
+      const defaultInvoiceTemplate = inv.default_invoice_template;
+
+      if (defaultInvoiceTemplate) {
+        const lowerVal = defaultInvoiceTemplate.toLowerCase();
+        matchedTemplate = currentTemplates.find(t => {
+          const tId = (t.id || '').toLowerCase();
+          const tName = (t.name || '').toLowerCase();
+          return tId === lowerVal || tName === lowerVal || tName.includes(lowerVal) || lowerVal.includes(tName);
+        });
+      }
+
+      // Fallback: use template marked isDefault, or simply the first available template
+      if (!matchedTemplate) {
+        matchedTemplate = currentTemplates.find(t => t.isDefault) || currentTemplates[0];
+      }
+
+      if (!matchedTemplate) {
+        setActionError('No invoice template available. Please configure templates.');
+        setDownloadingId(null);
+        return;
+      }
+
+      // Build the complete invoice data object.
+      // All fields are already fetched from Supabase via getInvoices() API.
+      // The PDF template reads: invoice_number, invoice_date, due_date, billing_period,
+      // rent_amount, maintenance_charges, parking_charges, taxable_amount,
+      // cgst_amount, sgst_amount, igst_amount, gst_rate, total_amount,
+      // landlord_name/address/gstin/pan, tenant_name/address/gstin, property_name/address
       const fullInvoice = {
         ...inv,
-        landlord_name: inv.landlord_name,
-        landlord_address: inv.landlord_address || inv.billing_address,
-        landlord_pan: inv.landlord_pan,
-        landlord_gstin: inv.landlord_gstin,
-        landlord_phone: inv.landlord_phone,
-        landlord_email: inv.landlord_email,
-        default_template_id: defaultTemplateId || matchedTemplate?.id,
-        default_invoice_template: defaultInvoiceTemplate || matchedTemplate?.name,
-        property_address: inv.property_address,
-        tenant_pan: inv.tenant_pan,
-        tenant_gstin: inv.tenant_gstin,
-        tenant_address: inv.tenant_address
+        landlord_name: inv.landlord_name || '',
+        landlord_address: inv.landlord_address || inv.billing_address || '',
+        landlord_pan: inv.landlord_pan || '',
+        landlord_gstin: inv.landlord_gstin || '',
+        landlord_phone: inv.landlord_phone || '',
+        landlord_email: inv.landlord_email || '',
+        property_address: inv.property_address || '',
+        tenant_pan: inv.tenant_pan || '',
+        tenant_gstin: inv.tenant_gstin || '',
+        tenant_address: inv.tenant_address || '',
       };
 
       const result = await generateInvoicePdf(fullInvoice, matchedTemplate);
-      setActionSuccess(`Downloaded ${result.filename} (${matchedTemplate?.name})`);
+      setActionSuccess(`Downloaded ${result.filename} using template: ${matchedTemplate?.name}`);
       setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
       console.error('PDF generation error:', err);

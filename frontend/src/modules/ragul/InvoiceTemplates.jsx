@@ -859,8 +859,7 @@ export default function InvoiceTemplatesView({
                   <tr style={{ borderBottom: `2px solid ${currentAccent}` }}>
                     <th style={{ width: "24px" }}>#</th>
                     <th>DESCRIPTION</th>
-                    <th style={{ width: "80px", textAlign: "center" }}>SAC</th>
-                    <th style={{ width: "110px", textAlign: "right" }}>AMOUNT (₹)</th>
+                    <th style={{ width: "120px", textAlign: "right" }}>AMOUNT (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -872,7 +871,6 @@ export default function InvoiceTemplatesView({
                         Rental fee for period 01 Sep 2026 to 30 Sep 2026
                       </div>
                     </td>
-                    <td style={{ textAlign: "center" }}>997212</td>
                     <td className="col-amount">{money(85000)}</td>
                   </tr>
                   <tr>
@@ -883,7 +881,6 @@ export default function InvoiceTemplatesView({
                         Power backup, security, and facility management
                       </div>
                     </td>
-                    <td style={{ textAlign: "center" }}>997212</td>
                     <td className="col-amount">{money(6500)}</td>
                   </tr>
                 </tbody>
