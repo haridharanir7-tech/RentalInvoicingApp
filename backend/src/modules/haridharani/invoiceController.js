@@ -130,7 +130,7 @@ exports.getInvoices = async (req, res) => {
         i.notes,
         l.name AS landlord_name,
         l.default_invoice_template,
-        COALESCE(l.gst_registered, false) AS landlord_gst_registered,
+        (COALESCE(l.gst_registered, false) OR (l.gstin IS NOT NULL AND TRIM(l.gstin) != '')) AS landlord_gst_registered,
         p.name AS property_name,
         p.address AS property_address,
         t.name AS tenant_name,
@@ -230,7 +230,7 @@ exports.previewInvoices = async (req, res) => {
         l.id AS landlord_id,
         l.name AS landlord_name,
           l.default_invoice_template,
-        l.gst_registered AS landlord_gst_registered,
+        (COALESCE(l.gst_registered, false) OR (l.gstin IS NOT NULL AND TRIM(l.gstin) != '')) AS landlord_gst_registered,
         inv.invoice_id AS existing_invoice_id,
         inv.invoice_number AS existing_invoice_number,
         inv.status AS existing_invoice_status,
@@ -329,9 +329,9 @@ exports.generateInvoices = async (req, res) => {
       // 3. Strictly enforce tax compliance: Non-GST registered landlords cannot levy GST
       let isLandlordGst = false;
       if (item.landlord_id) {
-        const lRes = await client.query('SELECT gst_registered FROM landlords WHERE id = $1', [item.landlord_id]);
+        const lRes = await client.query('SELECT gst_registered, gstin FROM landlords WHERE id = $1', [item.landlord_id]);
         if (lRes.rows.length > 0) {
-          isLandlordGst = Boolean(lRes.rows[0].gst_registered);
+          isLandlordGst = Boolean(lRes.rows[0].gst_registered || (lRes.rows[0].gstin && lRes.rows[0].gstin.trim() !== ''));
         }
       }
       const applyGst = Boolean(isLandlordGst && item.gst_applicable);
@@ -526,7 +526,7 @@ exports.correctInvoice = async (req, res) => {
 
   try {
     const invoiceRes = await db.query(`
-      SELECT inv.*, COALESCE(l.gst_registered, false) AS landlord_gst_registered
+      SELECT inv.*, (COALESCE(l.gst_registered, false) OR (l.gstin IS NOT NULL AND TRIM(l.gstin) != '')) AS landlord_gst_registered
       FROM invoices inv
       LEFT JOIN landlords l ON inv.landlord_id = l.id
       WHERE inv.invoice_id = $1
