@@ -627,10 +627,26 @@ export default function Invoices() {
                         ) : (
                               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
                             )
+                          ) : isLandlord && inv.status === 'Generated' ? (
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                padding: '3px 8px',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '6px',
+                                display: 'inline-block'
+                              }}
+                              title="Invoice is finalized. Receipt download will be enabled once marked as Sent by Admin."
+                            >
+                              Finalized
+                            </span>
                           ) : (
                             <button
-                                className="btn"
-                                style={{
+                              className="btn"
+                              style={{
                                 padding: '4px 8px',
                                 fontSize: '0.78rem',
                                 display: 'inline-flex',
@@ -643,7 +659,7 @@ export default function Invoices() {
                                 borderRadius: '6px'
                               }}
                               onClick={() => handleDownloadInvoice(inv)}
-                              title="Download invoice"
+                              title={inv.status === 'Sent' ? "Download invoice receipt" : "Download invoice preview"}
                             >
                               <Download size={12} />
                               <span>Download</span>
