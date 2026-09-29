@@ -238,7 +238,7 @@ exports.previewInvoices = async (req, res) => {
       FROM rentalrate r
       LEFT JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN properties p ON r.property_id = p.id
-      LEFT JOIN landlords l ON p.landlord_id = l.id
+      LEFT JOIN landlords l ON COALESCE(r.landlord_id, p.landlord_id) = l.id
       LEFT JOIN invoices inv ON inv.tenant_id IS NOT DISTINCT FROM t.id 
                             AND inv.property_id = p.id 
                             AND inv.billing_period = '${billing_period}'
