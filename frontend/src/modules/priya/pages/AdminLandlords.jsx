@@ -1184,7 +1184,6 @@ export default function AdminLandlords() {
                   }}
                   required
                 >
-<<<<<<< Updated upstream
                   {templatesList.length === 0 && (
                     <option value="">{loadingTemplates ? 'Loading templates from database...' : 'No templates found'}</option>
                   )}
@@ -1197,18 +1196,6 @@ export default function AdminLandlords() {
                     <option value={addFormData.default_invoice_template}>
                       {addFormData.default_invoice_template} (Current)
                     </option>
-=======
-                  <option value="">Select a template...</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.name}>{t.name}</option>
-                  ))}
-                  {templates.length === 0 && (
-                    <>
-                      <option value="Template A (Standard)">Template A (Standard)</option>
-                      <option value="Template B (Compact)">Template B (Compact)</option>
-                      <option value="Template C (Corporate)">Template C (Corporate)</option>
-                    </>
->>>>>>> Stashed changes
                   )}
                 </select>
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
