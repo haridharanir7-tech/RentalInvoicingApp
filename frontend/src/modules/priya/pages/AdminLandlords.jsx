@@ -607,7 +607,7 @@ export default function AdminLandlords() {
                                   gstin: l.gstin || '',
                                   contact_details: l.contact_details || '',
                                   billing_address: l.billing_address || '',
-                                  gst_registered: !!l.gst_registered,
+                                  gst_registered: l.gst_registered !== undefined ? !!l.gst_registered : Boolean(l.gstin && l.gstin.trim()),
                                   default_invoice_template: l.default_invoice_template || (templatesList.find((t) => t.isDefault)?.name || templatesList[0]?.name || ''),
                                   is_active: (l.status || '').toUpperCase() === 'ACTIVE'
                                 });

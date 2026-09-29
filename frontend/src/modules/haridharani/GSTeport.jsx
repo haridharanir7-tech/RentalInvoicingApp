@@ -122,22 +122,6 @@ export default function GSTReport() {
             Tax breakdown (CGST, SGST, IGST) grouped by landlord and billing period
           </p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary" onClick={() => window.print()}>
-            <Printer size={15} />
-            <span>Print / PDF</span>
-          </button>
-          <button className="btn btn-primary" onClick={handleExportCSV}>
-            <Download size={15} />
-            <span>Export GST Report (.csv)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Exclusion Note */}
-      <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', fontSize: '0.82rem', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Info size={16} color="#2563eb" style={{ flexShrink: 0 }} />
-        <span><strong>Note:</strong> Non-GST registered landlords are excluded from this report because no GST is applicable on their invoices. Only finalized (Generated / Sent) invoices are included.</span>
       </div>
 
       {/* Filter Bar */}
@@ -176,55 +160,55 @@ export default function GSTReport() {
             }}
             style={{ background: '#f1f5f9' }}
           >
-            Reset Filters
+            Clear
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="kpi-grid">
-        <div className="kpi-card">
+      {/* KPI Cards - Single Row */}
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px', marginBottom: '24px' }}>
+        <div className="kpi-card" style={{ padding: '16px 18px' }}>
           <div className="kpi-title">Total Taxable Value</div>
-          <div className="kpi-value">₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
+          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
           <div className="kpi-desc">Rent & recurring charges</div>
         </div>
-        <div className="kpi-card">
+        <div className="kpi-card" style={{ padding: '16px 18px' }}>
           <div className="kpi-title">Total CGST (Central)</div>
-          <div className="kpi-value">₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
           <div className="kpi-desc">Intra-state central share</div>
         </div>
-        <div className="kpi-card">
+        <div className="kpi-card" style={{ padding: '16px 18px' }}>
           <div className="kpi-title">Total SGST (State)</div>
-          <div className="kpi-value">₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
           <div className="kpi-desc">Intra-state state share</div>
         </div>
-        <div className="kpi-card">
+        <div className="kpi-card" style={{ padding: '16px 18px' }}>
           <div className="kpi-title">Total IGST (Integrated)</div>
-          <div className="kpi-value">₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
+          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
           <div className="kpi-desc">Inter-state integrated tax</div>
         </div>
-        <div className="kpi-card">
+        <div className="kpi-card" style={{ padding: '16px 18px' }}>
           <div className="kpi-title">Total GST Liability</div>
-          <div className="kpi-value">₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
+          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
           <div className="kpi-desc">Cumulative tax collected</div>
         </div>
       </div>
 
       {/* Report Table */}
       <div className="table-container">
-        <table>
+        <table style={{ minWidth: '1100px' }}>
           <thead>
             <tr>
-              <th>Landlord</th>
-              <th>GSTIN</th>
-              <th>Billing Period</th>
-              <th>Invoices</th>
-              <th>Taxable Value</th>
-              <th>CGST</th>
-              <th>SGST</th>
-              <th>IGST</th>
-              <th>Total GST</th>
-              <th>Total Invoiced</th>
+              <th style={{ minWidth: '140px' }}>Landlord</th>
+              <th style={{ minWidth: '130px' }}>GSTIN</th>
+              <th style={{ minWidth: '110px' }}>Billing Period</th>
+              <th style={{ minWidth: '80px', textAlign: 'center' }}>Invoices</th>
+              <th style={{ minWidth: '120px' }}>Taxable Value</th>
+              <th style={{ minWidth: '100px' }}>CGST</th>
+              <th style={{ minWidth: '100px' }}>SGST</th>
+              <th style={{ minWidth: '100px' }}>IGST</th>
+              <th style={{ minWidth: '110px' }}>Total GST</th>
+              <th style={{ minWidth: '125px' }}>Total Invoiced</th>
             </tr>
           </thead>
           <tbody>
@@ -243,24 +227,24 @@ export default function GSTReport() {
             ) : (
               paginatedReportData.map((row, idx) => (
                 <tr key={`${row.landlord_id}-${row.billing_period}-${idx}`}>
-                  <td style={{ fontWeight: 600 }}>{row.landlord_name}</td>
-                  <td>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{row.landlord_name}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}>
                       {row.landlord_gstin}
                     </span>
                   </td>
-                  <td>{row.billing_period}</td>
-                  <td>{row.total_invoices}</td>
-                  <td style={{ fontWeight: 500 }}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{row.billing_period}</td>
+                  <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{row.total_invoices}</td>
+                  <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
                     ₹{parseFloat(row.total_taxable_value).toLocaleString('en-IN')}
                   </td>
-                  <td>₹{parseFloat(row.total_cgst).toLocaleString('en-IN')}</td>
-                  <td>₹{parseFloat(row.total_sgst).toLocaleString('en-IN')}</td>
-                  <td>₹{parseFloat(row.total_igst).toLocaleString('en-IN')}</td>
-                  <td style={{ fontWeight: 600, color: '#2563eb' }}>
+                  <td style={{ whiteSpace: 'nowrap' }}>₹{parseFloat(row.total_cgst).toLocaleString('en-IN')}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>₹{parseFloat(row.total_sgst).toLocaleString('en-IN')}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>₹{parseFloat(row.total_igst).toLocaleString('en-IN')}</td>
+                  <td style={{ fontWeight: 600, color: '#2563eb', whiteSpace: 'nowrap' }}>
                     ₹{parseFloat(row.total_gst_collected).toLocaleString('en-IN')}
                   </td>
-                  <td style={{ fontWeight: 700, color: '#1e40af' }}>
+                  <td style={{ fontWeight: 700, color: '#1e40af', whiteSpace: 'nowrap' }}>
                     ₹{parseFloat(row.total_invoiced_value).toLocaleString('en-IN')}
                   </td>
                 </tr>

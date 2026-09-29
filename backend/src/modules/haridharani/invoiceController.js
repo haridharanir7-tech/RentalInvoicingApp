@@ -224,12 +224,21 @@ exports.previewInvoices = async (req, res) => {
         l.id AS landlord_id,
         l.name AS landlord_name,
         l.gst_registered AS landlord_gst_registered,
+        inv.invoice_id AS existing_invoice_id,
         inv.invoice_number AS existing_invoice_number,
-        inv.status AS existing_invoice_status
+        inv.status AS existing_invoice_status,
+        inv.rent_amount AS existing_rent_amount,
+        inv.maintenance_charges AS existing_maintenance_charges,
+        inv.parking_charges AS existing_parking_charges,
+        inv.additional_charges AS existing_additional_charges,
+        inv.taxable_amount AS existing_taxable_amount,
+        inv.gst_amount AS existing_gst_amount,
+        inv.total_amount AS existing_total_amount,
+        inv.notes AS existing_notes
       FROM rentalrate r
       LEFT JOIN tenants t ON r.tenant_id = t.id
       LEFT JOIN properties p ON r.property_id = p.id
-      LEFT JOIN landlords l ON p.landlord_id = l.id
+      LEFT JOIN landlords l ON COALESCE(r.landlord_id, p.landlord_id) = l.id
       LEFT JOIN invoices inv ON inv.tenant_id IS NOT DISTINCT FROM t.id 
                             AND inv.property_id = p.id 
                             AND inv.billing_period = '${billing_period}'
@@ -240,10 +249,12 @@ exports.previewInvoices = async (req, res) => {
     const result = await db.query(query, params);
 
     const previews = result.rows.map(row => {
+      const isAlreadyGen = !!row.existing_invoice_number;
+
       const calc = calculateInvoiceFinancials(
-        row.monthly_rent,
-        row.maintenance_charges,
-        row.parking_charges,
+        isAlreadyGen && row.existing_rent_amount != null ? row.existing_rent_amount : row.monthly_rent,
+        isAlreadyGen && row.existing_maintenance_charges != null ? row.existing_maintenance_charges : row.maintenance_charges,
+        isAlreadyGen && row.existing_parking_charges != null ? row.existing_parking_charges : row.parking_charges,
         row.gst_applicable && row.landlord_gst_registered,
         row.gst_rate,
         row.tax_supply_type
@@ -252,8 +263,16 @@ exports.previewInvoices = async (req, res) => {
       return {
         ...row,
         ...calc,
+        rent_amount: isAlreadyGen && row.existing_rent_amount != null ? parseFloat(row.existing_rent_amount) : calc.rent_amount,
+        maintenance_charges: isAlreadyGen && row.existing_maintenance_charges != null ? parseFloat(row.existing_maintenance_charges) : calc.maintenance_charges,
+        parking_charges: isAlreadyGen && row.existing_parking_charges != null ? parseFloat(row.existing_parking_charges) : calc.parking_charges,
+        additional_charges: isAlreadyGen && row.existing_additional_charges != null ? parseFloat(row.existing_additional_charges) : calc.additional_charges,
+        taxable_amount: isAlreadyGen && row.existing_taxable_amount != null ? parseFloat(row.existing_taxable_amount) : calc.taxable_amount,
+        gst_amount: isAlreadyGen && row.existing_gst_amount != null ? parseFloat(row.existing_gst_amount) : calc.gst_amount,
+        total_amount: isAlreadyGen && row.existing_total_amount != null ? parseFloat(row.existing_total_amount) : calc.total_amount,
         billing_period,
-        already_generated: !!row.existing_invoice_number
+        already_generated: isAlreadyGen,
+        is_overridden: !!(row.existing_notes && row.existing_notes.toLowerCase().includes('overrid'))
       };
     });
 
@@ -302,7 +321,7 @@ exports.generateInvoices = async (req, res) => {
 
       // 3. Recalculate server-side to guarantee precision & tax compliance
       const financials = calculateInvoiceFinancials(
-        item.monthly_rent,
+        item.rent_amount !== undefined ? item.rent_amount : item.monthly_rent,
         item.maintenance_charges,
         item.parking_charges,
         item.gst_applicable,
@@ -356,7 +375,9 @@ exports.generateInvoices = async (req, res) => {
         financials.igst_amount,
         financials.gst_amount,
         financials.total_amount,
-        `Generated on ${new Date().toISOString()} for period ${billing_period}`
+        item.override_reason
+          ? `Overridden: ${item.override_reason}`
+          : `Generated on ${new Date().toISOString()} for period ${billing_period}`
       ]);
 
       const createdInvoice = insertRes.rows[0];
@@ -373,10 +394,30 @@ exports.generateInvoices = async (req, res) => {
 
       // Record in audit log
       try {
-        await client.query(`
-          INSERT INTO audit_logs (action, table_name, record_id, description, entity_type, entity_id)
-          VALUES ('INVOICE_GENERATED', 'invoices', $1, $2, 'invoices', $1)
-        `, [String(createdInvoice.invoice_id), `Invoice ${invoiceNumber} created in Draft status for period ${billing_period}`]);
+        if (item.override_reason) {
+          await client.query(`
+            INSERT INTO audit_logs (
+              action, table_name, record_id, description,
+              entity_type, entity_id, old_values, new_values, reason, performed_by_name
+            ) VALUES (
+              'OVERRIDE', 'invoices', $1, $2,
+              'INVOICE_OVERRIDE', $3, $4, $5, $6, $7
+            )
+          `, [
+            String(createdInvoice.invoice_id),
+            `Invoice ${invoiceNumber} created with overridden rent/charges. Reason: ${item.override_reason}`,
+            invoiceNumber,
+            JSON.stringify({ default_rent: item.monthly_rent, default_charges: item.additional_charges }),
+            JSON.stringify({ overridden_rent: financials.rent_amount, overridden_charges: financials.additional_charges, total: financials.total_amount }),
+            item.override_reason,
+            req.user?.name || req.user?.full_name || 'Admin'
+          ]);
+        } else {
+          await client.query(`
+            INSERT INTO audit_logs (action, table_name, record_id, description, entity_type, entity_id)
+            VALUES ('INVOICE_GENERATED', 'invoices', $1, $2, 'invoices', $1)
+          `, [String(createdInvoice.invoice_id), `Invoice ${invoiceNumber} created in Draft status for period ${billing_period}`]);
+        }
       } catch (auditErr) {
         console.warn('Audit logging notice:', auditErr.message);
       }
@@ -538,13 +579,25 @@ exports.correctInvoice = async (req, res) => {
     ]);
 
     // Record audit entry
-    await db.query(`
-      INSERT INTO audit_logs (action, table_name, record_id, description)
-      VALUES ('INVOICE_CORRECTED', 'invoices', $1, $2)
-    `, [
-      id,
-      `Invoice ${currentInvoice.invoice_number} corrected. Reason: ${change_reason}. Old total: ₹${oldSnapshot.total}, New total: ₹${financials.total_amount}`
-    ]);
+    try {
+      await db.query(`
+        INSERT INTO audit_logs (
+          action, table_name, record_id, description,
+          entity_type, entity_id, old_values, new_values, reason, performed_by_name
+        )
+        VALUES ('OVERRIDE', 'invoices', $1, $2, 'INVOICE_OVERRIDE', $3, $4, $5, $6, $7)
+      `, [
+        id,
+        `Invoice ${currentInvoice.invoice_number} corrected/overridden. Reason: ${change_reason}. Old total: ₹${oldSnapshot.total}, New total: ₹${financials.total_amount}`,
+        currentInvoice.invoice_number,
+        JSON.stringify(oldSnapshot),
+        JSON.stringify(financials),
+        change_reason,
+        req.user?.name || req.user?.full_name || 'Admin'
+      ]);
+    } catch (auditErr) {
+      console.warn('Audit logging notice:', auditErr.message);
+    }
 
     res.json({
       success: true,
