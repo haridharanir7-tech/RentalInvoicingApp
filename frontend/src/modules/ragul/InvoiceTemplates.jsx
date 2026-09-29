@@ -222,8 +222,6 @@ export default function InvoiceTemplatesView({
     if (onSetDefault) {
       onSetDefault(targetId);
     }
-    const matched = templateList.find((t) => t.id === targetId);
-    showMessage?.(`✓ Template "${matched?.name || targetId}" selected as default template!`);
   }
 
   // Popup Modal visibility state
@@ -500,7 +498,7 @@ export default function InvoiceTemplatesView({
                 <div
                   key={tpl.id}
                   className={`template-tab-item ${isThisViewing ? "viewing" : ""} ${isThisSelected ? "selected" : ""}`}
-                  onClick={() => setPreviewTemplateId(tpl.id)}
+                  onClick={() => handleSelectTemplate(tpl.id)}
                 >
                   <div className="template-tab-meta">
                     <span className="template-tab-name">{tpl.name}</span>
@@ -547,25 +545,14 @@ export default function InvoiceTemplatesView({
             </div>
 
             <div className="preview-toolbar-actions">
-              {isSelected ? (
-                <button
-                  type="button"
-                  className="btn-action-selected"
-                  onClick={() => handleSelectTemplate(currentPreviewId)}
-                  title="Currently active default template"
-                >
-                  <Check size={16} /> Selected
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-action-primary"
-                  onClick={() => handleSelectTemplate(currentPreviewId)}
-                  title="Select this template as default"
-                >
-                  <Check size={16} /> Select
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn-action-customize"
+                onClick={handleOpenEditModal}
+                title="Customize template layout, colors & details"
+              >
+                <Edit3 size={15} /> Customize
+              </button>
             </div>
           </div>
 
