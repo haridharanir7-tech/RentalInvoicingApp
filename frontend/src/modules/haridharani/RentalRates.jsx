@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, History, X, Check, AlertCircle, Edit, Trash2 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/haridharani';
+const API_BASE = '/api/haridharani';
 
 export default function RentalRates() {
   const [rates, setRates] = useState([]);

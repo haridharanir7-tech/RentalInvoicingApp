@@ -16,7 +16,7 @@ import { FileText,
   Send,
   Trash2, Download } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/haridharani';
+const API_BASE = '/api/haridharani';
 
 export default function Invoices() {
   const { user, isLandlord } = useAuth();

@@ -3,7 +3,7 @@ const db = require('../../config/database');
 exports.createProperty = async (req, res) => {
     try {
         console.log("BODY:", req.body);
-        console.log("FILE:", req.file);
+        console.log("FILES:", req.files);
         const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
         
         if (!landlord_id) {
@@ -33,14 +33,16 @@ exports.createProperty = async (req, res) => {
         const result = await db.query(query, values);
         const newProperty = result.rows[0];
 
-        // Insert document if file was uploaded
-        if (req.file) {
-            const document_name = req.file.originalname;
-            const document_url = '/uploads/properties/' + req.file.filename;
-            await db.query(
-                `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
-                [newProperty.id, document_name, document_url]
-            );
+        // Insert documents if files were uploaded
+        if (req.files && req.files.length > 0) {
+            for (let file of req.files) {
+                const document_name = file.originalname;
+                const document_url = '/uploads/properties/' + file.filename;
+                await db.query(
+                    `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
+                    [newProperty.id, document_name, document_url]
+                );
+            }
         }
 
         res.status(201).json(newProperty);
@@ -79,6 +81,19 @@ exports.updateProperty = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Property not found' });
         }
+
+        // Insert documents if files were uploaded during edit
+        if (req.files && req.files.length > 0) {
+            for (let file of req.files) {
+                const document_name = file.originalname;
+                const document_url = '/uploads/properties/' + file.filename;
+                await db.query(
+                    `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
+                    [id, document_name, document_url]
+                );
+            }
+        }
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('updateProperty error:', error);
@@ -187,24 +202,26 @@ exports.deleteProperty = async (req, res) => {
 exports.uploadDocument = async (req, res) => {
     try {
         const { id } = req.params;
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
         }
         
-        if (req.file.mimetype !== 'application/pdf' && !req.file.originalname.toLowerCase().endsWith('.pdf')) {
-            return res.status(400).json({ error: 'Invalid file format. Only PDF files are allowed.' });
+        for (let file of req.files) {
+            if (file.mimetype !== 'application/pdf' && !file.originalname.toLowerCase().endsWith('.pdf')) {
+                return res.status(400).json({ error: 'Invalid file format. Only PDF files are allowed.' });
+            }
+            
+            const document_name = file.originalname;
+            const document_url = '/uploads/properties/' + file.filename;
+            
+            // Insert new document (keeping old ones)
+            await db.query(
+                `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
+                [id, document_name, document_url]
+            );
         }
         
-        const document_name = req.file.originalname;
-        const document_url = '/uploads/properties/' + req.file.filename;
-        
-        // Insert new document (keeping old ones)
-        await db.query(
-            `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
-            [id, document_name, document_url]
-        );
-        
-        res.json({ message: 'Document uploaded successfully', document_url });
+        res.json({ message: 'Documents uploaded successfully' });
     } catch (error) {
         console.error('uploadDocument error:', error);
         res.status(500).json({ error: error.message });

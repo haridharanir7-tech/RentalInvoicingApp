@@ -324,6 +324,31 @@ const createLandlordLoginAccess = async (req, res) => {
   }
 };
 
+const removeLandlordLoginAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pool } = require('../../../config/database');
+    await pool.query('DELETE FROM users WHERE landlord_id = $1', [parseInt(id, 10)]);
+    
+    // Log audit
+    await logAudit({
+      entityType: 'LANDLORD_ACCESS',
+      entityId: id,
+      action: 'REMOVE_LOGIN_ACCESS',
+      oldValues: { landlord_id: id },
+      newValues: null,
+      reason: `Admin ${req.user.full_name} removed login access`,
+      userId: req.user.id,
+      userName: req.user.full_name
+    });
+
+    return res.status(200).json({ success: true, message: 'Login access removed successfully.' });
+  } catch (err) {
+    console.error('removeLandlordLoginAccess error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to remove login access.' });
+  }
+};
+
 module.exports = {
   listUsers,
   createUser,
@@ -331,6 +356,7 @@ module.exports = {
   getLandlordList,
   getAdminLandlords,
   updateLandlordStatus,
-  createLandlordLoginAccess
+  createLandlordLoginAccess,
+  removeLandlordLoginAccess
 };
 

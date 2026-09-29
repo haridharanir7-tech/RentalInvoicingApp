@@ -310,7 +310,6 @@ export default function TenantManagement() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -323,6 +322,7 @@ export default function TenantManagement() {
             <option value="Notice Period">Notice Period</option>
             <option value="Vacated">Vacated</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
       

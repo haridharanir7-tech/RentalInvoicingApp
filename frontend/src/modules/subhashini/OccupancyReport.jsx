@@ -114,7 +114,6 @@ export default function OccupancyReport() {
               style={{ width: '250px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -127,6 +126,7 @@ export default function OccupancyReport() {
             <option value="Vacant">Vacant</option>
             <option value="Notice Period">Notice Period</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
 
