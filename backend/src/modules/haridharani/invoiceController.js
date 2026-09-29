@@ -131,7 +131,11 @@ exports.getInvoices = async (req, res) => {
         l.name AS landlord_name,
           l.default_invoice_template,
         p.name AS property_name,
-        t.name AS tenant_name
+        p.address AS property_address,
+        t.name AS tenant_name,
+        t.pan AS tenant_pan,
+        t.gstin AS tenant_gstin,
+        t.contact_details AS tenant_address
       FROM invoices i
       LEFT JOIN landlords l ON i.landlord_id = l.id
       LEFT JOIN properties p ON i.property_id = p.id
