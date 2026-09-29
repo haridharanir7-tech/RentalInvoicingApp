@@ -62,13 +62,17 @@ desktop.ini
 temp/
 tmp/
 uploads/
+**/uploads/
 backups/
 **/backups/
 invoices/generated/
 *.pdf
+!docs/*.pdf
 *.zip
 *.tar.gz
 scratch/
 coverage/
 .system_generated/
+.gemini/
+.eslintcache
 
