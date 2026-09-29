@@ -203,13 +203,7 @@ export default function AdminLandlords() {
   const openAccessModal = (landlord) => {
     setSelectedLandlord(landlord);
     setAccessEmail(landlord.email || landlord.landlord_email || '');
-    // Generate secure 10-char random temporary password
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-    let pass = '';
-    for (let i = 0; i < 10; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setAccessPassword(pass);
+    setAccessPassword('Welcome@123');
     setGeneratedTempPass('');
     setCopied(false);
     setAccessModalOpen(true);
@@ -231,8 +225,7 @@ export default function AdminLandlords() {
       });
 
       if (res.data.success) {
-        setGeneratedTempPass(res.data.data.temp_password);
-        setSuccessMsg(`Login credentials generated for ${selectedLandlord.name}.`);
+        setAccessModalOpen(false);
         fetchLandlords();
       }
     } catch (err) {
@@ -250,11 +243,12 @@ export default function AdminLandlords() {
 
   // Filtered Landlords list
   const filteredLandlords = landlords.filter((l) => {
+    const searchVal = appliedSearch.toLowerCase();
     const matchesSearch =
-      (l.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.pan || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.contact_details || '').includes(search);
+      (l.name || '').toLowerCase().includes(searchVal) ||
+      (l.email || '').toLowerCase().includes(searchVal) ||
+      (l.pan || '').toLowerCase().includes(searchVal) ||
+      (l.contact_details || '').includes(appliedSearch);
 
     const statusUpper = (l.status || '').toUpperCase();
     if (filterTab === 'PENDING') return matchesSearch && statusUpper === 'PENDING';
@@ -395,19 +389,19 @@ export default function AdminLandlords() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
             value={filterTab} 
             onChange={(e) => { setFilterTab(e.target.value); setPage(1); }}
-            style={{ width: '150px' }}
+            style={{ width: '115px' }}
           >
-            <option value="ALL">All Statuses ({landlords.length})</option>
-            <option value="ACTIVE">Active ({landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length})</option>
-            <option value="PENDING">Pending ({pendingCount})</option>
-            <option value="INACTIVE">Inactive ({landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length})</option>
+            <option value="ALL">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PENDING">Pending</option>
+            <option value="INACTIVE">Inactive</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setFilterTab('ALL'); setPage(1); }} style={{ background: '#f1f5f9', marginLeft: '10px' }}>Clear</button>
         </div>
       </div>
 
@@ -448,12 +442,12 @@ export default function AdminLandlords() {
 
                   return (
                     <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '14px 16px', color: '#64748b', fontWeight: 600 }}>
-                        #{l.id}
+                      <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                        {l.id}
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{l.name}</div>
                         
                       </td>
 
@@ -505,75 +499,7 @@ export default function AdminLandlords() {
 
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          {/* Approve for Pending */}
-                          {isPending && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Approve Landlord Account"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 12px',
-                                background: '#16a34a',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.78rem',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <ShieldCheck size={13} />
-                              Approve
-                            </button>
-                          )}
 
-                          {/* Deactivate for Active */}
-                          {isActive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'INACTIVE')}
-                              title="Deactivate Account"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                border: '1px solid #fecaca',
-                                borderRadius: '6px',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Deactivate
-                            </button>
-                          )}
-
-                          {/* Activate for Inactive */}
-                          {isInactive && (
-                            <button
-                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
-                              title="Activate Account"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                background: '#ecfdf5',
-                                color: '#047857',
-                                border: '1px solid #a7f3d0',
-                                borderRadius: '6px',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Activate
-                            </button>
-                          )}
 
                           {/* Create Login / Reset Credentials button */}
                           <button
@@ -606,7 +532,7 @@ export default function AdminLandlords() {
                                   pan: l.pan || '',
                                   gstin: l.gstin || '',
                                   contact_details: l.contact_details || '',
-                                  billing_address: l.billing_address || '',
+                                  billing_address: l.billing_address || l.address || 'Fallback Test Address',
                                   gst_registered: !!l.gst_registered,
                                   default_invoice_template: l.default_invoice_template || templatesList[0]?.id || '',
                                   is_active: (l.status || '').toUpperCase() === 'ACTIVE'
@@ -726,7 +652,7 @@ export default function AdminLandlords() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Landlord ID:</span>
-                <strong>#{selectedLandlord.id}</strong>
+                <strong>{selectedLandlord.id}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Account Status:</span>
@@ -818,41 +744,33 @@ export default function AdminLandlords() {
               </button>
             </div>
 
-            {generatedTempPass ? (
+            {selectedLandlord.user_id ? (
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-                  <CheckCircle size={28} color="#16a34a" />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+                  <XCircle size={28} color="#dc2626" />
                 </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#15803d', margin: '0 0 8px 0' }}>
-                  Credentials Generated!
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#b91c1c', margin: '0 0 8px 0' }}>
+                  Login Access Active
                 </h3>
                 <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 16px 0' }}>
-                  The landlord account is now <strong>ACTIVE</strong>. Share these temporary credentials with the landlord.
+                  This landlord currently has an active login account. You can remove their access below.
                 </p>
-
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', textAlign: 'left', marginBottom: '20px' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Email:</div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>{accessEmail}</div>
-
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Temporary Password:</div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
-                    <code style={{ fontSize: '0.95rem', fontWeight: 700, color: '#2563eb' }}>{generatedTempPass}</code>
-                    <button
-                      onClick={() => copyToClipboard(generatedTempPass)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#16a34a' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}
-                    >
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                      {copied ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-
                 <button
-                  onClick={() => setAccessModalOpen(false)}
+                  onClick={async () => {
+                    if(window.confirm('Are you sure you want to remove login access for this landlord?')) {
+                      try {
+                        await adminLandlordApi.removeAccess(selectedLandlord.id);
+                        fetchLandlords();
+                        setAccessModalOpen(false);
+                      } catch (e) {
+                        alert('Failed to remove access');
+                      }
+                    }
+                  }}
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: '#2563eb',
+                    background: '#dc2626',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '6px',
@@ -860,7 +778,7 @@ export default function AdminLandlords() {
                     cursor: 'pointer'
                   }}
                 >
-                  Done
+                  Remove Access
                 </button>
               </div>
             ) : (
@@ -895,7 +813,7 @@ export default function AdminLandlords() {
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>
                       Secure Temporary Password *
                     </label>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Auto-generated random</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Default password</span>
                   </div>
                   <input
                     type="text"
@@ -985,9 +903,6 @@ export default function AdminLandlords() {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                   {addFormData.id ? 'Edit Landlord' : 'Add New Landlord'}
                 </h3>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  {addFormData.id ? 'Update landlord record and invoice preferences' : 'Create a new landlord record in the database'}
-                </p>
               </div>
               <button
                 type="button"
@@ -1108,9 +1023,6 @@ export default function AdminLandlords() {
                     }}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Only 10 digits (no alphabets)
-                    </span>
                     {addFormData.contact_details && (
                       <span style={{ 
                         fontSize: '0.72rem', 
@@ -1149,9 +1061,6 @@ export default function AdminLandlords() {
                     }}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Format: ABCDE1234F (Optional)
-                    </span>
                     {addFormData.pan && (
                       <span style={{ 
                         fontSize: '0.72rem', 
@@ -1169,6 +1078,7 @@ export default function AdminLandlords() {
                   </label>
                   <input
                     type="text"
+                    disabled={!addFormData.gst_registered}
                     value={addFormData.gstin}
                     onChange={(e) => {
                       const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
@@ -1183,13 +1093,11 @@ export default function AdminLandlords() {
                       border: '1px solid #cbd5e1',
                       fontSize: '0.88rem',
                       boxSizing: 'border-box',
-                      textTransform: 'uppercase'
+                      textTransform: 'uppercase',
+                      background: !addFormData.gst_registered ? '#f1f5f9' : '#fff'
                     }}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Alphanumeric format (e.g. 33AAAAA0000A1Z5)
-                    </span>
                     {addFormData.gstin && (
                       <span style={{ 
                         fontSize: '0.72rem', 
@@ -1266,11 +1174,6 @@ export default function AdminLandlords() {
                     </option>
                   )}
                 </select>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
-                  {templatesList.length > 0
-                    ? `Loaded ${templatesList.length} templates from database`
-                    : 'Fetching invoice templates from database...'}
-                </div>
               </div>
 
                 <div style={{ marginBottom: '20px' }}>
