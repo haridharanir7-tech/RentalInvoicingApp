@@ -364,53 +364,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Pending Landlord Approval Alert Banner */}
-      {summaryCards.pendingApprovalsCount > 0 && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '16px 20px',
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
-          borderRadius: '12px',
-          marginBottom: '24px',
-          boxShadow: '0 2px 4px rgba(245, 158, 11, 0.05)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock size={22} color="#d97706" />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.95rem' }}>
-                {summaryCards.pendingApprovalsCount} Landlord Account{summaryCards.pendingApprovalsCount > 1 ? 's' : ''} Awaiting Approval
-              </div>
-              <div style={{ fontSize: '0.82rem', color: '#b45309' }}>
-                New landlords have registered and require administrator authorization to access their dashboard.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/admin/landlords')}
-            style={{
-              padding: '8px 18px',
-              background: '#d97706',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            Review & Grant Access
-            <ArrowUpRight size={15} />
-          </button>
-        </div>
-      )}
 
       {/* Summary KPI Cards Grid (6 cards, 3 per row) */}
       <div style={{
