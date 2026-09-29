@@ -633,8 +633,8 @@ export default function LandlordDashboard() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: '12px',
-              marginBottom: '18px'
+              gap: '8px',
+              marginBottom: '16px'
             }}>
               {propertyCategories.map((cat) => {
                 const IconComponent = cat.icon;
@@ -648,47 +648,66 @@ export default function LandlordDashboard() {
                       background: isHovered ? cat.bgColor : '#f8fafc',
                       border: isHovered ? `1.5px solid ${cat.activeBorder}` : '1px solid #e2e8f0',
                       borderRadius: '12px',
-                      padding: '14px',
+                      padding: '12px 10px',
                       transition: 'all 0.2s ease',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
+                      overflow: 'hidden',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{
-                          display: 'inline-flex',
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginBottom: '8px',
+                        minWidth: 0
+                      }}>
+                        <div style={{
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          color: cat.color
+                          gap: '5px',
+                          minWidth: 0,
+                          overflow: 'hidden'
                         }}>
-                          <IconComponent size={14} color={cat.color} />
-                          {cat.label}
-                        </span>
+                          <IconComponent size={13} color={cat.color} style={{ flexShrink: 0 }} />
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: cat.color,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {cat.label}
+                          </span>
+                        </div>
                         <span style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.67rem',
                           fontWeight: 800,
                           color: cat.badgeColor,
                           background: cat.badgeBg,
-                          padding: '2px 7px',
-                          borderRadius: '12px'
+                          padding: '1.5px 5px',
+                          borderRadius: '6px',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap'
                         }}>
                           {cat.percentage}%
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                         {cat.count}
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>
+                        <span style={{ fontSize: '0.70rem', fontWeight: 600, color: '#64748b' }}>
                           {cat.count === 1 ? 'Property' : 'Properties'}
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.69rem', color: '#64748b', marginBottom: '6px', lineHeight: '1.2' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '6px', lineHeight: '1.25' }}>
                         {cat.desc}
                       </div>
                     </div>
@@ -696,11 +715,11 @@ export default function LandlordDashboard() {
                     {/* Category Level Bar */}
                     <div>
                       <div style={{
-                        height: '8px',
+                        height: '7px',
                         background: '#e2e8f0',
                         borderRadius: '9999px',
                         overflow: 'hidden',
-                        marginTop: '6px'
+                        marginTop: '4px'
                       }}>
                         <div style={{
                           width: `${cat.percentage}%`,
