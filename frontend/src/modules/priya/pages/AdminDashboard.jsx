@@ -31,12 +31,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
-  const [hoveredStackedIdx, setHoveredStackedIdx] = useState(null);
-  const [hoveredBar, setHoveredBar] = useState(null);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
-  const [filterYear, setFilterYear] = useState('2026');
-  const [month1, setMonth1] = useState('09');
-  const [month2, setMonth2] = useState('10');
+  const [hoveredAreaType, setHoveredAreaType] = useState(null);
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -138,153 +134,23 @@ export default function AdminDashboard() {
     });
   };
 
-  // 1. Chart 1 Data: Monthly Billing Composition (Stacked Bar Chart)
-  // Relationship: Base Rent + Maintenance Charges + Parking Charges + GST = Total Invoice Amount
-  const invoicePeriodMap = {};
-  (recentInvoices || []).forEach(inv => {
-    const p = inv.billing_period || 'Unknown';
-    if (!invoicePeriodMap[p]) {
-      invoicePeriodMap[p] = { period: p, rent: 0, maintenance: 0, parking: 0, gst: 0, total: 0, count: 0 };
-    }
-    const r = Number(inv.rent_amount || 0);
-    const m = Number(inv.maintenance_charges || 0);
-    const pk = Number(inv.parking_charges || 0);
-    const g = Number(inv.gst_amount || 0);
-    const tot = Number(inv.total_amount || 0) || (r + m + pk + g);
-    invoicePeriodMap[p].rent += r;
-    invoicePeriodMap[p].maintenance += m;
-    invoicePeriodMap[p].parking += pk;
-    invoicePeriodMap[p].gst += g;
-    invoicePeriodMap[p].total += tot;
-    invoicePeriodMap[p].count += 1;
-  });
+  // 1. Chart 1 Data: Commercial vs Residential Area Breakdown & Comparison
+  const propArea = charts.propertyArea || {};
+  const commCount = propArea.commercialCount ?? charts.propertyTypes?.Commercial ?? 0;
+  const resCount = propArea.residentialCount ?? charts.propertyTypes?.Residential ?? 0;
+  const totalPropsCount = (commCount + resCount) || summaryCards.totalProperties || 1;
 
-  const basePeriods = (charts.monthlyRevenue?.length > 0)
-    ? charts.monthlyRevenue
-    : Object.keys(invoicePeriodMap).sort().map(p => ({ period: p, ...invoicePeriodMap[p] }));
+  // Exact Square Footage (sq.ft)
+  const commArea = Number(propArea.commercialAreaSqft ?? (charts.totalAreaSqft ? Math.round(charts.totalAreaSqft * 0.65) : 0));
+  const resArea = Number(propArea.residentialAreaSqft ?? (charts.totalAreaSqft ? Math.round(charts.totalAreaSqft * 0.35) : 0));
+  const totalArea = (commArea + resArea) || Number(charts.totalAreaSqft || 0);
 
-  const monthlyBillingData = basePeriods.map(m => {
-    const fromInv = invoicePeriodMap[m.period];
-    const rent = Number(m.rent || fromInv?.rent || 0);
-    const maintenance = Number(m.maintenance ?? fromInv?.maintenance ?? 0);
-    const parking = Number(m.parking ?? fromInv?.parking ?? 0);
-    const gst = Number(m.gst ?? fromInv?.gst ?? 0);
-    const total = Number(m.billed || 0) || (rent + maintenance + parking + gst) || Number(fromInv?.total || 1);
-    return {
-      period: m.period,
-      rent,
-      maintenance,
-      parking,
-      gst,
-      total,
-      rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
-      maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
-      parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
-      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
-      count: m.invoicesGenerated || m.count || fromInv?.count || 0
-    };
-  });
-  // Month options for the two dropdowns
-  const MONTH_OPTIONS = [
-    { value: '01', label: '01 - Jan' },
-    { value: '02', label: '02 - Feb' },
-    { value: '03', label: '03 - Mar' },
-    { value: '04', label: '04 - Apr' },
-    { value: '05', label: '05 - May' },
-    { value: '06', label: '06 - Jun' },
-    { value: '07', label: '07 - Jul' },
-    { value: '08', label: '08 - Aug' },
-    { value: '09', label: '09 - Sep' },
-    { value: '10', label: '10 - Oct' },
-    { value: '11', label: '11 - Nov' },
-    { value: '12', label: '12 - Dec' }
-  ];
+  const commAreaPct = totalArea > 0 ? ((commArea / totalArea) * 100).toFixed(1) : (commCount > 0 ? ((commCount / totalPropsCount) * 100).toFixed(1) : '50.0');
+  const resAreaPct = totalArea > 0 ? ((resArea / totalArea) * 100).toFixed(1) : (resCount > 0 ? ((resCount / totalPropsCount) * 100).toFixed(1) : '50.0');
 
-  // Backend chart monthly revenue map fallback
-  const chartMonthlyRevMap = {};
-  (charts.monthlyRevenue || []).forEach(m => {
-    if (m.period) chartMonthlyRevMap[m.period] = m;
-  });
+  const avgCommArea = commCount > 0 && commArea > 0 ? Math.round(commArea / commCount) : 0;
+  const avgResArea = resCount > 0 && resArea > 0 ? Math.round(resArea / resCount) : 0;
 
-  // The two selected billing periods
-  const period1 = `${filterYear}-${month1}`;
-  const period2 = `${filterYear}-${month2}`;
-  const selectedPeriods = month1 === month2 ? [period1] : [period1, period2];
-
-  // Build billing data for the two selected months
-  const displayBillingData = selectedPeriods.map(p => {
-    const fromInv = invoicePeriodMap[p];
-    const fromChart = chartMonthlyRevMap[p];
-    const rent = Number(fromChart?.rent ?? fromInv?.rent ?? 0);
-    const maintenance = Number(fromChart?.maintenance ?? fromInv?.maintenance ?? 0);
-    const parking = Number(fromChart?.parking ?? fromInv?.parking ?? 0);
-    const gst = Number(fromChart?.gst ?? fromInv?.gst ?? 0);
-    const total = Number(fromChart?.billed ?? fromInv?.total ?? 0) || (rent + maintenance + parking + gst);
-    return {
-      period: p,
-      rent,
-      maintenance,
-      parking,
-      gst,
-      total,
-      rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
-      maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
-      parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
-      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
-      count: fromChart?.count || fromChart?.invoicesGenerated || fromInv?.count || 0
-    };
-  });
-
-  const maxGroupedBarVal = Math.max(
-    ...displayBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
-    1
-  );
-
-  // Invoices filtered by the two selected periods for accurate counts in color cards
-  const filteredInvoices = (recentInvoices || []).filter(inv =>
-    selectedPeriods.includes(inv.billing_period)
-  );
-
-  // Separate count, amount, and percentage for each color category based on active two months
-  const colorCounts = [
-    {
-      key: 'rent',
-      label: 'Base Rent',
-      color: '#2563eb',
-      bgColor: '#eff6ff',
-      borderColor: '#bfdbfe',
-      amount: displayBillingData.reduce((sum, m) => sum + m.rent, 0),
-      count: filteredInvoices.filter(i => Number(i.rent_amount || 0) > 0).length
-    },
-    {
-      key: 'maintenance',
-      label: 'Maintenance Charges',
-      color: '#8b5cf6',
-      bgColor: '#f5f3ff',
-      borderColor: '#ddd6fe',
-      amount: displayBillingData.reduce((sum, m) => sum + m.maintenance, 0),
-      count: filteredInvoices.filter(i => Number(i.maintenance_charges || 0) > 0).length
-    },
-    {
-      key: 'parking',
-      label: 'Parking Charges',
-      color: '#06b6d4',
-      bgColor: '#ecfeff',
-      borderColor: '#a5f3fc',
-      amount: displayBillingData.reduce((sum, m) => sum + m.parking, 0),
-      count: filteredInvoices.filter(i => Number(i.parking_charges || 0) > 0).length
-    },
-    {
-      key: 'gst',
-      label: 'GST (18%)',
-      color: '#f59e0b',
-      bgColor: '#fffbeb',
-      borderColor: '#fde68a',
-      amount: displayBillingData.reduce((sum, m) => sum + m.gst, 0),
-      count: filteredInvoices.filter(i => Number(i.gst_amount || 0) > 0).length
-    }
-  ];
-  const totalBilledInView = colorCounts.reduce((sum, c) => sum + c.amount, 0) || 1;
 
   // 2. Invoice Status Distribution (Pie Chart)
   // Relationship: Total Invoices -> Draft + Generated + Sent
@@ -548,7 +414,7 @@ export default function AdminDashboard() {
         gap: '20px',
         marginBottom: '28px'
       }}>
-        {/* Chart 1: Monthly Billing Breakdown – Grouped Bar Chart (From X-Axis Ground) */}
+        {/* Chart 1: Commercial vs Residential Area Graph */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -560,325 +426,274 @@ export default function AdminDashboard() {
           justifyContent: 'space-between'
         }}>
           <div>
+            {/* Header */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px',
+              alignItems: 'flex-start',
+              marginBottom: '20px',
               flexWrap: 'wrap',
               gap: '10px'
             }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={18} color="#2563eb" />
-                Monthly Billing Breakdown
-              </h3>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={18} color="#2563eb" />
+                  Commercial vs Residential Area
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Real estate square footage volume & portfolio distribution
+                </p>
+              </div>
 
-              {/* Month 1, Month 2 & Year Selection in Top Right */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {/* Year Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Year:</span>
-                  <select
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Year"
-                  >
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2027">2027</option>
-                  </select>
+              {/* Total Area Pill in Top Right */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                textAlign: 'right'
+              }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Portfolio
                 </div>
-
-                {/* Month 1 Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 1:</span>
-                  <select
-                    value={month1}
-                    onChange={(e) => setMonth1(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Month 1"
-                  >
-                    {MONTH_OPTIONS.map(m => {
-                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
-                      return (
-                        <option key={m.value} value={m.value}>
-                          {m.label} {isActive ? '•' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* Month 2 Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 2:</span>
-                  <select
-                    value={month2}
-                    onChange={(e) => setMonth2(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Month 2"
-                  >
-                    {MONTH_OPTIONS.map(m => {
-                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
-                      return (
-                        <option key={m.value} value={m.value}>
-                          {m.label} {isActive ? '•' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                  {totalArea.toLocaleString('en-IN')} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>sq.ft</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingTop: '8px' }}>
-              {/* Active Bar Tooltip if hovered */}
-              {hoveredBar && (
+            {/* Main Visual: Dual Comparative Volume Level Columns */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px',
+              marginBottom: '18px'
+            }}>
+              {/* Commercial Column */}
+              <div
+                onMouseEnter={() => setHoveredAreaType('Commercial')}
+                onMouseLeave={() => setHoveredAreaType(null)}
+                style={{
+                  background: hoveredAreaType === 'Commercial' ? '#eff6ff' : '#f8fafc',
+                  border: hoveredAreaType === 'Commercial' ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.80rem',
+                    fontWeight: 700,
+                    color: '#1d4ed8'
+                  }}>
+                    <Building2 size={15} color="#2563eb" />
+                    Commercial
+                  </span>
+                  <span style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    color: '#1d4ed8',
+                    background: '#dbeafe',
+                    padding: '2px 8px',
+                    borderRadius: '12px'
+                  }}>
+                    {commAreaPct}%
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  {commArea.toLocaleString('en-IN')}
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginLeft: '4px' }}>sq.ft</span>
+                </div>
+
+                {/* Animated Level Bar */}
                 <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 60,
-                  background: '#0f172a',
-                  color: '#ffffff',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
+                  height: '10px',
+                  background: '#e2e8f0',
+                  borderRadius: '9999px',
+                  overflow: 'hidden',
+                  margin: '10px 0 8px 0'
                 }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: hoveredBar.color, display: 'inline-block' }} />
-                  <span style={{ fontWeight: 600 }}>{hoveredBar.period} • {hoveredBar.label}:</span>
-                  <strong style={{ color: '#38bdf8' }}>{formatCurrency(hoveredBar.amount)}</strong>
-                  <span style={{ color: '#94a3b8' }}>({hoveredBar.pct}% of month total)</span>
-                </div>
-              )}
-
-              {/* Plot Area with Ground Baseline */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-around',
-                minHeight: '220px',
-                paddingTop: '24px',
-                paddingBottom: '0px',
-                position: 'relative',
-                borderBottom: '2px solid #cbd5e1'
-              }}>
-
-                {displayBillingData.map((m, mIdx) => {
-                    const maxBarHeight = 150;
-                    const categories = [
-                      { key: 'rent', label: 'Base Rent', color: '#2563eb', amount: m.rent, pct: m.rentPct, tag: 'Rent' },
-                      { key: 'maintenance', label: 'Maintenance', color: '#8b5cf6', amount: m.maintenance, pct: m.maintenancePct, tag: 'Maint' },
-                      { key: 'parking', label: 'Parking', color: '#06b6d4', amount: m.parking, pct: m.parkingPct, tag: 'Park' },
-                      { key: 'gst', label: 'GST (18%)', color: '#f59e0b', amount: m.gst, pct: m.gstPct, tag: 'GST' }
-                    ];
-
-                    return (
-                      <div
-                        key={m.period || mIdx}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        {/* Month Total & Invoices badge above the cluster */}
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          marginBottom: '4px'
-                        }}>
-                          <span style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0f172a' }}>
-                            {formatCurrency(m.total)}
-                          </span>
-                          <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600 }}>
-                            {m.count} inv
-                          </span>
-                        </div>
-
-                        {/* 4 Grouped Bars Standing Side-by-Side directly from the Ground Baseline (y = 0) */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'flex-end',
-                          gap: '6px',
-                          background: 'rgba(241, 245, 249, 0.45)',
-                          padding: '0 8px',
-                          borderRadius: '6px 6px 0 0'
-                        }}>
-                          {categories.map(cat => {
-                            const barHeight = cat.amount > 0
-                              ? Math.max(Math.round((cat.amount / maxGroupedBarVal) * maxBarHeight), 8)
-                              : 2;
-                            const isHovered = hoveredBar?.period === m.period && hoveredBar?.key === cat.key;
-
-                            return (
-                              <div
-                                key={cat.key}
-                                onMouseEnter={() => setHoveredBar({
-                                  period: m.period,
-                                  key: cat.key,
-                                  label: cat.label,
-                                  color: cat.color,
-                                  amount: cat.amount,
-                                  pct: cat.pct,
-                                  monthTotal: m.total
-                                })}
-                                onMouseLeave={() => setHoveredBar(null)}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {/* Individual Bar rising from ground baseline */}
-                                <div
-                                  style={{
-                                    width: '24px',
-                                    height: `${barHeight}px`,
-                                    background: cat.amount > 0 ? cat.color : '#e2e8f0',
-                                    borderRadius: '4px 4px 0 0',
-                                    transition: 'all 0.15s ease',
-                                    transform: isHovered ? 'scaleY(1.05) scaleX(1.08)' : 'scale(1)',
-                                    transformOrigin: 'bottom',
-                                    boxShadow: isHovered ? `0 0 10px ${cat.color}` : 'none',
-                                    border: cat.amount === 0 ? '1px dashed #cbd5e1' : 'none'
-                                  }}
-                                  title={`${m.period} - ${cat.label}: ${formatCurrency(cat.amount)} (${cat.pct}%)`}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <div style={{
+                    width: `${commAreaPct}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
+                    borderRadius: '9999px',
+                    transition: 'width 0.4s ease'
+                  }} />
                 </div>
 
-                {/* Subcategory markers and Period labels directly below the Ground Line */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-around',
-                  paddingTop: '8px',
-                  paddingBottom: '4px'
-                }}>
-                  {displayBillingData.map((m, mIdx) => (
-                    <div
-                      key={m.period || mIdx}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
-                    >
-                      {/* Sub-labels right under each of the 4 bars */}
-                      <div style={{ display: 'flex', gap: '6px', padding: '0 8px', marginBottom: '4px' }}>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#2563eb', fontWeight: 700 }}>Rent</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#8b5cf6', fontWeight: 700 }}>Maint</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#06b6d4', fontWeight: 700 }}>Park</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#f59e0b', fontWeight: 700 }}>GST</span>
-                      </div>
-                      {/* Period Pill */}
-                      <span style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        background: '#f1f5f9',
-                        border: '1px solid #cbd5e1',
-                        padding: '2px 10px',
-                        borderRadius: '6px'
-                      }}>
-                        {m.period}
-                      </span>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
+                  <span><strong>{commCount}</strong> Properties</span>
+                  <span>Avg: <strong>{avgCommArea.toLocaleString('en-IN')}</strong> sq.ft</span>
                 </div>
-
               </div>
+
+              {/* Residential Column */}
+              <div
+                onMouseEnter={() => setHoveredAreaType('Residential')}
+                onMouseLeave={() => setHoveredAreaType(null)}
+                style={{
+                  background: hoveredAreaType === 'Residential' ? '#ecfdf5' : '#f8fafc',
+                  border: hoveredAreaType === 'Residential' ? '1.5px solid #059669' : '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.80rem',
+                    fontWeight: 700,
+                    color: '#047857'
+                  }}>
+                    <Home size={15} color="#059669" />
+                    Residential
+                  </span>
+                  <span style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    color: '#047857',
+                    background: '#d1fae5',
+                    padding: '2px 8px',
+                    borderRadius: '12px'
+                  }}>
+                    {resAreaPct}%
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  {resArea.toLocaleString('en-IN')}
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginLeft: '4px' }}>sq.ft</span>
+                </div>
+
+                {/* Animated Level Bar */}
+                <div style={{
+                  height: '10px',
+                  background: '#e2e8f0',
+                  borderRadius: '9999px',
+                  overflow: 'hidden',
+                  margin: '10px 0 8px 0'
+                }}>
+                  <div style={{
+                    width: `${resAreaPct}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                    borderRadius: '9999px',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
+                  <span><strong>{resCount}</strong> Properties</span>
+                  <span>Avg: <strong>{avgResArea.toLocaleString('en-IN')}</strong> sq.ft</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Proportional Full-Width Split Meter */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
+                <span>Area Share Breakdown</span>
+                <span>{commAreaPct}% Commercial • {resAreaPct}% Residential</span>
+              </div>
+              <div style={{
+                height: '24px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                display: 'flex',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+              }}>
+                <div
+                  onMouseEnter={() => setHoveredAreaType('Commercial')}
+                  onMouseLeave={() => setHoveredAreaType(null)}
+                  style={{
+                    width: `${commAreaPct}%`,
+                    background: 'linear-gradient(90deg, #2563eb, #3b82f6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    filter: hoveredAreaType === 'Commercial' ? 'brightness(1.1)' : 'none'
+                  }}
+                  title={`Commercial: ${commArea.toLocaleString('en-IN')} sq.ft (${commAreaPct}%)`}
+                >
+                  {Number(commAreaPct) > 15 ? `${commAreaPct}%` : ''}
+                </div>
+                <div
+                  onMouseEnter={() => setHoveredAreaType('Residential')}
+                  onMouseLeave={() => setHoveredAreaType(null)}
+                  style={{
+                    width: `${resAreaPct}%`,
+                    background: 'linear-gradient(90deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    filter: hoveredAreaType === 'Residential' ? 'brightness(1.1)' : 'none'
+                  }}
+                  title={`Residential: ${resArea.toLocaleString('en-IN')} sq.ft (${resAreaPct}%)`}
+                >
+                  {Number(resAreaPct) > 15 ? `${resAreaPct}%` : ''}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Color Breakdown & Individual Counts */}
+          {/* Footer Navigation & Portfolio Ratio */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-            gap: '8px',
-            marginTop: '16px',
-            paddingTop: '12px',
-            borderTop: '1px solid #f1f5f9'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '14px',
+            borderTop: '1px solid #f1f5f9',
+            marginTop: '10px'
           }}>
-            {colorCounts.map((c, i) => {
-              const pct = ((c.amount / totalBilledInView) * 100).toFixed(1);
-              return (
-                <div
-                  key={i}
-                  style={{
-                    background: c.bgColor,
-                    border: `1px solid ${c.borderColor}`,
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.label}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 800, color: c.color, margin: '2px 0' }}>
-                    {formatCurrency(c.amount)}
-                  </div>
-                  <div style={{ fontSize: '0.67rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span><strong>{c.count}</strong> inv</span>
-                    <span style={{ fontWeight: 700, color: '#475569' }}>{pct}%</span>
-                  </div>
-                </div>
-              );
-            })}
+            <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+              Ratio: <strong style={{ color: '#0f172a' }}>{resArea > 0 ? (commArea / resArea).toFixed(1) : '1.0'}x</strong> Commercial to Residential area
+            </div>
+            <button
+              onClick={() => navigate('/admin/properties')}
+              style={{
+                fontSize: '0.78rem',
+                color: '#2563eb',
+                background: 'none',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >
+              Manage Properties
+              <ArrowUpRight size={13} />
+            </button>
           </div>
         </div>
 

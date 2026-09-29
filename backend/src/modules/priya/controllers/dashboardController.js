@@ -73,12 +73,33 @@ const getAdminDashboard = async (req, res) => {
       Sent: allInvoices.filter(i => i.status === 'Sent').length
     };
 
-    // Chart 3: Properties Overview (Commercial vs Residential)
+    // Chart 3: Properties Overview (Commercial vs Residential & Area sqft)
+    const getArea = (p) => Number(p.area_sqft || p.total_area || p.area || 0);
+    const commercialProps = allProperties.filter(p => (p.property_type || '').toLowerCase() === 'commercial');
+    const residentialProps = allProperties.filter(p => (p.property_type || '').toLowerCase() === 'residential');
+    const commercialAreaSqft = commercialProps.reduce((acc, curr) => acc + getArea(curr), 0);
+    const residentialAreaSqft = residentialProps.reduce((acc, curr) => acc + getArea(curr), 0);
+    const totalAreaSqft = commercialAreaSqft + residentialAreaSqft;
+
     const propertyTypeCounts = {
-      Commercial: allProperties.filter(p => p.property_type === 'Commercial').length,
-      Residential: allProperties.filter(p => p.property_type === 'Residential').length
+      Commercial: commercialProps.length,
+      Residential: residentialProps.length
     };
-    const totalAreaSqft = allProperties.reduce((acc, curr) => acc + Number(curr.area_sqft || 0), 0);
+
+    const propertyArea = {
+      commercialAreaSqft,
+      residentialAreaSqft,
+      totalAreaSqft,
+      commercialCount: commercialProps.length,
+      residentialCount: residentialProps.length,
+      properties: allProperties.map(p => ({
+        id: p.id,
+        name: p.property_name || p.name,
+        type: p.property_type,
+        area: getArea(p),
+        landlord: p.landlord_name
+      }))
+    };
 
     // Chart 4: Tenant Status Overview
     const tenantStatusCounts = {
@@ -121,6 +142,7 @@ const getAdminDashboard = async (req, res) => {
           invoiceStatus: invoiceStatusCounts,
           propertyTypes: propertyTypeCounts,
           totalAreaSqft,
+          propertyArea,
           tenantStatus: tenantStatusCounts,
           gstSummary: {
             taxableRent,
