@@ -402,44 +402,44 @@ export default function Invoices() {
         </div>
       )}
 
-      {/* 5 KPI Metric Summary Cards - One Row */}
+      {/* 5 KPI Metric Summary Cards - One Row with perfectly aligned numbers */}
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Matching Invoices</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>{kpis.matchingInvoices || 0}</div>
-          <div className="kpi-desc">Filtered records</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Matching Invoices</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>{kpis.matchingInvoices || 0}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Filtered records</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total Base Rent</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total Base Rent</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
             ₹{Math.round(kpis.totalBaseRent || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc">Sum of base rent</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sum of base rent</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Maintenance & Parking</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Maintenance & Parking</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
             ₹{Math.round(kpis.maintenanceParking || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc">Additional charges</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Additional charges</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total GST</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total GST</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
             ₹{Math.round(kpis.totalGst || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc">Tax component</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Tax component</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total Invoiced Amount</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total Invoiced Amount</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
             ₹{Math.round(kpis.totalInvoicedAmount || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc">Grand total value</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Grand total value</div>
         </div>
       </div>
 
