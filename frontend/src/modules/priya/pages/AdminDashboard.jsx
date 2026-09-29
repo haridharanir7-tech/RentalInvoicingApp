@@ -705,7 +705,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Invoice Status Distribution – Pie Chart */}
+        {/* Chart 2: Invoice Status Distribution – Pie Chart */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -717,7 +717,15 @@ export default function AdminDashboard() {
           justifyContent: 'space-between'
         }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Receipt size={18} color="#ea580c" />
@@ -727,111 +735,173 @@ export default function AdminDashboard() {
                   Total Invoices → Draft + Generated + Sent
                 </p>
               </div>
+
+              {/* Total Invoices Badge in Top Right */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                textAlign: 'right'
+              }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Invoices
+                </div>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                  {totalInvoicesCount} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Records</span>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '28px', flexWrap: 'wrap', minHeight: '210px' }}>
-              {/* Solid SVG Pie */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                <div style={{ position: 'relative', width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="180" height="180" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
-                    <filter id="invPieShadow" x="-10%" y="-10%" width="120%" height="120%">
-                      <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
-                    </filter>
-                    <g filter="url(#invPieShadow)">
-                      {invoiceSlices.map((slice) => {
-                        const isHovered = hoveredInvoiceIdx === slice.index;
-                        if (slice.isFullCircle) {
-                          return (
-                            <circle
-                              key={slice.index}
-                              cx="100"
-                              cy="100"
-                              r="78"
-                              fill={slice.color}
-                              stroke="#ffffff"
-                              strokeWidth="2.5"
-                              onMouseEnter={() => setHoveredInvoiceIdx(slice.index)}
-                              onMouseLeave={() => setHoveredInvoiceIdx(null)}
-                              style={{ cursor: 'pointer' }}
-                            />
-                          );
-                        }
-                        if (!slice.pathData) return null;
+            {/* Centered Solid SVG Pie */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '6px 0 10px 0',
+              minHeight: '175px'
+            }}>
+              <div style={{ position: 'relative', width: '170px', height: '170px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="170" height="170" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
+                  <filter id="invPieShadow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
+                  </filter>
+                  <g filter="url(#invPieShadow)">
+                    {invoiceSlices.map((slice) => {
+                      const isHovered = hoveredInvoiceIdx === slice.index;
+                      if (slice.isFullCircle) {
                         return (
-                          <path
+                          <circle
                             key={slice.index}
-                            d={slice.pathData}
+                            cx="100"
+                            cy="100"
+                            r="78"
                             fill={slice.color}
                             stroke="#ffffff"
                             strokeWidth="2.5"
-                            strokeLinejoin="round"
-                            opacity={hoveredInvoiceIdx !== null && !isHovered ? 0.65 : 1}
                             onMouseEnter={() => setHoveredInvoiceIdx(slice.index)}
                             onMouseLeave={() => setHoveredInvoiceIdx(null)}
-                            style={{
-                              cursor: 'pointer',
-                              transition: 'opacity 0.2s ease, transform 0.2s ease',
-                              transformOrigin: '100px 100px',
-                              transform: isHovered ? 'scale(1.04)' : 'scale(1)'
-                            }}
-                          >
-                            <title>{`${slice.label}: ${slice.value} invoices (${slice.percentage}%)`}</title>
-                          </path>
+                            style={{ cursor: 'pointer' }}
+                          />
                         );
-                      })}
-                    </g>
-                  </svg>
-                </div>
-                <div style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '4px 12px',
-                  fontSize: '0.74rem',
-                  color: '#475569',
-                  fontWeight: 600,
-                  textAlign: 'center'
-                }}>
-                  Total Invoices: <strong style={{ color: '#0f172a' }}>{totalInvoicesCount} Records</strong>
-                </div>
-              </div>
-
-              {/* Legend & Breakdown */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '200px' }}>
-                {invoiceSlices.map((item) => {
-                  const isHovered = hoveredInvoiceIdx === item.index;
-                  return (
-                    <div
-                      key={item.index}
-                      onMouseEnter={() => setHoveredInvoiceIdx(item.index)}
-                      onMouseLeave={() => setHoveredInvoiceIdx(null)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px 14px',
-                        background: isHovered ? '#eff6ff' : '#f8fafc',
-                        borderRadius: '8px',
-                        border: isHovered ? `1px solid ${item.color}` : '1px solid #f1f5f9',
-                        transition: 'all 0.15s ease',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: item.color, display: 'inline-block' }} />
-                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#334155' }}>{item.label}</span>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{item.value} records</div>
-                        <span style={{ fontSize: '0.72rem', color: isHovered ? item.color : '#64748b', fontWeight: 700 }}>
-                          {item.percentage}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                      }
+                      if (!slice.pathData) return null;
+                      return (
+                        <path
+                          key={slice.index}
+                          d={slice.pathData}
+                          fill={slice.color}
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                          strokeLinejoin="round"
+                          opacity={hoveredInvoiceIdx !== null && !isHovered ? 0.65 : 1}
+                          onMouseEnter={() => setHoveredInvoiceIdx(slice.index)}
+                          onMouseLeave={() => setHoveredInvoiceIdx(null)}
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s ease, transform 0.2s ease',
+                            transformOrigin: '100px 100px',
+                            transform: isHovered ? 'scale(1.04)' : 'scale(1)'
+                          }}
+                        >
+                          <title>{`${slice.label}: ${slice.value} invoices (${slice.percentage}%)`}</title>
+                        </path>
+                      );
+                    })}
+                  </g>
+                </svg>
               </div>
             </div>
+
+            {/* Breakdown Cards Placed at the Bottom */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: '10px',
+              marginTop: '10px',
+              paddingTop: '12px',
+              borderTop: '1px solid #f1f5f9'
+            }}>
+              {invoiceSlices.map((item) => {
+                const isHovered = hoveredInvoiceIdx === item.index;
+                return (
+                  <div
+                    key={item.index}
+                    onMouseEnter={() => setHoveredInvoiceIdx(item.index)}
+                    onMouseLeave={() => setHoveredInvoiceIdx(null)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      background: isHovered ? '#eff6ff' : '#f8fafc',
+                      borderRadius: '8px',
+                      border: isHovered ? `1.5px solid ${item.color}` : '1px solid #e2e8f0',
+                      transition: 'all 0.15s ease',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.label}
+                        </span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: isHovered ? item.color : '#64748b',
+                        background: isHovered ? '#ffffff' : '#e2e8f0',
+                        padding: '1px 5px',
+                        borderRadius: '10px',
+                        flexShrink: 0
+                      }}>
+                        {item.percentage}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                      {item.value} <span style={{ fontSize: '0.70rem', fontWeight: 600, color: '#64748b' }}>records</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Footer Navigation & Status Mix */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '14px',
+            borderTop: '1px solid #f1f5f9',
+            marginTop: '10px'
+          }}>
+            <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+              Status mix: <strong style={{ color: '#0f172a' }}>{draftInvoices} Draft</strong>, <strong style={{ color: '#0f172a' }}>{generatedInvoices} Generated</strong>, and <strong style={{ color: '#0f172a' }}>{sentInvoices} Sent</strong>
+            </div>
+            <button
+              onClick={() => navigate('/admin/invoices')}
+              style={{
+                fontSize: '0.78rem',
+                color: '#2563eb',
+                background: 'none',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >
+              View Invoices
+              <ArrowUpRight size={13} />
+            </button>
           </div>
         </div>
       </div>
