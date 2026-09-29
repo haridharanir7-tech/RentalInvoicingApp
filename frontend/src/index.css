@@ -346,19 +346,25 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
+  min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.35;
 }
 
 .kpi-value, .hd-kpi-value {
-  font-size: 1.65rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--primary-active);
   margin-bottom: 4px;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .kpi-desc, .hd-kpi-desc {
   font-size: 0.78rem;
   color: #94a3b8;
+  line-height: 1.2;
 }
 
 /* ----------------------------------------------------------------------------

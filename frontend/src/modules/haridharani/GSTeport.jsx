@@ -165,32 +165,32 @@ export default function GSTReport() {
         </div>
       </div>
 
-      {/* KPI Cards - Single Row */}
+      {/* KPI Cards - Single Row with perfectly aligned numbers */}
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total Taxable Value</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
-          <div className="kpi-desc">Rent & recurring charges</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total Taxable Value</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>₹{Math.round(totals.taxableValue).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Rent & recurring charges</div>
         </div>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total CGST (Central)</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
-          <div className="kpi-desc">Intra-state central share</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total CGST (Central)</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>₹{Math.round(totals.cgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Intra-state central share</div>
         </div>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total SGST (State)</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
-          <div className="kpi-desc">Intra-state state share</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total SGST (State)</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>₹{Math.round(totals.sgst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Intra-state state share</div>
         </div>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total IGST (Integrated)</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
-          <div className="kpi-desc">Inter-state integrated tax</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total IGST (Integrated)</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>₹{Math.round(totals.igst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Inter-state integrated tax</div>
         </div>
-        <div className="kpi-card" style={{ padding: '16px 18px' }}>
-          <div className="kpi-title">Total GST Liability</div>
-          <div className="kpi-value" style={{ fontSize: '1.5rem', whiteSpace: 'nowrap' }}>₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
-          <div className="kpi-desc">Cumulative tax collected</div>
+        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total GST Liability</div>
+          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>₹{Math.round(totals.totalGst).toLocaleString('en-IN')}</div>
+          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Cumulative tax collected</div>
         </div>
       </div>
 
