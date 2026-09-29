@@ -337,44 +337,6 @@ export default function AdminLandlords() {
         </div>
       )}
 
-      {successMsg && (
-        <div style={{
-          padding: '12px 16px',
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          color: '#15803d',
-          marginBottom: '20px',
-          fontSize: '0.85rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle size={16} />
-            <span>{successMsg}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessMsg('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#15803d',
-              cursor: 'pointer',
-              fontSize: '1.2rem',
-              lineHeight: 1,
-              padding: '0 4px',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            title="Dismiss message"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {/* Filter / Search Bar matching Property & Tenant modules */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
@@ -407,16 +369,16 @@ export default function AdminLandlords() {
 
       {/* Landlords Table Container */}
       <div className="table-container">
-        <table>
+        <table style={{ minWidth: '1050px' }}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Landlord Name</th>
-              <th>Contact Info</th>
-              <th>Tax Details</th>
-              <th style={{ textAlign: 'center', width: '110px' }}>Properties</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '220px' }}>Actions</th>
+              <th style={{ width: '5%', minWidth: '60px' }}>ID</th>
+              <th style={{ width: '12%', minWidth: '130px' }}>Landlord Name</th>
+              <th style={{ width: '15%', minWidth: '180px' }}>Contact Info</th>
+              <th style={{ width: '14%', minWidth: '160px' }}>Tax Details</th>
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '100px' }}>Properties</th>
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '90px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '34%', minWidth: '310px' }}>Actions</th>
             </tr>
           </thead>
             <tbody>

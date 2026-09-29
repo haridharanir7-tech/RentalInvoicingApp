@@ -826,7 +826,7 @@ export default function PropertyManagement() {
             <div style={{ marginTop: '25px', textAlign: 'right' }}>
               <button 
                 type="button" 
-                className="btn btn-secondary" 
+                className="btn btn-primary" 
                 onClick={() => { setViewProperty(null); setShowDocumentPreview(false); }}
               >
                 Close

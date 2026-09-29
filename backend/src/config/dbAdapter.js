@@ -369,6 +369,9 @@ const dbAdapter = {
             l.contact_details,
             l.email AS landlord_email,
             l.is_active,
+            l.gst_registered,
+            l.billing_address,
+            l.default_invoice_template,
             l.created_at,
             COALESCE(
               MAX(CASE WHEN UPPER(u.status) = 'PENDING' THEN 'PENDING' END),
@@ -383,7 +386,7 @@ const dbAdapter = {
           FROM landlords l
           LEFT JOIN users u ON u.landlord_id = l.id
           LEFT JOIN properties p ON p.landlord_id = l.id
-          GROUP BY l.id, l.name, l.pan, l.gstin, l.contact_details, l.email, l.is_active, l.created_at
+          GROUP BY l.id, l.name, l.pan, l.gstin, l.contact_details, l.email, l.is_active, l.gst_registered, l.billing_address, l.default_invoice_template, l.created_at
           ORDER BY 
             CASE WHEN COALESCE(MAX(CASE WHEN UPPER(u.status) = 'PENDING' THEN 'PENDING' END), '') = 'PENDING' THEN 1 ELSE 2 END,
             l.id DESC;
@@ -406,6 +409,9 @@ const dbAdapter = {
         contact_details: l.contact_details,
         landlord_email: l.email,
         is_active: l.is_active,
+        gst_registered: l.gst_registered,
+        billing_address: l.billing_address,
+        default_invoice_template: l.default_invoice_template,
         created_at: l.created_at || new Date().toISOString(),
         status: linkedUser ? linkedUser.status.toUpperCase() : (l.is_active ? 'ACTIVE' : 'INACTIVE'),
         email: linkedUser ? linkedUser.email : l.email,
