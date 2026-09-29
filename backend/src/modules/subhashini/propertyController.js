@@ -128,7 +128,14 @@ exports.getProperties = async (req, res) => {
         const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         const query = `
-            SELECT p.*, l.name as landlord_name, COUNT(*) OVER() as total_count 
+            SELECT p.*, l.name as landlord_name, 
+                   COALESCE(
+                       (SELECT json_agg(json_build_object('url', pd.document_url, 'name', pd.document_name, 'id', pd.id)) 
+                        FROM property_documents pd 
+                        WHERE pd.property_id = p.id), 
+                       '[]'::json
+                   ) as property_documents,
+                   COUNT(*) OVER() as total_count 
             FROM properties p
             LEFT JOIN landlords l ON p.landlord_id = l.id
             ${whereString}
@@ -173,6 +180,33 @@ exports.deleteProperty = async (req, res) => {
         
         res.json({ message: 'Property deleted successfully' });
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.uploadDocument = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        if (req.file.mimetype !== 'application/pdf' && !req.file.originalname.toLowerCase().endsWith('.pdf')) {
+            return res.status(400).json({ error: 'Invalid file format. Only PDF files are allowed.' });
+        }
+        
+        const document_name = req.file.originalname;
+        const document_url = '/uploads/properties/' + req.file.filename;
+        
+        // Insert new document (keeping old ones)
+        await db.query(
+            `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
+            [id, document_name, document_url]
+        );
+        
+        res.json({ message: 'Document uploaded successfully', document_url });
+    } catch (error) {
+        console.error('uploadDocument error:', error);
         res.status(500).json({ error: error.message });
     }
 };
