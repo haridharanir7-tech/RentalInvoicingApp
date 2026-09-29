@@ -483,14 +483,8 @@ export default function Invoices() {
         </div>
       )}
 
-      {/* 5 KPI Metric Summary Cards */}
+      {/* 4 KPI Metric Summary Cards */}
       <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-title">Matching Invoices</div>
-          <div className="kpi-value">{kpis.matchingInvoices || 0}</div>
-          <div className="kpi-desc">Filtered records</div>
-        </div>
-
         <div className="kpi-card">
           <div className="kpi-title">Total Base Rent</div>
           <div className="kpi-value">
@@ -526,21 +520,21 @@ export default function Invoices() {
 
       {/* Invoices Table */}
       <div className="table-container">
-        <table>
+        <table style={{ minWidth: '1500px' }}>
           <thead>
             <tr>
-              <th>Invoice No</th>
-              <th>Date</th>
-              <th>Period</th>
-              <th>Landlord</th>
-              <th>Property</th>
-                <th>Tenant</th>
-              <th>Rent</th>
-              <th>Charges</th>
-              <th>GST</th>
-              <th>Total Amount</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              <th style={{ textAlign: "center", width: "120px" }}>Actions</th>
+              <th style={{ minWidth: '130px' }}>Invoice No</th>
+              <th style={{ minWidth: '110px' }}>Date</th>
+              <th style={{ minWidth: '90px' }}>Period</th>
+              <th style={{ minWidth: '140px' }}>Landlord</th>
+              <th style={{ minWidth: '160px' }}>Property</th>
+              <th style={{ minWidth: '120px' }}>Tenant</th>
+              <th style={{ minWidth: '120px' }}>Rent</th>
+              <th style={{ minWidth: '110px' }}>Charges</th>
+              <th style={{ minWidth: '120px' }}>GST</th>
+              <th style={{ minWidth: '140px' }}>Total Amount</th>
+              <th style={{ textAlign: 'center', minWidth: '140px' }}>Status</th>
+              <th style={{ textAlign: 'center', minWidth: '200px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -565,23 +559,23 @@ export default function Invoices() {
 
                 return (
                   <tr key={inv.invoice_id}>
-                    <td>
+                    <td className="cell-nowrap">
                       <span style={{ fontWeight: 700, color: '#2563eb', fontFamily: 'monospace' }}>
                         {inv.invoice_number}
                       </span>
                     </td>
-                    <td>{inv.invoice_date}</td>
-                    <td>{inv.billing_period}</td>
+                    <td className="cell-nowrap">{inv.invoice_date}</td>
+                    <td className="cell-nowrap">{inv.billing_period}</td>
                     <td style={{ fontWeight: 600 }}>{inv.landlord_name}</td>
                     <td>{inv.property_name}</td>
-                      <td>
-                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
-                      </td>
-                    <td style={{ fontWeight: 500 }}>
+                    <td>
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                    </td>
+                    <td className="cell-currency" style={{ fontWeight: 500 }}>
                       ₹{parseFloat(inv.rent_amount).toLocaleString('en-IN')}
                     </td>
-                    <td>₹{charges.toLocaleString('en-IN')}</td>
-                    <td>
+                    <td className="cell-currency">₹{charges.toLocaleString('en-IN')}</td>
+                    <td className="cell-currency">
                       {inv.gst_amount > 0 ? (
                         <div>
                           <div>₹{parseFloat(inv.gst_amount).toLocaleString('en-IN')}</div>
@@ -591,10 +585,10 @@ export default function Invoices() {
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>0%</span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 700, color: '#1e40af' }}>
+                    <td className="cell-currency" style={{ fontWeight: 700, color: '#1e40af' }}>
                       ₹{parseFloat(inv.total_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {isLandlord ? (
                         <span
                           style={{
@@ -662,7 +656,7 @@ export default function Invoices() {
                         </select>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {inv.status === 'Draft' ? (
                             !isLandlord ? (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
