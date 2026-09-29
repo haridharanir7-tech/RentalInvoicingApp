@@ -502,7 +502,75 @@ export default function AdminLandlords() {
 
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          
+                          {/* Approve for Pending */}
+                          {isPending && (
+                            <button
+                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
+                              title="Approve Landlord Account"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 12px',
+                                background: '#16a34a',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <ShieldCheck size={13} />
+                              Approve
+                            </button>
+                          )}
+
+                          {/* Deactivate for Active */}
+                          {isActive && (
+                            <button
+                              onClick={() => handleStatusChange(l.id, 'INACTIVE')}
+                              title="Deactivate Account"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Deactivate
+                            </button>
+                          )}
+
+                          {/* Activate for Inactive */}
+                          {isInactive && (
+                            <button
+                              onClick={() => handleStatusChange(l.id, 'ACTIVE')}
+                              title="Activate Account"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
+                                background: '#ecfdf5',
+                                color: '#047857',
+                                border: '1px solid #a7f3d0',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Activate
+                            </button>
+                          )}
 
                           {/* Create Login / Reset Credentials button */}
                           <button
