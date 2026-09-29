@@ -28,11 +28,12 @@ export default function PropertyManagement() {
   };
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !uploadingId) return;
+    const files = Array.from(e.target.files);
+    if (!files.length || !uploadingId) return;
 
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Invalid file format. Only PDF files are allowed.');
+    const invalidFiles = files.filter(f => f.size > 250 * 1024);
+    if (invalidFiles.length > 0) {
+      alert('One or more files exceed the 250KB size limit.');
       setUploadingId(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -42,7 +43,9 @@ export default function PropertyManagement() {
 
     try {
       const uploadData = new FormData();
-      uploadData.append('property_document', file);
+      files.forEach(file => {
+        uploadData.append('property_documents', file);
+      });
 
       const res = await fetch(`/api/master-data/properties/${uploadingId}/document`, {
         method: 'POST',
@@ -50,10 +53,10 @@ export default function PropertyManagement() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to upload document');
+        throw new Error('Failed to upload document(s)');
       }
 
-      alert('Document uploaded successfully!');
+      alert('Document(s) uploaded successfully!');
       fetchProperties(); // Refresh the list
     } catch (err) {
       alert(err.message);
@@ -85,6 +88,36 @@ export default function PropertyManagement() {
     } catch (error) {
       console.error('Download failed:', error);
       window.open(url, '_blank');
+    }
+  };
+
+  const handleDeleteDocument = async (propertyId, docId) => {
+    if (!window.confirm("Are you sure you want to delete this document?")) return;
+    try {
+      const res = await fetch(`/api/master-data/properties/${propertyId}/document/${docId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        alert('Document deleted successfully!');
+        if (viewProperty && viewProperty.id === propertyId) {
+          setViewProperty(prev => ({
+            ...prev,
+            property_documents: prev.property_documents.filter(d => d.id !== docId)
+          }));
+        }
+        fetchProperties(); // refresh backend list
+      } else {
+        let errorMsg = 'Failed to delete document';
+        try {
+          const err = await res.json();
+          errorMsg = err.error || errorMsg;
+        } catch (e) {
+          errorMsg = `Server returned ${res.status}: ${res.statusText}. Please ensure the backend server is restarted to apply new routes.`;
+        }
+        alert(errorMsg);
+      }
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -219,7 +252,8 @@ export default function PropertyManagement() {
       property_type: property.property_type || 'Commercial',
       total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : '',
       is_active: property.is_active !== false,
-      property_document: null
+      property_documents: [],
+      existing_documents: property.property_documents || []
     });
     setEditingId(property.id);
     setSuccess('');
@@ -271,8 +305,10 @@ export default function PropertyManagement() {
         formDataToSend.append('total_area', parseFloat(formData.total_area));
       }
       formDataToSend.append('is_active', formData.is_active !== false);
-      if (formData.property_document) {
-        formDataToSend.append('property_document', formData.property_document);
+      if (formData.property_documents && formData.property_documents.length > 0) {
+        formData.property_documents.forEach(doc => {
+          formDataToSend.append('property_documents', doc);
+        });
       }
 
       const res = await fetch(url, {
@@ -290,7 +326,7 @@ export default function PropertyManagement() {
       }
       
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
-      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_document: null });
+      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_documents: [] });
       setEditingId(null);
       fetchProperties();
       setTimeout(() => setShowForm(false), 1200);
@@ -312,7 +348,7 @@ export default function PropertyManagement() {
           {!isLandlord && (<button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', property_document: null });
+            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', property_documents: [] });
             setSuccess('');
             setError('');
           }}>
@@ -409,26 +445,59 @@ export default function PropertyManagement() {
 
               <div className="flex-row">
                 <div className="form-group flex-1">
-                  <label>Document File (Optional)</label>
+                  <label>Document Files (Optional)</label>
                   <input 
                     type="file" 
                     className="form-input" 
-                    name="property_document" 
-                    accept=".pdf"
+                    name="property_documents" 
+                    multiple
                     onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file && file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-                        alert('Invalid file format. Only PDF files are allowed.');
+                      const files = Array.from(e.target.files);
+                      const invalidFiles = files.filter(f => f.size > 250 * 1024);
+                      if (invalidFiles.length > 0) {
+                        alert('One or more files exceed the 250KB size limit.');
                         e.target.value = '';
                         return;
                       }
-                      handleChange(e);
+                      setFormData(prev => {
+                        const existingFiles = prev.property_documents || [];
+                        return { ...prev, property_documents: [...existingFiles, ...files] };
+                      });
                     }} 
                   />
-                  {formData.property_document ? (
-                    <div style={{ fontSize: '0.85rem', color: '#16a34a', marginTop: '6px' }}>✓ File chosen: {formData.property_document.name}</div>
+                  {formData.property_documents && formData.property_documents.length > 0 ? (
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#16a34a', marginBottom: '8px', fontWeight: 600 }}>✓ {formData.property_documents.length} File(s) chosen for upload:</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {formData.property_documents.map((file, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%' }}>{file.name}</span>
+                            <button type="button" onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                property_documents: prev.property_documents.filter((_, i) => i !== idx)
+                              }));
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>&times;</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : editingId ? (
-                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '6px' }}>Leave empty to keep existing documents. Note: Edit form will not pre-fill previously uploaded files.</div>
+                    <div>
+                      {formData.existing_documents && formData.existing_documents.length > 0 && (
+                        <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+                          <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '8px', fontWeight: 600 }}>Previously Uploaded Documents:</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {formData.existing_documents.map((doc, idx) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%' }}>{doc.name || doc.url?.split('/').pop()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '6px' }}>Leave empty to keep existing documents. Choosing new files will add to the existing ones.</div>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -456,7 +525,6 @@ export default function PropertyManagement() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -468,6 +536,7 @@ export default function PropertyManagement() {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
       
@@ -475,12 +544,12 @@ export default function PropertyManagement() {
         <table style={{ tableLayout: 'fixed', width: '100%', minWidth: '1000px' }}>
           <thead>
             <tr>
-              <th style={{ width: '6%' }}>ID</th>
-              <th style={{ width: '28%' }}>Property Name</th>
-              <th style={{ width: '18%' }}>Type & Area</th>
-              {!isLandlord && <th style={{ width: '18%' }}>Landlord</th>}
-              <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '20%' }}>{isLandlord ? 'View Details' : 'Actions'}</th>
+              <th style={{ width: '6%', minWidth: '60px' }}>ID</th>
+              <th style={{ width: isLandlord ? '38%' : '30%', minWidth: '200px' }}>Property Name</th>
+              <th style={{ width: isLandlord ? '26%' : '16%', minWidth: '150px' }}>Type & Area</th>
+              {!isLandlord && <th style={{ width: '12%', minWidth: '120px' }}>Landlord</th>}
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '90px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: isLandlord ? '20%' : '26%', minWidth: '240px' }}>{isLandlord ? 'View Details' : 'Actions'}</th>
             </tr>
           </thead>
           <tbody>
@@ -514,6 +583,25 @@ export default function PropertyManagement() {
                     {isLandlord ? (
                       <>
                         <button
+                          onClick={() => handleDocumentUploadClick(p.id)}
+                          title="Upload/Update Document"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #dbeafe',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Upload size={16} />
+                        </button>
+                        <button
                           className="action-btn-view"
                           onClick={() => { setViewProperty(p); setShowDocumentPreview(false); setViewingDoc(null); }}
                           title="View Details"
@@ -533,28 +621,9 @@ export default function PropertyManagement() {
                         >
                           <Eye size={16} />
                         </button>
-                        <button
-                          onClick={() => handleDocumentUploadClick(p.id)}
-                          title="Upload/Update Document"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #dbeafe',
-                            background: '#eff6ff',
-                            color: '#2563eb',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Upload size={16} />
-                        </button>
                       </>
                     ) : (
-                      <>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                         <button
                           className="action-btn-edit"
                           onClick={() => handleEdit(p)}
@@ -597,7 +666,29 @@ export default function PropertyManagement() {
                           <Trash2 size={14} />
                           Delete
                         </button>
-                      </  >
+                        <button
+                          onClick={() => {
+                            setViewProperty(p);
+                            setShowViewModal(true);
+                          }}
+                          title="View Details"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#0f172a',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
@@ -616,7 +707,7 @@ export default function PropertyManagement() {
         type="file" 
         ref={fileInputRef} 
         style={{ display: 'none' }} 
-        accept=".pdf"
+        multiple
         onChange={handleFileChange} 
       />
 
@@ -708,23 +799,42 @@ export default function PropertyManagement() {
                                   </button>
                                 </td>
                                 <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', verticalAlign: 'middle' }}>
-                                  <button
-                                    onClick={() => handleDownload(`http://localhost:5000${encodeURI(doc.url)}`)}
-                                    title="Download Document"
-                                    style={{
-                                      background: '#eff6ff',
-                                      border: '1px solid #dbeafe',
-                                      color: '#2563eb',
-                                      padding: '8px',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}
-                                  >
-                                    <Download size={18} />
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                    <button
+                                      onClick={() => handleDownload(encodeURI(doc.url))}
+                                      title="Download Document"
+                                      style={{
+                                        background: '#eff6ff',
+                                        border: '1px solid #dbeafe',
+                                        color: '#2563eb',
+                                        padding: '8px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                    >
+                                      <Download size={18} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteDocument(viewProperty.id, doc.id)}
+                                      title="Delete Document"
+                                      style={{
+                                        background: '#fef2f2',
+                                        border: '1px solid #fee2e2',
+                                        color: '#ef4444',
+                                        padding: '8px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -766,7 +876,7 @@ export default function PropertyManagement() {
                             <p>Failed to parse document preview.</p>
                             <button
                               className="btn btn-secondary"
-                              onClick={() => handleDownload(`http://localhost:5000${encodeURI(viewingDoc.url)}`)}
+                              onClick={() => handleDownload(encodeURI(viewingDoc.url))}
                             >
                               Download to View
                             </button>
@@ -786,7 +896,7 @@ export default function PropertyManagement() {
                         </p>
                         <button
                           className="btn btn-primary"
-                          onClick={() => handleDownload(`http://localhost:5000${encodeURI(viewingDoc?.url || '')}`)}
+                          onClick={() => handleDownload(encodeURI(viewingDoc?.url || ''))}
                         >
                           <Download size={16} style={{ marginRight: '8px' }} /> Download to View
                         </button>
@@ -800,7 +910,7 @@ export default function PropertyManagement() {
             <div style={{ marginTop: '25px', textAlign: 'right' }}>
               <button 
                 type="button" 
-                className="btn btn-secondary" 
+                className="btn btn-primary" 
                 onClick={() => { setViewProperty(null); setShowDocumentPreview(false); }}
               >
                 Close

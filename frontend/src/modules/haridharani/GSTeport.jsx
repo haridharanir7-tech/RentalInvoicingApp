@@ -3,7 +3,7 @@ import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import { BarChart3, FileSpreadsheet, User, Calendar, Download, Printer, Info } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/haridharani';
+const API_BASE = '/api/haridharani';
 
 export default function GSTReport() {
   const { user, isLandlord } = useAuth();

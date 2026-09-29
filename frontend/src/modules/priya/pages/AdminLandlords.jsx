@@ -70,10 +70,21 @@ export default function AdminLandlords() {
       return;
     }
 
+    // Email validation
+    const emailStr = (addFormData.email || '').trim();
+    if (!emailStr) {
+      setError('Email Address is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     // Contact Phone validation: must be digits only and exactly 10 digits
     const cleanPhone = (addFormData.contact_details || '').trim();
     if (cleanPhone && !/^[0-9]{10}$/.test(cleanPhone)) {
-      setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets or special characters).');
+      setError('Contact Details must be exactly 10 digits (numbers only, no alphabets or special characters).');
       return;
     }
 
@@ -203,13 +214,7 @@ export default function AdminLandlords() {
   const openAccessModal = (landlord) => {
     setSelectedLandlord(landlord);
     setAccessEmail(landlord.email || landlord.landlord_email || '');
-    // Generate secure 10-char random temporary password
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-    let pass = '';
-    for (let i = 0; i < 10; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setAccessPassword(pass);
+    setAccessPassword('Welcome@123');
     setGeneratedTempPass('');
     setCopied(false);
     setAccessModalOpen(true);
@@ -251,10 +256,10 @@ export default function AdminLandlords() {
   // Filtered Landlords list
   const filteredLandlords = landlords.filter((l) => {
     const matchesSearch =
-      (l.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.pan || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.contact_details || '').includes(search);
+      (l.name || '').toLowerCase().includes(appliedSearch.toLowerCase()) ||
+      (l.email || '').toLowerCase().includes(appliedSearch.toLowerCase()) ||
+      (l.pan || '').toLowerCase().includes(appliedSearch.toLowerCase()) ||
+      (l.contact_details || '').includes(appliedSearch);
 
     const statusUpper = (l.status || '').toUpperCase();
     if (filterTab === 'PENDING') return matchesSearch && statusUpper === 'PENDING';
@@ -343,44 +348,6 @@ export default function AdminLandlords() {
         </div>
       )}
 
-      {successMsg && (
-        <div style={{
-          padding: '12px 16px',
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          borderRadius: '8px',
-          color: '#15803d',
-          marginBottom: '20px',
-          fontSize: '0.85rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle size={16} />
-            <span>{successMsg}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessMsg('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#15803d',
-              cursor: 'pointer',
-              fontSize: '1.2rem',
-              lineHeight: 1,
-              padding: '0 4px',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            title="Dismiss message"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {/* Filter / Search Bar matching Property & Tenant modules */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
@@ -395,7 +362,6 @@ export default function AdminLandlords() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setPage(1); }} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -403,26 +369,27 @@ export default function AdminLandlords() {
             onChange={(e) => { setFilterTab(e.target.value); setPage(1); }}
             style={{ width: '150px' }}
           >
-            <option value="ALL">All Statuses ({landlords.length})</option>
-            <option value="ACTIVE">Active ({landlords.filter(l => (l.status || '').toUpperCase() === 'ACTIVE').length})</option>
-            <option value="PENDING">Pending ({pendingCount})</option>
-            <option value="INACTIVE">Inactive ({landlords.filter(l => (l.status || '').toUpperCase() === 'INACTIVE').length})</option>
+            <option value="ALL">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PENDING">Pending</option>
+            <option value="INACTIVE">Inactive</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={() => { setSearch(''); setAppliedSearch(''); setFilterTab('ALL'); setPage(1); fetchLandlords(); }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
 
       {/* Landlords Table Container */}
       <div className="table-container">
-        <table>
+        <table style={{ minWidth: '1050px' }}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Landlord Name</th>
-              <th>Contact Info</th>
-              <th>Tax Details</th>
-              <th style={{ textAlign: 'center', width: '110px' }}>Properties</th>
-              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '220px' }}>Actions</th>
+              <th style={{ width: '5%', minWidth: '60px' }}>ID</th>
+              <th style={{ width: '12%', minWidth: '130px' }}>Landlord Name</th>
+              <th style={{ width: '15%', minWidth: '180px' }}>Contact Info</th>
+              <th style={{ width: '14%', minWidth: '160px' }}>Tax Details</th>
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '100px' }}>Properties</th>
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '90px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '34%', minWidth: '310px' }}>Actions</th>
             </tr>
           </thead>
             <tbody>
@@ -444,21 +411,29 @@ export default function AdminLandlords() {
                   const isPending = statusUpper === 'PENDING';
                   const isActive = statusUpper === 'ACTIVE';
                   const isInactive = statusUpper === 'INACTIVE';
-                  const hasUserAccount = !!l.user_id || !!l.email;
+                  const hasUserAccount = !!l.user_id;
 
                   return (
                     <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '14px 16px', color: '#64748b', fontWeight: 600 }}>
-                        #{l.id}
+                      <td style={{ padding: '14px 16px' }}>
+                        {l.id}
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{l.name}</div>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{l.name}</div>
                         
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ color: '#1e293b', fontSize: '0.82rem' }}>{l.email || l.landlord_email || 'No email registered'}</div>
+                        <a 
+                          href={`mailto:${l.email || l.landlord_email}`}
+                          title={l.email || l.landlord_email || 'No email registered'}
+                          style={{ color: '#1e293b', fontSize: '0.82rem', textDecoration: 'none' }}
+                          onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                        >
+                          {l.email || l.landlord_email || 'No email registered'}
+                        </a>
                         <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{l.contact_details || 'No phone'}</div>
                       </td>
 
@@ -726,7 +701,7 @@ export default function AdminLandlords() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Landlord ID:</span>
-                <strong>#{selectedLandlord.id}</strong>
+                <strong>{selectedLandlord.id}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Account Status:</span>
@@ -807,7 +782,7 @@ export default function AdminLandlords() {
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#16a34a' }}>LOGIN ACCESS CONTROL</span>
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
-                  Enable Login Access: {selectedLandlord.name}
+                  {!!selectedLandlord.user_id ? 'Manage Login Access:' : 'Enable Login Access:'} {selectedLandlord.name}
                 </h2>
               </div>
               <button
@@ -818,7 +793,44 @@ export default function AdminLandlords() {
               </button>
             </div>
 
-            {generatedTempPass ? (
+            {!!selectedLandlord.user_id ? (
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+                  <XCircle size={28} color="#dc2626" />
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#b91c1c', margin: '0 0 8px 0' }}>
+                  Login Access Active
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 16px 0' }}>
+                  This landlord currently has an active login account. You can remove their access below.
+                </p>
+                <button
+                  onClick={async () => {
+                    if(window.confirm('Are you sure you want to remove login access for this landlord?')) {
+                      try {
+                        await adminLandlordApi.removeAccess(selectedLandlord.id);
+                        fetchLandlords();
+                        setAccessModalOpen(false);
+                      } catch (e) {
+                        alert('Failed to remove access');
+                      }
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Remove Access
+                </button>
+              </div>
+            ) : generatedTempPass ? (
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
                   <CheckCircle size={28} color="#16a34a" />
@@ -895,7 +907,7 @@ export default function AdminLandlords() {
                     <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>
                       Secure Temporary Password *
                     </label>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Auto-generated random</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Default password</span>
                   </div>
                   <input
                     type="text"
@@ -985,9 +997,6 @@ export default function AdminLandlords() {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                   {addFormData.id ? 'Edit Landlord' : 'Add New Landlord'}
                 </h3>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  {addFormData.id ? 'Update landlord record and invoice preferences' : 'Create a new landlord record in the database'}
-                </p>
               </div>
               <button
                 type="button"
@@ -1068,10 +1077,11 @@ export default function AdminLandlords() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Email Address
+                    Email Address *
                   </label>
                   <input
                     type="email"
+                    required
                     value={addFormData.email}
                     onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
                     placeholder="landlord@example.com"
@@ -1084,10 +1094,21 @@ export default function AdminLandlords() {
                       boxSizing: 'border-box'
                     }}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3px' }}>
+                    {addFormData.email && (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 600,
+                        color: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addFormData.email.trim()) ? '#16a34a' : '#e11d48' 
+                      }}>
+                        {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addFormData.email.trim()) ? 'Valid email' : 'Invalid format'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Contact Phone
+                    Contact Details
                   </label>
                   <input
                     type="tel"
@@ -1109,7 +1130,6 @@ export default function AdminLandlords() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Only 10 digits (no alphabets)
                     </span>
                     {addFormData.contact_details && (
                       <span style={{ 
@@ -1150,7 +1170,6 @@ export default function AdminLandlords() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Format: ABCDE1234F (Optional)
                     </span>
                     {addFormData.pan && (
                       <span style={{ 
@@ -1188,7 +1207,6 @@ export default function AdminLandlords() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Alphanumeric format (e.g. 33AAAAA0000A1Z5)
                     </span>
                     {addFormData.gstin && (
                       <span style={{ 
@@ -1266,11 +1284,6 @@ export default function AdminLandlords() {
                     </option>
                   )}
                 </select>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
-                  {templatesList.length > 0
-                    ? `Loaded ${templatesList.length} templates from database`
-                    : 'Fetching invoice templates from database...'}
-                </div>
               </div>
 
                 <div style={{ marginBottom: '20px' }}>
@@ -1327,7 +1340,7 @@ export default function AdminLandlords() {
                     fontSize: '0.84rem'
                   }}
                 >
-                  {addingLandlord ? 'Saving...' : (addFormData.id ? 'Save Changes' : 'Add Landlord')}
+                  {addingLandlord ? 'Saving...' : (addFormData.id ? 'Save Landlord' : 'Add Landlord')}
                 </button>
               </div>
             </form>
