@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 function money(val) {
   return `₹${Number(val || 0).toLocaleString("en-IN", {
@@ -50,18 +50,27 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
   const rent = parseFloat(invoice?.rent_amount || 0);
   const maint = parseFloat(invoice?.maintenance_charges || 0);
   const parking = parseFloat(invoice?.parking_charges || 0);
-  const additional = parseFloat(invoice?.additional_charges || 0);
-  
-  const taxable = rent + maint + parking + additional;
-  
+  // NOTE: additional_charges in DB = maintenance + parking (it is a derived/redundant field).
+  // Do NOT include it again - taxable = rent + maint + parking only.
+
+  // Use taxable_amount from DB if available (authoritative server-computed value).
+  // Falls back to rent + maint + parking if taxable_amount is not stored.
+  const taxable = invoice?.taxable_amount != null
+    ? parseFloat(invoice.taxable_amount)
+    : rent + maint + parking;
+
   const gstRate = parseFloat(invoice?.gst_rate || 0);
   const isInterState = invoice?.tax_supply_type === 'inter_state';
-  
+
+  // Use stored GST component amounts from DB (server calculated correctly).
   const cgst = isInterState ? 0 : parseFloat(invoice?.cgst_amount || 0);
   const sgst = isInterState ? 0 : parseFloat(invoice?.sgst_amount || 0);
   const igst = isInterState ? parseFloat(invoice?.igst_amount || 0) : 0;
-  
-  const total = taxable + cgst + sgst + igst;
+
+  // Use total_amount from DB if available (authoritative), else compute.
+  const total = invoice?.total_amount != null
+    ? parseFloat(invoice.total_amount)
+    : taxable + cgst + sgst + igst;
   const totalWords = numberToIndianWords(Math.round(total));
 
   return (
@@ -365,8 +374,7 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
              <tr style={{ borderBottom: `2px solid ${currentAccent}` }}>
                <th style={{ width: "24px" }}>#</th>
                <th>DESCRIPTION</th>
-               <th style={{ width: "80px", textAlign: "center" }}>SAC</th>
-               <th style={{ width: "110px", textAlign: "right" }}>AMOUNT (₹)</th>
+               <th style={{ width: "120px", textAlign: "right" }}>AMOUNT (₹)</th>
              </tr>
            </thead>
            <tbody>
@@ -379,7 +387,6 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
                      Rental fee for period {billingPeriod}
                    </div>
                  </td>
-                 <td style={{ textAlign: "center" }}>997212</td>
                  <td className="col-amount">{money(rent)}</td>
                </tr>
              )}
@@ -389,7 +396,6 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
                  <td>
                    <strong>Common Area Maintenance (CAM)</strong>
                  </td>
-                 <td style={{ textAlign: "center" }}>997212</td>
                  <td className="col-amount">{money(maint)}</td>
                </tr>
              )}
@@ -399,7 +405,6 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
                  <td>
                    <strong>Parking Charges</strong>
                  </td>
-                 <td style={{ textAlign: "center" }}>997212</td>
                  <td className="col-amount">{money(parking)}</td>
                </tr>
              )}
