@@ -500,12 +500,12 @@ export default function PropertyManagement() {
         <table style={{ tableLayout: 'fixed', width: '100%', minWidth: '1000px' }}>
           <thead>
             <tr>
-              <th style={{ width: '6%' }}>ID</th>
-              <th style={{ width: '28%' }}>Property Name</th>
-              <th style={{ width: '18%' }}>Type & Area</th>
-              {!isLandlord && <th style={{ width: '18%' }}>Landlord</th>}
-              <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '20%' }}>{isLandlord ? 'View Details' : 'Actions'}</th>
+              <th style={{ width: '6%', minWidth: '60px' }}>ID</th>
+              <th style={{ width: isLandlord ? '38%' : '28%', minWidth: '200px' }}>Property Name</th>
+              <th style={{ width: isLandlord ? '26%' : '18%', minWidth: '150px' }}>Type & Area</th>
+              {!isLandlord && <th style={{ width: '18%', minWidth: '150px' }}>Landlord</th>}
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '90px' }}>Status</th>
+              <th style={{ textAlign: 'center', width: '20%', minWidth: '150px' }}>{isLandlord ? 'View Details' : 'Actions'}</th>
             </tr>
           </thead>
           <tbody>

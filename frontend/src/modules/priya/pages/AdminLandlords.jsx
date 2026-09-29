@@ -70,10 +70,21 @@ export default function AdminLandlords() {
       return;
     }
 
+    // Email validation
+    const emailStr = (addFormData.email || '').trim();
+    if (!emailStr) {
+      setError('Email Address is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     // Contact Phone validation: must be digits only and exactly 10 digits
     const cleanPhone = (addFormData.contact_details || '').trim();
     if (cleanPhone && !/^[0-9]{10}$/.test(cleanPhone)) {
-      setError('Contact Phone must be exactly 10 digits (numbers only, no alphabets or special characters).');
+      setError('Contact Details must be exactly 10 digits (numbers only, no alphabets or special characters).');
       return;
     }
 
@@ -1001,10 +1012,11 @@ export default function AdminLandlords() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Email Address
+                    Email Address *
                   </label>
                   <input
                     type="email"
+                    required
                     value={addFormData.email}
                     onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
                     placeholder="landlord@example.com"
@@ -1017,10 +1029,21 @@ export default function AdminLandlords() {
                       boxSizing: 'border-box'
                     }}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3px' }}>
+                    {addFormData.email && (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 600,
+                        color: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addFormData.email.trim()) ? '#16a34a' : '#e11d48' 
+                      }}>
+                        {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addFormData.email.trim()) ? 'Valid email' : 'Invalid format'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                    Contact Phone
+                    Contact Details
                   </label>
                   <input
                     type="tel"
