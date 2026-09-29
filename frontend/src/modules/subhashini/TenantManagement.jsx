@@ -335,7 +335,7 @@ export default function TenantManagement() {
               <th style={{ width: '23%' }}>Property</th>
               <th style={{ width: '18%' }}>Lease Period</th>
               <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>
+              {!isLandlord && <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>

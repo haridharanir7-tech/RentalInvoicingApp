@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect, useRef } from 'react'; 
 import { useAuth } from '../priya/context/AuthContext';
-import { Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, XCircle, Eye, Download, Upload } from 'lucide-react';
+import JSZip from 'jszip';
 
 export default function PropertyManagement() {
   const { user, isLandlord } = useAuth();
@@ -14,6 +15,142 @@ export default function PropertyManagement() {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [viewProperty, setViewProperty] = useState(null);
+  
+  const [uploadingId, setUploadingId] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleDocumentUploadClick = (id) => {
+    setUploadingId(id);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !uploadingId) return;
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Invalid file format. Only PDF files are allowed.');
+      setUploadingId(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append('property_document', file);
+
+      const res = await fetch(`/api/master-data/properties/${uploadingId}/document`, {
+        method: 'POST',
+        body: uploadData
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to upload document');
+      }
+
+      alert('Document uploaded successfully!');
+      fetchProperties(); // Refresh the list
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploadingId(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Reset input
+      }
+    }
+  };
+
+  const [odtText, setOdtText] = useState('');
+  const [odtLoading, setOdtLoading] = useState(false);
+  const [odtError, setOdtError] = useState(false);
+
+  const handleDownload = async (url) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = url.split('/').pop() || 'document';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      window.open(url, '_blank');
+    }
+  };
+
+  const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState(null);
+
+  useEffect(() => {
+    if (showDocumentPreview && viewingDoc?.url?.match(/\.(odt|docx|pptx)$/i)) {
+      setOdtLoading(true);
+      setOdtText('');
+      setOdtError(false);
+      
+      const url = `http://localhost:5000${encodeURI(viewingDoc.url)}`;
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error('Network error');
+          return res.arrayBuffer();
+        })
+        .then(buffer => JSZip.loadAsync(buffer))
+        .then(async zip => {
+          const isPptx = viewingDoc.url.endsWith('.pptx');
+          if (isPptx) {
+            let html = '';
+            // Process up to 20 slides
+            for (let i = 1; i <= 20; i++) {
+              const slideFile = zip.file(`ppt/slides/slide${i}.xml`);
+              if (slideFile) {
+                const xmlString = await slideFile.async('string');
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+                const texts = xmlDoc.getElementsByTagName('a:t');
+                if (texts.length > 0) {
+                  html += `<div style="border: 1px solid #e2e8f0; margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #f8fafc;"><h4 style="margin-top:0; color:#3b82f6;">Slide ${i}</h4>`;
+                  for (let j = 0; j < texts.length; j++) {
+                    html += `<p style="margin-bottom: 5px;">${texts[j].textContent}</p>`;
+                  }
+                  html += `</div>`;
+                }
+              }
+            }
+            return html;
+          } else {
+            const xmlString = await (zip.file('content.xml') ? zip.file('content.xml').async('string') : (zip.file('word/document.xml') ? zip.file('word/document.xml').async('string') : ''));
+            if (!xmlString) throw new Error('No content found');
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+            const paragraphs = viewingDoc.url.endsWith('.docx') ? xmlDoc.getElementsByTagName('w:t') : xmlDoc.getElementsByTagName('text:p');
+            let html = '';
+            for (let i = 0; i < paragraphs.length; i++) {
+              html += `<p style="margin-bottom: 8px;">${paragraphs[i].textContent}</p>`;
+            }
+            return html;
+          }
+        })
+        .then(html => {
+          setOdtText(html || '<i>Blank document</i>');
+        })
+        .catch(err => {
+          console.error('Error parsing document:', err);
+          setOdtError(true);
+        })
+        .finally(() => {
+          setOdtLoading(false);
+        });
+    }
+  }, [showDocumentPreview, viewingDoc]);
 
   // Pagination & Filters
   const [page, setPage] = useState(1);
@@ -85,6 +222,8 @@ export default function PropertyManagement() {
       property_document: null
     });
     setEditingId(property.id);
+    setSuccess('');
+    setError('');
     setShowForm(true);
     window.scrollTo(0, 0);
   };
@@ -271,7 +410,26 @@ export default function PropertyManagement() {
               <div className="flex-row">
                 <div className="form-group flex-1">
                   <label>Document File (Optional)</label>
-                  <input type="file" className="form-input" name="property_document" onChange={handleChange} />
+                  <input 
+                    type="file" 
+                    className="form-input" 
+                    name="property_document" 
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file && file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                        alert('Invalid file format. Only PDF files are allowed.');
+                        e.target.value = '';
+                        return;
+                      }
+                      handleChange(e);
+                    }} 
+                  />
+                  {formData.property_document ? (
+                    <div style={{ fontSize: '0.85rem', color: '#16a34a', marginTop: '6px' }}>✓ File chosen: {formData.property_document.name}</div>
+                  ) : editingId ? (
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '6px' }}>Leave empty to keep existing documents. Note: Edit form will not pre-fill previously uploaded files.</div>
+                  ) : null}
                 </div>
               </div>
 
@@ -320,9 +478,9 @@ export default function PropertyManagement() {
               <th style={{ width: '6%' }}>ID</th>
               <th style={{ width: '28%' }}>Property Name</th>
               <th style={{ width: '18%' }}>Type & Area</th>
-              <th style={{ width: '18%' }}>Landlord</th>
+              {!isLandlord && <th style={{ width: '18%' }}>Landlord</th>}
               <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
-              <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>
+              <th style={{ textAlign: 'center', width: '20%' }}>{isLandlord ? 'View Details' : 'Actions'}</th>
             </tr>
           </thead>
           <tbody>
@@ -344,7 +502,7 @@ export default function PropertyManagement() {
                   <div>{p.property_type || '-'}</div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{p.total_area ? `${p.total_area} sq ft` : ''}</div>
                 </td>
-                <td>{p.landlord_name || 'N/A'}</td>
+                {!isLandlord && <td>{p.landlord_name || 'N/A'}</td>}
                 <td style={{ textAlign: 'center' }}>
                   <span className={p.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
                     {p.is_active ? <CheckCircle size={13} /> : <XCircle size={13} />}
@@ -353,48 +511,94 @@ export default function PropertyManagement() {
                 </td>
                 <td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <button
-                      className="action-btn-edit"
-                      onClick={() => handleEdit(p)}
-                      title="Edit"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #dbeafe',
-                        background: '#eff6ff',
-                        color: '#2563eb',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Edit size={14} />
-                      Edit
-                    </button>
-                    <button
-                      className="action-btn-delete"
-                      onClick={() => handleDelete(p.id)}
-                      title="Delete"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #fee2e2',
-                        background: '#fef2f2',
-                        color: '#dc2626',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </button>
+                    {isLandlord ? (
+                      <>
+                        <button
+                          className="action-btn-view"
+                          onClick={() => { setViewProperty(p); setShowDocumentPreview(false); setViewingDoc(null); }}
+                          title="View Details"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            color: '#0f172a',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDocumentUploadClick(p.id)}
+                          title="Upload/Update Document"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #dbeafe',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Upload size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className="action-btn-edit"
+                          onClick={() => handleEdit(p)}
+                          title="Edit"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #dbeafe',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit size={14} />
+                          Edit
+                        </button>
+                        <button
+                          className="action-btn-delete"
+                          onClick={() => handleDelete(p.id)}
+                          title="Delete"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #fee2e2',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </  >
+                    )}
                   </div>
                 </td>
               </tr>
@@ -407,6 +611,14 @@ export default function PropertyManagement() {
           </tbody>
         </table>
       </div>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept=".pdf"
+        onChange={handleFileChange} 
+      />
 
       {totalPages > 0 && (
         <div className="pagination-container">
@@ -428,6 +640,172 @@ export default function PropertyManagement() {
             >
               Next
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* View Property Modal */}
+      {viewProperty && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Eye size={20} color="#2563eb" /> Property Details
+              </h3>
+              <button onClick={() => setViewProperty(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>&times;</button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {!showDocumentPreview ? (
+                <>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Property Name</strong>
+                    <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500 }}>{viewProperty.name}</div>
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Address</strong>
+                    <div style={{ fontSize: '0.95rem', color: '#0f172a' }}>{viewProperty.address}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '20px' }}>
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Type</strong>
+                      <div style={{ fontSize: '0.95rem', color: '#0f172a' }}>{viewProperty.property_type || '-'}</div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Area</strong>
+                      <div style={{ fontSize: '0.95rem', color: '#0f172a' }}>{viewProperty.total_area ? `${viewProperty.total_area} sq ft` : '-'}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Status</strong>
+                    <div style={{ marginTop: '5px' }}>
+                      <span className={viewProperty.is_active ? 'badge badge-active' : 'badge badge-inactive'}>
+                        {viewProperty.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Documents</strong>
+                    <div style={{ marginTop: '10px' }}>
+                      {viewProperty.property_documents && viewProperty.property_documents.length > 0 ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden' }}>
+                          <thead style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                            <tr>
+                              <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>Document</th>
+                              <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: '0.85rem', color: '#475569', fontWeight: 600, width: '100px' }}>Download</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewProperty.property_documents.map(doc => (
+                              <tr key={doc.id}>
+                                <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'middle' }}>
+                                  <button 
+                                    onClick={(e) => { e.preventDefault(); setViewingDoc(doc); setShowDocumentPreview(true); }}
+                                    style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'flex-start', textAlign: 'left', gap: '8px', padding: 0 }}
+                                  >
+                                    <div style={{ flexShrink: 0, marginTop: '2px' }}><Eye size={16} /></div>
+                                    <span style={{ wordBreak: 'break-word', lineHeight: '1.4' }}>{doc.name || doc.url.split('/').pop()}</span>
+                                  </button>
+                                </td>
+                                <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', verticalAlign: 'middle' }}>
+                                  <button
+                                    onClick={() => handleDownload(`http://localhost:5000${encodeURI(doc.url)}`)}
+                                    title="Download Document"
+                                    style={{
+                                      background: '#eff6ff',
+                                      border: '1px solid #dbeafe',
+                                      color: '#2563eb',
+                                      padding: '8px',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Download size={18} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>No documents attached</span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ height: '500px', width: '100%', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: '#f1f5f9' }}>
+                  <div style={{ padding: '10px', background: '#f8fafc', borderBottom: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{viewingDoc?.name || viewingDoc?.url?.split('/').pop()}</span>
+                    <button onClick={() => setShowDocumentPreview(false)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.8rem' }}>Back to Details</button>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto' }}>
+                    {viewingDoc?.url?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                      <img 
+                        src={`http://localhost:5000${encodeURI(viewingDoc.url)}`} 
+                        alt="Document Preview" 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    ) : viewingDoc?.url?.match(/\.(pdf)$/i) ? (
+                      <iframe 
+                        src={`http://localhost:5000${encodeURI(viewingDoc.url)}`} 
+                        title="Document Preview"
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                      />
+                    ) : viewingDoc?.url?.match(/\.(odt|docx|pptx)$/i) ? (
+                      <div style={{ width: '100%', height: '100%', padding: '20px', overflowY: 'auto', background: '#fff', textAlign: 'left', color: '#1e293b' }}>
+                        {odtLoading ? (
+                          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#64748b' }}>
+                            Loading text preview...
+                          </div>
+                        ) : odtError ? (
+                          <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px' }}>
+                            <p>Failed to parse document preview.</p>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleDownload(`http://localhost:5000${encodeURI(viewingDoc.url)}`)}
+                            >
+                              Download to View
+                            </button>
+                          </div>
+                        ) : (
+                          <div dangerouslySetInnerHTML={{ __html: odtText }} />
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                        <div style={{ marginBottom: '15px' }}>
+                          <span style={{ fontSize: '3rem' }}>📄</span>
+                        </div>
+                        <h4 style={{ margin: '0 0 10px 0', color: '#334155' }}>Preview Not Supported</h4>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '0.9rem', maxWidth: '300px' }}>
+                          Web browsers cannot display <b>.{viewingDoc?.url?.split('.').pop()}</b> files directly on the screen.
+                        </p>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleDownload(`http://localhost:5000${encodeURI(viewingDoc?.url || '')}`)}
+                        >
+                          <Download size={16} style={{ marginRight: '8px' }} /> Download to View
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: '25px', textAlign: 'right' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => { setViewProperty(null); setShowDocumentPreview(false); }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

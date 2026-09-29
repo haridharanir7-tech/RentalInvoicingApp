@@ -31,6 +31,7 @@ export default function AdminLandlords() {
   const [search, setSearch] = useState('');
     const [appliedSearch, setAppliedSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL'); // ALL, PENDING, ACTIVE, INACTIVE
+
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
@@ -175,6 +176,8 @@ export default function AdminLandlords() {
       setLoading(false);
     }
   };
+
+
 
   useEffect(() => {
     fetchLandlords();
