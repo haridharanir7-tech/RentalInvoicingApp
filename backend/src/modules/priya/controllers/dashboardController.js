@@ -263,6 +263,27 @@ const getLandlordDashboard = async (req, res) => {
       Sent: invoices.filter(i => i.status === 'Sent').length
     };
 
+    // Property Type Breakdown for this landlord (Commercial, Residential, Warehouse)
+    const commercialProps = properties.filter(p => (p.property_type || '').toLowerCase() === 'commercial');
+    const residentialProps = properties.filter(p => (p.property_type || '').toLowerCase() === 'residential');
+    const warehouseProps = properties.filter(p => (p.property_type || '').toLowerCase() === 'warehouse');
+
+    const propertyTypeCounts = {
+      Commercial: commercialProps.length,
+      Residential: residentialProps.length,
+      Warehouse: warehouseProps.length
+    };
+
+    // Capture any custom property types if present
+    properties.forEach(p => {
+      const rawType = (p.property_type || '').trim();
+      if (!rawType) return;
+      const norm = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+      if (!['Commercial', 'Residential', 'Warehouse'].includes(norm)) {
+        propertyTypeCounts[norm] = (propertyTypeCounts[norm] || 0) + 1;
+      }
+    });
+
     return res.status(200).json({
       success: true,
       data: {
@@ -290,6 +311,7 @@ const getLandlordDashboard = async (req, res) => {
         charts: {
           monthlyRevenue: monthlyRevenueChart,
           invoiceStatus,
+          propertyTypes: propertyTypeCounts,
           chargesBreakdown
         },
         invoices: invoices.slice(0, 5),

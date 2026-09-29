@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Building2,
   Home,
+  Warehouse,
   Receipt,
   IndianRupee,
   Clock,
@@ -31,10 +32,7 @@ export default function LandlordDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filterYear, setFilterYear] = useState('2026');
-  const [month1, setMonth1] = useState('09');
-  const [month2, setMonth2] = useState('10');
-  const [hoveredBar, setHoveredBar] = useState(null);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
 
   const fetchLandlordData = async () => {
@@ -88,7 +86,7 @@ export default function LandlordDashboard() {
       status: 'Active'
     },
     summaryCards: { myProperties: 0, myTenants: 0, myInvoices: 0, pendingInvoices: 0, occupancyRate: 0, myRevenue: 0 },
-    charts: { monthlyRevenue: [], invoiceStatus: { Draft: 0, Generated: 0, Sent: 0 } }
+    charts: { monthlyRevenue: [], invoiceStatus: { Draft: 0, Generated: 0, Sent: 0 }, propertyTypes: { Commercial: 0, Residential: 0, Warehouse: 0 } }
   };
 
   // Helper to compute SVG pie slices from items
@@ -142,119 +140,87 @@ export default function LandlordDashboard() {
     });
   };
 
-  const invoicePeriodMap = {};
-  (invoices || []).forEach(inv => {
-    const p = inv.billing_period || 'Unknown';
-    if (!invoicePeriodMap[p]) {
-      invoicePeriodMap[p] = { period: p, rent: 0, maintenance: 0, parking: 0, gst: 0, total: 0, count: 0 };
-    }
-    const r = Number(inv.rent_amount || 0);
-    const m = Number(inv.maintenance_charges || 0);
-    const pk = Number(inv.parking_charges || 0);
-    const g = Number(inv.gst_amount || 0);
-    const tot = Number(inv.total_amount || 0) || (r + m + pk + g);
-    invoicePeriodMap[p].rent += r;
-    invoicePeriodMap[p].maintenance += m;
-    invoicePeriodMap[p].parking += pk;
-    invoicePeriodMap[p].gst += g;
-    invoicePeriodMap[p].total += tot;
-    invoicePeriodMap[p].count += 1;
-  });
+  // 1. Chart 1 Data: Property Category Distribution (Commercial, Residential & Warehouse)
+  const propTypes = charts.propertyTypes || {};
+  const commCount = Number(propTypes.Commercial ?? (properties || []).filter(p => (p.property_type || '').toLowerCase() === 'commercial').length);
+  const resCount = Number(propTypes.Residential ?? (properties || []).filter(p => (p.property_type || '').toLowerCase() === 'residential').length);
+  const whCount = Number(propTypes.Warehouse ?? (properties || []).filter(p => (p.property_type || '').toLowerCase() === 'warehouse').length);
+  const totalPortfolioProps = (commCount + resCount + whCount) || Number(summaryCards.myProperties || 0) || (properties?.length || 0) || 1;
 
-  const chartMonthlyRevMap = {};
-  (charts?.monthlyRevenue || []).forEach(m => {
-    if (m.period) chartMonthlyRevMap[m.period] = m;
-  });
+  const commPct = totalPortfolioProps > 0 ? ((commCount / totalPortfolioProps) * 100).toFixed(1) : '0.0';
+  const resPct = totalPortfolioProps > 0 ? ((resCount / totalPortfolioProps) * 100).toFixed(1) : '0.0';
+  const whPct = totalPortfolioProps > 0 ? ((whCount / totalPortfolioProps) * 100).toFixed(1) : '0.0';
 
-  const MONTH_OPTIONS = [
-    { value: '01', label: '01 - Jan' },
-    { value: '02', label: '02 - Feb' },
-    { value: '03', label: '03 - Mar' },
-    { value: '04', label: '04 - Apr' },
-    { value: '05', label: '05 - May' },
-    { value: '06', label: '06 - Jun' },
-    { value: '07', label: '07 - Jul' },
-    { value: '08', label: '08 - Aug' },
-    { value: '09', label: '09 - Sep' },
-    { value: '10', label: '10 - Oct' },
-    { value: '11', label: '11 - Nov' },
-    { value: '12', label: '12 - Dec' }
-  ];
-
-  const period1 = `${filterYear}-${month1}`;
-  const period2 = `${filterYear}-${month2}`;
-  const selectedPeriods = month1 === month2 ? [period1] : [period1, period2];
-
-  const displayBillingData = selectedPeriods.map(p => {
-    const fromInv = invoicePeriodMap[p];
-    const fromChart = chartMonthlyRevMap[p];
-    const rent = Number(fromChart?.rent ?? fromInv?.rent ?? 0);
-    const maintenance = Number(fromChart?.maintenance ?? fromInv?.maintenance ?? 0);
-    const parking = Number(fromChart?.parking ?? fromInv?.parking ?? 0);
-    const gst = Number(fromChart?.gst ?? fromInv?.gst ?? 0);
-    const total = Number(fromChart?.billed ?? fromInv?.total ?? 0) || (rent + maintenance + parking + gst);
-    return {
-      period: p,
-      rent,
-      maintenance,
-      parking,
-      gst,
-      total,
-      rentPct: total > 0 ? ((rent / total) * 100).toFixed(1) : '0.0',
-      maintenancePct: total > 0 ? ((maintenance / total) * 100).toFixed(1) : '0.0',
-      parkingPct: total > 0 ? ((parking / total) * 100).toFixed(1) : '0.0',
-      gstPct: total > 0 ? ((gst / total) * 100).toFixed(1) : '0.0',
-      count: fromChart?.count || fromChart?.invoicesGenerated || fromInv?.count || 0
-    };
-  });
-
-  const maxGroupedBarVal = Math.max(
-    ...displayBillingData.flatMap(m => [m.rent, m.maintenance, m.parking, m.gst]),
-    1
-  );
-
-  const filteredInvoices = (invoices || []).filter(inv =>
-    selectedPeriods.includes(inv.billing_period)
-  );
-
-  const colorCounts = [
+  const propertyCategories = [
     {
-      key: 'rent',
-      label: 'Base Rent',
+      type: 'Commercial',
+      label: 'Commercial',
+      count: commCount,
+      percentage: commPct,
       color: '#2563eb',
       bgColor: '#eff6ff',
       borderColor: '#bfdbfe',
-      amount: displayBillingData.reduce((sum, m) => sum + m.rent, 0),
-      count: filteredInvoices.filter(i => Number(i.rent_amount || 0) > 0).length
+      activeBorder: '#2563eb',
+      gradient: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
+      badgeBg: '#dbeafe',
+      badgeColor: '#1d4ed8',
+      desc: 'Offices & Commercial spaces',
+      icon: Building2
     },
     {
-      key: 'maintenance',
-      label: 'Maintenance',
-      color: '#8b5cf6',
-      bgColor: '#f5f3ff',
-      borderColor: '#ddd6fe',
-      amount: displayBillingData.reduce((sum, m) => sum + m.maintenance, 0),
-      count: filteredInvoices.filter(i => Number(i.maintenance_charges || 0) > 0).length
+      type: 'Residential',
+      label: 'Residential',
+      count: resCount,
+      percentage: resPct,
+      color: '#059669',
+      bgColor: '#ecfdf5',
+      borderColor: '#a7f3d0',
+      activeBorder: '#059669',
+      gradient: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+      badgeBg: '#d1fae5',
+      badgeColor: '#047857',
+      desc: 'Housing & Residential units',
+      icon: Home
     },
     {
-      key: 'parking',
-      label: 'Parking',
-      color: '#06b6d4',
-      bgColor: '#ecfeff',
-      borderColor: '#a5f3fc',
-      amount: displayBillingData.reduce((sum, m) => sum + m.parking, 0),
-      count: filteredInvoices.filter(i => Number(i.parking_charges || 0) > 0).length
-    },
-    {
-      key: 'gst',
-      label: 'GST (18%)',
-      color: '#f59e0b',
+      type: 'Warehouse',
+      label: 'Warehouse',
+      count: whCount,
+      percentage: whPct,
+      color: '#d97706',
       bgColor: '#fffbeb',
       borderColor: '#fde68a',
-      amount: displayBillingData.reduce((sum, m) => sum + m.gst, 0),
-      count: filteredInvoices.filter(i => Number(i.gst_amount || 0) > 0).length
+      activeBorder: '#d97706',
+      gradient: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+      badgeBg: '#fef3c7',
+      badgeColor: '#b45309',
+      desc: 'Storage & Logistics hubs',
+      icon: Warehouse
     }
   ];
+
+  // Capture any other property types if present
+  const standardTypes = ['Commercial', 'Residential', 'Warehouse'];
+  Object.keys(propTypes).forEach(key => {
+    if (!standardTypes.includes(key) && Number(propTypes[key]) > 0) {
+      const c = Number(propTypes[key]);
+      propertyCategories.push({
+        type: key,
+        label: key,
+        count: c,
+        percentage: ((c / totalPortfolioProps) * 100).toFixed(1),
+        color: '#7c3aed',
+        bgColor: '#f5f3ff',
+        borderColor: '#ddd6fe',
+        activeBorder: '#7c3aed',
+        gradient: 'linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%)',
+        badgeBg: '#ede9fe',
+        badgeColor: '#6d28d9',
+        desc: `${key} properties`,
+        icon: Building2
+      });
+    }
+  });
 
   const totalInvoicesCount = (charts.invoiceStatus?.Draft || 0) + (charts.invoiceStatus?.Generated || 0) + (charts.invoiceStatus?.Sent || 0);
   const invoiceStatusData = [
@@ -615,7 +581,7 @@ export default function LandlordDashboard() {
         }
       `}</style>
       <div className="dashboard-charts-2col">
-        {/* Chart 1: Monthly Billing Breakdown – Grouped Bar Chart (From X-Axis Ground) */}
+        {/* Chart 1: Property Portfolio Distribution (Commercial, Residential & Warehouse) */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -627,321 +593,216 @@ export default function LandlordDashboard() {
           justifyContent: 'space-between'
         }}>
           <div>
+            {/* Header */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px',
+              alignItems: 'flex-start',
+              marginBottom: '20px',
               flexWrap: 'wrap',
               gap: '10px'
             }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={18} color="#2563eb" />
-                Monthly Billing Breakdown
-              </h3>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={18} color="#2563eb" />
+                  Property Portfolio Distribution
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  Commercial, Residential & Warehouse asset breakdown
+                </p>
+              </div>
 
-              {/* Month 1, Month 2 & Year Selection in Top Right */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {/* Year Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Year:</span>
-                  <select
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Year"
-                  >
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2027">2027</option>
-                  </select>
+              {/* Total Portfolio Count Badge */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                textAlign: 'right'
+              }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Portfolio
                 </div>
-
-                {/* Month 1 Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 1:</span>
-                  <select
-                    value={month1}
-                    onChange={(e) => setMonth1(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Month 1"
-                  >
-                    {MONTH_OPTIONS.map(m => {
-                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
-                      return (
-                        <option key={m.value} value={m.value}>
-                          {m.label} {isActive ? '•' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                {/* Month 2 Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '0.70rem', color: '#64748b', fontWeight: 700 }}>Month 2:</span>
-                  <select
-                    value={month2}
-                    onChange={(e) => setMonth2(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: '#1e293b',
-                      background: '#f8fafc',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                    title="Select Month 2"
-                  >
-                    {MONTH_OPTIONS.map(m => {
-                      const isActive = Boolean(invoicePeriodMap[`${filterYear}-${m.value}`] || chartMonthlyRevMap[`${filterYear}-${m.value}`]);
-                      return (
-                        <option key={m.value} value={m.value}>
-                          {m.label} {isActive ? '•' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                  {totalPortfolioProps} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Properties</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingTop: '8px' }}>
-              {/* Active Bar Tooltip if hovered */}
-              {hoveredBar && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 60,
-                  background: '#0f172a',
-                  color: '#ffffff',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: hoveredBar.color, display: 'inline-block' }} />
-                  <span style={{ fontWeight: 600 }}>{hoveredBar.period} • {hoveredBar.label}:</span>
-                  <strong style={{ color: '#38bdf8' }}>{formatCurrency(hoveredBar.amount)}</strong>
-                  <span style={{ color: '#94a3b8' }}>({hoveredBar.pct}% of month total)</span>
-                </div>
-              )}
-
-              {/* Plot Area with Ground Baseline */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'space-around',
-                minHeight: '220px',
-                paddingTop: '24px',
-                paddingBottom: '0px',
-                position: 'relative',
-                borderBottom: '2px solid #cbd5e1'
-              }}>
-
-                {displayBillingData.map((m, mIdx) => {
-                    const maxBarHeight = 150;
-                    const categories = [
-                      { key: 'rent', label: 'Base Rent', color: '#2563eb', amount: m.rent, pct: m.rentPct, tag: 'Rent' },
-                      { key: 'maintenance', label: 'Maintenance', color: '#8b5cf6', amount: m.maintenance, pct: m.maintenancePct, tag: 'Maint' },
-                      { key: 'parking', label: 'Parking', color: '#06b6d4', amount: m.parking, pct: m.parkingPct, tag: 'Park' },
-                      { key: 'gst', label: 'GST (18%)', color: '#f59e0b', amount: m.gst, pct: m.gstPct, tag: 'GST' }
-                    ];
-
-                    return (
-                      <div
-                        key={m.period || mIdx}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
+            {/* Main Visual: 3 Category Volume Level Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: '12px',
+              marginBottom: '18px'
+            }}>
+              {propertyCategories.map((cat) => {
+                const IconComponent = cat.icon;
+                const isHovered = hoveredCategory === cat.type;
+                return (
+                  <div
+                    key={cat.type}
+                    onMouseEnter={() => setHoveredCategory(cat.type)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      background: isHovered ? cat.bgColor : '#f8fafc',
+                      border: isHovered ? `1.5px solid ${cat.activeBorder}` : '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        {/* Month Total & Invoices badge above the cluster */}
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          marginBottom: '4px'
-                        }}>
-                          <span style={{ fontSize: '0.80rem', fontWeight: 800, color: '#0f172a' }}>
-                            {formatCurrency(m.total)}
-                          </span>
-                          <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 600 }}>
-                            {m.count} inv
-                          </span>
-                        </div>
-
-                        {/* 4 Grouped Bars Standing Side-by-Side directly from the Ground Baseline (y = 0) */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'flex-end',
                           gap: '6px',
-                          background: 'rgba(241, 245, 249, 0.45)',
-                          padding: '0 8px',
-                          borderRadius: '6px 6px 0 0'
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: cat.color
                         }}>
-                          {categories.map(cat => {
-                            const barHeight = cat.amount > 0
-                              ? Math.max(Math.round((cat.amount / maxGroupedBarVal) * maxBarHeight), 8)
-                              : 2;
-                            const isHovered = hoveredBar?.period === m.period && hoveredBar?.key === cat.key;
-
-                            return (
-                              <div
-                                key={cat.key}
-                                onMouseEnter={() => setHoveredBar({
-                                  period: m.period,
-                                  key: cat.key,
-                                  label: cat.label,
-                                  color: cat.color,
-                                  amount: cat.amount,
-                                  pct: cat.pct,
-                                  monthTotal: m.total
-                                })}
-                                onMouseLeave={() => setHoveredBar(null)}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {/* Individual Bar rising from ground baseline */}
-                                <div
-                                  style={{
-                                    width: '24px',
-                                    height: `${barHeight}px`,
-                                    background: cat.amount > 0 ? cat.color : '#e2e8f0',
-                                    borderRadius: '4px 4px 0 0',
-                                    transition: 'all 0.15s ease',
-                                    transform: isHovered ? 'scaleY(1.05) scaleX(1.08)' : 'scale(1)',
-                                    transformOrigin: 'bottom',
-                                    boxShadow: isHovered ? `0 0 10px ${cat.color}` : 'none',
-                                    border: cat.amount === 0 ? '1px dashed #cbd5e1' : 'none'
-                                  }}
-                                  title={`${m.period} - ${cat.label}: ${formatCurrency(cat.amount)} (${cat.pct}%)`}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
+                          <IconComponent size={14} color={cat.color} />
+                          {cat.label}
+                        </span>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: cat.badgeColor,
+                          background: cat.badgeBg,
+                          padding: '2px 7px',
+                          borderRadius: '12px'
+                        }}>
+                          {cat.percentage}%
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
 
-                {/* Subcategory markers and Period labels directly below the Ground Line */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-around',
-                  paddingTop: '8px',
-                  paddingBottom: '4px'
-                }}>
-                  {displayBillingData.map((m, mIdx) => (
-                    <div
-                      key={m.period || mIdx}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
-                    >
-                      {/* Sub-labels right under each of the 4 bars */}
-                      <div style={{ display: 'flex', gap: '6px', padding: '0 8px', marginBottom: '4px' }}>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#2563eb', fontWeight: 700 }}>Rent</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#8b5cf6', fontWeight: 700 }}>Maint</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#06b6d4', fontWeight: 700 }}>Park</span>
-                        <span style={{ width: '24px', textAlign: 'center', fontSize: '0.62rem', color: '#f59e0b', fontWeight: 700 }}>GST</span>
+                      <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                        {cat.count}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>
+                          {cat.count === 1 ? 'Property' : 'Properties'}
+                        </span>
                       </div>
-                      {/* Period Pill */}
-                      <span style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        background: '#f1f5f9',
-                        border: '1px solid #cbd5e1',
-                        padding: '2px 10px',
-                        borderRadius: '6px'
-                      }}>
-                        {m.period}
-                      </span>
+
+                      <div style={{ fontSize: '0.69rem', color: '#64748b', marginBottom: '6px', lineHeight: '1.2' }}>
+                        {cat.desc}
+                      </div>
                     </div>
-                  ))}
-                </div>
 
+                    {/* Category Level Bar */}
+                    <div>
+                      <div style={{
+                        height: '8px',
+                        background: '#e2e8f0',
+                        borderRadius: '9999px',
+                        overflow: 'hidden',
+                        marginTop: '6px'
+                      }}>
+                        <div style={{
+                          width: `${cat.percentage}%`,
+                          height: '100%',
+                          background: cat.gradient,
+                          borderRadius: '9999px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Proportional Full-Width Split Meter */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
+                <span>Portfolio Share Breakdown</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
+                  {propertyCategories.map((c, i) => (
+                    <span key={c.type} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.color }} />
+                      <span>{c.percentage}% {c.label}</span>
+                      {i < propertyCategories.length - 1 && <span style={{ color: '#cbd5e1' }}>•</span>}
+                    </span>
+                  ))}
+                </span>
               </div>
+              <div style={{
+                height: '24px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                display: 'flex',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+              }}>
+                {propertyCategories.map((cat) => (
+                  <div
+                    key={cat.type}
+                    onMouseEnter={() => setHoveredCategory(cat.type)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      width: `${cat.percentage}%`,
+                      background: cat.gradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      filter: hoveredCategory === cat.type ? 'brightness(1.15)' : 'none',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      padding: '0 4px'
+                    }}
+                    title={`${cat.label}: ${cat.count} Properties (${cat.percentage}%)`}
+                  >
+                    {Number(cat.percentage) >= 12 ? `${cat.label} ${cat.percentage}%` : (Number(cat.percentage) >= 7 ? `${cat.percentage}%` : '')}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Color Breakdown & Individual Counts */}
+          {/* Footer Navigation & Portfolio Mix */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-            gap: '8px',
-            marginTop: '16px',
-            paddingTop: '12px',
-            borderTop: '1px solid #f1f5f9'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '14px',
+            borderTop: '1px solid #f1f5f9',
+            marginTop: '10px'
           }}>
-            {colorCounts.map((c) => {
-              const totalMonthAmount = displayBillingData.reduce((s, m) => s + m.total, 0);
-              const pct = totalMonthAmount > 0 ? ((c.amount / totalMonthAmount) * 100).toFixed(1) : '0.0';
-              return (
-                <div
-                  key={c.key}
-                  style={{
-                    background: c.bgColor,
-                    border: `1px solid ${c.borderColor}`,
-                    borderRadius: '8px',
-                    padding: '8px 10px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: c.color }} />
-                    <span style={{ fontSize: '0.70rem', fontWeight: 700, color: '#334155' }}>{c.label}</span>
-                  </div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px' }}>
-                    {formatCurrency(c.amount)}
-                  </div>
-                  <div style={{ fontSize: '0.67rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span><strong>{c.count}</strong> inv</span>
-                    <span style={{ fontWeight: 700, color: '#475569' }}>{pct}%</span>
-                  </div>
-                </div>
-              );
-            })}
+            <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+              Portfolio mix: <strong style={{ color: '#0f172a' }}>{commCount} Commercial</strong>, <strong style={{ color: '#0f172a' }}>{resCount} Residential</strong>, and <strong style={{ color: '#0f172a' }}>{whCount} Warehouse</strong> assets
+            </div>
+            <button
+              onClick={() => navigate('/landlord/properties')}
+              style={{
+                fontSize: '0.78rem',
+                color: '#2563eb',
+                background: 'none',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+              onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+            >
+              Manage Properties
+              <ArrowUpRight size={13} />
+            </button>
           </div>
         </div>
 
