@@ -129,6 +129,7 @@ exports.getInvoices = async (req, res) => {
         i.status,
         i.notes,
         l.name AS landlord_name,
+        COALESCE(l.gst_registered, false) AS landlord_gst_registered,
         p.name AS property_name,
         t.name AS tenant_name
       FROM invoices i
@@ -319,14 +320,24 @@ exports.generateInvoices = async (req, res) => {
       // 2. Sequential Invoice Numbering per landlord
       const invoiceNumber = await generateNextInvoiceNumber(client, item.landlord_id);
 
-      // 3. Recalculate server-side to guarantee precision & tax compliance
+      // 3. Strictly enforce tax compliance: Non-GST registered landlords cannot levy GST
+      let isLandlordGst = false;
+      if (item.landlord_id) {
+        const lRes = await client.query('SELECT gst_registered FROM landlords WHERE id = $1', [item.landlord_id]);
+        if (lRes.rows.length > 0) {
+          isLandlordGst = Boolean(lRes.rows[0].gst_registered);
+        }
+      }
+      const applyGst = Boolean(isLandlordGst && item.gst_applicable);
+
+      // 4. Recalculate server-side to guarantee precision & tax compliance
       const financials = calculateInvoiceFinancials(
         item.rent_amount !== undefined ? item.rent_amount : item.monthly_rent,
         item.maintenance_charges,
         item.parking_charges,
-        item.gst_applicable,
-        item.gst_rate,
-        item.tax_supply_type
+        applyGst,
+        applyGst ? item.gst_rate : 0,
+        isLandlordGst ? item.tax_supply_type : 'intra_state'
       );
 
       const insertQuery = `
@@ -508,7 +519,12 @@ exports.correctInvoice = async (req, res) => {
   }
 
   try {
-    const invoiceRes = await db.query('SELECT * FROM invoices WHERE invoice_id = $1', [id]);
+    const invoiceRes = await db.query(`
+      SELECT inv.*, COALESCE(l.gst_registered, false) AS landlord_gst_registered
+      FROM invoices inv
+      LEFT JOIN landlords l ON inv.landlord_id = l.id
+      WHERE inv.invoice_id = $1
+    `, [id]);
     if (invoiceRes.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Invoice not found' });
     }
@@ -523,13 +539,17 @@ exports.correctInvoice = async (req, res) => {
       });
     }
 
+    // Enforce tax law: Non-GST registered landlords cannot levy GST
+    const isLandlordGst = Boolean(currentInvoice.landlord_gst_registered);
+    const applyGst = Boolean(isLandlordGst && gst_applicable);
+
     const financials = calculateInvoiceFinancials(
       rent_amount !== undefined ? rent_amount : currentInvoice.rent_amount,
       maintenance_charges !== undefined ? maintenance_charges : currentInvoice.maintenance_charges,
       parking_charges !== undefined ? parking_charges : currentInvoice.parking_charges,
-      gst_applicable,
-      gst_rate,
-      tax_supply_type
+      applyGst,
+      applyGst ? (parseFloat(gst_rate) || 0) : 0,
+      isLandlordGst ? tax_supply_type : 'intra_state'
     );
 
     const oldSnapshot = {
