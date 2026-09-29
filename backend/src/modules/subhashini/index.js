@@ -33,6 +33,7 @@ router.get('/landlords', landlordController.getLandlords);
 
 // Property Routes
 router.post('/properties', upload.single('property_document'), propertyController.createProperty);
+router.post('/properties/:id/document', upload.single('property_document'), propertyController.uploadDocument);
 router.put('/properties/:id', propertyController.updateProperty);
 router.patch('/properties/:id/deactivate', propertyController.deactivateProperty);
 router.delete('/properties/:id', propertyController.deleteProperty);

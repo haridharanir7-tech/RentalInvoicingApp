@@ -22,6 +22,7 @@ import UserManagement from './modules/priya/pages/UserManagement';
 import MasterDataAudit from './modules/priya/pages/MasterDataAudit';
 import InvoiceOverrideLog from './modules/priya/pages/InvoiceOverrideLog';
 import DataBackup from './modules/priya/pages/DataBackup';
+import ChangePassword from './modules/priya/pages/ChangePassword';
 
 // Haridharani Components (Rates, Invoice Generation, Register & GST Reports)
 import RentalRates from './modules/haridharani/RentalRates';
@@ -294,6 +295,16 @@ export default function App() {
               element={
                 <AppLayout>
                   <OccupancyReport />
+                </AppLayout>
+              }
+            />
+
+            {/* 9. Change Password */}
+            <Route
+              path="/landlord/change-password"
+              element={
+                <AppLayout>
+                  <ChangePassword />
                 </AppLayout>
               }
             />

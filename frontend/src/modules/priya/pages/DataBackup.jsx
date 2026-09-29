@@ -288,12 +288,12 @@ export default function DataBackup() {
 
       <div className="pagination-container">
         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Showing {backups.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, backups.length)} of {backups.length} entries
+          Showing {backups.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, backups.length)} of {backups.length} backup files ({backups.length} total)
         </div>
         <div className="pagination-controls">
-            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
-            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
-          </div>
+          <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+          <button className="page-btn" disabled={page >= totalPages || totalPages <= 1} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+        </div>
       </div>
 
       {/* Restore Test Report Modal */}

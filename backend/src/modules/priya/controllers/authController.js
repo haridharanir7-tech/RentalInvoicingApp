@@ -133,7 +133,8 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    if (user.status !== 'Active') {
+    const statusUpper = (user.status || '').toUpperCase();
+    if (statusUpper !== 'ACTIVE') {
       return res.status(403).json({
         success: false,
         message: 'Cannot reset password for a deactivated account.'
@@ -187,6 +188,14 @@ const resetPassword = async (req, res) => {
     const user = await dbAdapter.getUserByEmail(email);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const statusUpper = (user.status || '').toUpperCase();
+    if (statusUpper !== 'ACTIVE') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot reset password for a deactivated account.'
+      });
     }
 
     if (!user.reset_token || user.reset_token !== reset_token) {
@@ -322,11 +331,77 @@ const signup = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/priya/change-password
+ * Allows an authenticated user (Landlord or Admin) to change their current password.
+ */
+const changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password, confirm_password } = req.body;
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide both current password and new password.'
+      });
+    }
+
+    if (confirm_password && new_password !== confirm_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password and confirmation password do not match.'
+      });
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters in length.'
+      });
+    }
+
+    const userId = req.user.id;
+    const user = await dbAdapter.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    const isMatch = await bcrypt.compare(current_password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect. Please verify and try again.'
+      });
+    }
+
+    if (current_password === new_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from your current password.'
+      });
+    }
+
+    const newHash = await bcrypt.hash(new_password, 10);
+    await dbAdapter.updateUser(user.id, {
+      password_hash: newHash
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your password has been changed successfully.'
+    });
+  } catch (err) {
+    console.error('Change password error:', err);
+    return res.status(500).json({ success: false, message: 'Server error updating password.' });
+  }
+};
+
 module.exports = {
   login,
   signup,
   forgotPassword,
   resetPassword,
+  changePassword,
   getMe
 };
 

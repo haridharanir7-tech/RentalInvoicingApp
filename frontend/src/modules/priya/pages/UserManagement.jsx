@@ -300,12 +300,12 @@ export default function UserManagement() {
 
       <div className="pagination-container">
         <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-          Showing {filteredUsers.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredUsers.length)} of {filteredUsers.length} entries
+          Showing {filteredUsers.length > 0 ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, filteredUsers.length)} of {filteredUsers.length} users ({users.length} total)
         </div>
         <div className="pagination-controls">
-            <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
-            <button className="page-btn" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
-          </div>
+          <button className="page-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+          <button className="page-btn" disabled={page >= totalPages || totalPages <= 1} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+        </div>
       </div>
 
       {/* Create User Modal */}

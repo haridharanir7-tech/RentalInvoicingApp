@@ -86,7 +86,15 @@ const dbAdapter = {
           LEFT JOIN landlords l ON l.id = u.landlord_id
           ORDER BY u.created_at DESC;
         `);
-        return res.rows;
+        const s = loadStore();
+        return res.rows.map(u => {
+          const loc = s.users.find(lu => String(lu.id) === String(u.id) || lu.email?.toLowerCase() === u.email?.toLowerCase());
+          return {
+            ...u,
+            assigned_landlords: loc?.assigned_landlords || [],
+            assigned_properties: loc?.assigned_properties || []
+          };
+        });
       } catch (err) {
         console.error('Supabase getUsers error, falling back:', err.message);
       }
@@ -96,6 +104,7 @@ const dbAdapter = {
   },
 
   getUserByEmail: async (email) => {
+    let user = null;
     await checkPgConnection();
     if (isPgAvailable) {
       try {
@@ -116,16 +125,23 @@ const dbAdapter = {
           LEFT JOIN landlords l ON l.id = u.landlord_id
           WHERE LOWER(u.email) = LOWER($1);
         `, [email]);
-        return res.rows[0] || null;
+        user = res.rows[0] || null;
       } catch (err) {
         console.error('Supabase getUserByEmail error, falling back:', err.message);
       }
     }
     const s = loadStore();
-    return s.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const loc = s.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (user) {
+      user.assigned_landlords = loc?.assigned_landlords || [];
+      user.assigned_properties = loc?.assigned_properties || [];
+      return user;
+    }
+    return loc || null;
   },
 
   getUserById: async (id) => {
+    let user = null;
     await checkPgConnection();
     if (isPgAvailable) {
       try {
@@ -134,6 +150,7 @@ const dbAdapter = {
             u.user_id AS id, 
             u.full_name, 
             u.email, 
+            u.password_hash,
             u.role, 
             u.landlord_id, 
             u.status, 
@@ -143,16 +160,23 @@ const dbAdapter = {
           LEFT JOIN landlords l ON l.id = u.landlord_id
           WHERE u.user_id::text = $1::text;
         `, [String(id)]);
-        return res.rows[0] || null;
+        user = res.rows[0] || null;
       } catch (err) {
         console.error('Supabase getUserById error, falling back:', err.message);
       }
     }
     const s = loadStore();
-    return s.users.find(x => String(x.id) === String(id));
+    const loc = s.users.find(x => String(x.id) === String(id));
+    if (user) {
+      user.assigned_landlords = loc?.assigned_landlords || [];
+      user.assigned_properties = loc?.assigned_properties || [];
+      return user;
+    }
+    return loc || null;
   },
 
   createUser: async (userData) => {
+    let created = null;
     await checkPgConnection();
     if (isPgAvailable) {
       try {
@@ -168,48 +192,64 @@ const dbAdapter = {
           userData.landlord_id ? parseInt(userData.landlord_id, 10) : null,
           userData.status || 'Active'
         ]);
-        return res.rows[0];
+        created = res.rows[0];
       } catch (err) {
         console.error('Supabase createUser error, falling back:', err.message);
       }
     }
     const s = loadStore();
-    const newId = s.users.length ? Math.max(...s.users.map(u => typeof u.id === 'number' ? u.id : 0)) + 1 : 1;
-    const newUser = {
+    const newId = (created && created.id) ? created.id : (s.users.length ? Math.max(...s.users.map(u => typeof u.id === 'number' ? u.id : 0)) + 1 : 1);
+    const storeEntry = {
       id: newId,
       full_name: userData.full_name,
       email: userData.email,
       password_hash: userData.password_hash,
       role: userData.role || 'Landlord',
       landlord_id: userData.landlord_id ? parseInt(userData.landlord_id, 10) : null,
+      assigned_landlords: userData.assigned_landlords || [],
+      assigned_properties: userData.assigned_properties || [],
       status: userData.status || 'Active',
       last_login: null,
       created_at: new Date().toISOString()
     };
-    s.users.push(newUser);
+    const existingIdx = s.users.findIndex(u => u.email.toLowerCase() === userData.email.toLowerCase());
+    if (existingIdx !== -1) {
+      s.users[existingIdx] = { ...s.users[existingIdx], ...storeEntry };
+    } else {
+      s.users.push(storeEntry);
+    }
     saveStore();
-    return newUser;
+    return {
+      ...(created || {}),
+      ...storeEntry
+    };
   },
 
   updateUser: async (id, updateData) => {
+    let pgUpdated = null;
     await checkPgConnection();
     if (isPgAvailable) {
       try {
+        const allowedPgFields = ['full_name', 'email', 'role', 'landlord_id', 'status', 'last_login', 'password_hash', 'reset_token', 'reset_token_expiry'];
         const fields = [];
         const values = [];
         let idx = 1;
         for (const [key, val] of Object.entries(updateData)) {
-          fields.push(`"${key}" = $${idx++}`);
-          values.push(val);
+          if (allowedPgFields.includes(key)) {
+            fields.push(`"${key}" = $${idx++}`);
+            values.push(val);
+          }
         }
-        values.push(String(id));
-        const res = await pool.query(`
-          UPDATE users
-          SET ${fields.join(', ')}
-          WHERE user_id::text = $${idx}
-          RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login;
-        `, values);
-        return res.rows[0];
+        if (fields.length > 0) {
+          values.push(String(id));
+          const res = await pool.query(`
+            UPDATE users
+            SET ${fields.join(', ')}
+            WHERE user_id::text = $${idx}
+            RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login, reset_token, reset_token_expiry;
+          `, values);
+          pgUpdated = res.rows[0];
+        }
       } catch (err) {
         console.error('Supabase updateUser error, falling back:', err.message);
       }
@@ -219,9 +259,12 @@ const dbAdapter = {
     if (targetIdx !== -1) {
       s.users[targetIdx] = { ...s.users[targetIdx], ...updateData };
       saveStore();
-      return s.users[targetIdx];
+      return {
+        ...(pgUpdated || {}),
+        ...s.users[targetIdx]
+      };
     }
-    return null;
+    return pgUpdated || null;
   },
 
   // ==========================================
@@ -494,6 +537,8 @@ const dbAdapter = {
             i.property_id, 
             i.tenant_id, 
             COALESCE(i.rent_amount, 0) AS rent_amount, 
+            COALESCE(i.maintenance_charges, 0) AS maintenance_charges,
+            COALESCE(i.parking_charges, 0) AS parking_charges,
             COALESCE(i.additional_charges, i.addinational_charges, 0) AS additional_charges, 
             COALESCE(i.gst_amount, 0) AS gst_amount, 
             COALESCE(i.total_amount, 0) AS total_amount, 
