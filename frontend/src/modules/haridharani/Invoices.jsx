@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
+import { generateInvoicePdf } from '../ragul/invoicePdfGenerator';
 import { FileText,
   Printer,
   Calendar,
@@ -16,7 +17,7 @@ import { FileText,
   Send,
   Trash2, Download } from 'lucide-react';
 
-const API_BASE = '/api/haridharani';
+const API_BASE = 'http://localhost:5000/api/haridharani';
 
 export default function Invoices() {
   const { user, isLandlord } = useAuth();
@@ -44,6 +45,8 @@ export default function Invoices() {
   const [properties, setProperties] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -118,18 +121,88 @@ export default function Invoices() {
   };
 
   // Status Change Workflow (Draft > Generated > Sent)
-  const handleDownloadInvoice = (inv) => {
-      // Mock download logic
-      const invoiceData = `INVOICE: ${inv.invoice_number}\nDATE: ${inv.invoice_date}\nTENANT: ${inv.tenant_name}\nPROPERTY: ${inv.property_name}\nRENT: ${inv.rent_amount}\nGST: ${inv.gst_amount}\nTOTAL: ${inv.total_amount}`;
-      const blob = new Blob([invoiceData], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${inv.invoice_number}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
+    const handleDownloadInvoice = async (inv) => {
+    try {
+      setDownloadingId(inv.invoice_id);
+      setActionError('');
+
+      let defaultTemplateId = inv.default_template_id;
+      let defaultInvoiceTemplate = inv.default_invoice_template;
+      let landlordInfo = null;
+
+      if (inv.landlord_id) {
+        try {
+          const lRes = await axios.get(`${API_BASE.replace('/haridharani', '/master-data')}/landlords/${inv.landlord_id}`);
+          if (lRes.data) {
+            landlordInfo = lRes.data;
+            if (lRes.data.default_template_id) defaultTemplateId = lRes.data.default_template_id;
+            if (lRes.data.default_invoice_template) defaultInvoiceTemplate = lRes.data.default_invoice_template;
+          }
+        } catch (lErr) {}
+      }
+
+      if (!defaultTemplateId && !defaultInvoiceTemplate) {
+        setActionError('No default invoice template is configured for this landlord.');
+        setDownloadingId(null);
+        return;
+      }
+
+      let currentTemplates = templates;
+      if (!currentTemplates || currentTemplates.length === 0) {
+        try {
+          const tRes = await axios.get(`${API_BASE.replace('/haridharani', '/ragul')}/templates`);
+          if (tRes.data && tRes.data.data) {
+            currentTemplates = tRes.data.data;
+            setTemplates(currentTemplates);
+          }
+        } catch (tErr) {}
+      }
+
+      let matchedTemplate = null;
+        
+        // Always prioritize the name matching since the Landlord form saves the template NAME in default_invoice_template
+        if (defaultInvoiceTemplate) {
+          const lowerVal = defaultInvoiceTemplate.toLowerCase();
+          matchedTemplate = currentTemplates.find(t => {
+            const tId = (t.id || '').toLowerCase();
+            const tName = (t.name || '').toLowerCase();
+            return tId === lowerVal || tName === lowerVal || tName.includes(lowerVal) || lowerVal.includes(tName);
+          });
+        }
+        
+        // Fallback to legacy ID
+        if (!matchedTemplate && defaultTemplateId) {
+          matchedTemplate = currentTemplates.find(t => String(t.id).toLowerCase() === String(defaultTemplateId).toLowerCase());
+        }
+        
+        if (!matchedTemplate) {
+        setActionError('Selected invoice template could not be found.');
+        setDownloadingId(null);
+        return;
+      }
+
+      const fullInvoice = {
+        ...inv,
+        landlord_name: landlordInfo?.name || inv.landlord_name,
+        landlord_address: landlordInfo?.billing_address || inv.landlord_address || inv.billing_address,
+        landlord_pan: landlordInfo?.pan || inv.landlord_pan,
+        landlord_gstin: landlordInfo?.gstin || inv.landlord_gstin,
+        landlord_phone: landlordInfo?.contact_details || inv.landlord_phone,
+        landlord_email: landlordInfo?.email || inv.landlord_email,
+        default_template_id: defaultTemplateId || matchedTemplate?.id,
+        default_invoice_template: defaultInvoiceTemplate || matchedTemplate?.name
+      };
+
+      const result = await generateInvoicePdf(fullInvoice, matchedTemplate);
+      setActionSuccess(`Downloaded ${result.filename} (${matchedTemplate?.name})`);
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      setActionError(`Failed to generate PDF: ${err.message}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
     const handleStatusChange = async (invoiceId, newStatus) => {
     try {
@@ -298,6 +371,16 @@ export default function Invoices() {
             Overview of all generated rental invoices, payment statuses, and audit records
           </p>
         </div>
+        <div className="page-actions">
+          <button className="btn btn-secondary" onClick={handleExportCSV}>
+            <FileText size={15} />
+            <span>Export CSV</span>
+          </button>
+          <button className="btn btn-primary" onClick={handlePrint}>
+            <Printer size={15} />
+            <span>Print Register</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Row matching Landlord & Property modules */}
@@ -402,64 +485,64 @@ export default function Invoices() {
         </div>
       )}
 
-      {/* 5 KPI Metric Summary Cards - One Row with perfectly aligned numbers */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Matching Invoices</div>
-          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>{kpis.matchingInvoices || 0}</div>
-          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Filtered records</div>
+      {/* 5 KPI Metric Summary Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-title">Matching Invoices</div>
+          <div className="kpi-value">{kpis.matchingInvoices || 0}</div>
+          <div className="kpi-desc">Filtered records</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total Base Rent</div>
-          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
+        <div className="kpi-card">
+          <div className="kpi-title">Total Base Rent</div>
+          <div className="kpi-value">
             ₹{Math.round(kpis.totalBaseRent || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sum of base rent</div>
+          <div className="kpi-desc">Sum of base rent</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Maintenance & Parking</div>
-          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
+        <div className="kpi-card">
+          <div className="kpi-title">Maintenance & Parking</div>
+          <div className="kpi-value">
             ₹{Math.round(kpis.maintenanceParking || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Additional charges</div>
+          <div className="kpi-desc">Additional charges</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total GST</div>
-          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
+        <div className="kpi-card">
+          <div className="kpi-title">Total GST</div>
+          <div className="kpi-value">
             ₹{Math.round(kpis.totalGst || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Tax component</div>
+          <div className="kpi-desc">Tax component</div>
         </div>
 
-        <div className="kpi-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-          <div className="kpi-title" style={{ minHeight: '34px', display: 'flex', alignItems: 'flex-start', marginBottom: '6px' }}>Total Invoiced Amount</div>
-          <div className="kpi-value" style={{ fontSize: '1.45rem', whiteSpace: 'nowrap', lineHeight: 1.2, marginBottom: '4px' }}>
+        <div className="kpi-card">
+          <div className="kpi-title">Total Invoiced Amount</div>
+          <div className="kpi-value">
             ₹{Math.round(kpis.totalInvoicedAmount || 0).toLocaleString('en-IN')}
           </div>
-          <div className="kpi-desc" style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Grand total value</div>
+          <div className="kpi-desc">Grand total value</div>
         </div>
       </div>
 
       {/* Invoices Table */}
       <div className="table-container">
-        <table style={{ minWidth: '1400px' }}>
+        <table>
           <thead>
             <tr>
-              <th style={{ minWidth: '130px' }}>Invoice No</th>
-              <th style={{ minWidth: '110px' }}>Date</th>
-              <th style={{ minWidth: '100px' }}>Period</th>
-              <th style={{ minWidth: '140px' }}>Landlord</th>
-              <th style={{ minWidth: '130px' }}>Property</th>
-              <th style={{ minWidth: '130px' }}>Tenant</th>
-              <th style={{ minWidth: '110px' }}>Rent</th>
-              <th style={{ minWidth: '110px' }}>Charges</th>
-              <th style={{ minWidth: '110px' }}>GST</th>
-              <th style={{ minWidth: '125px' }}>Total Amount</th>
-              <th style={{ textAlign: 'center', minWidth: '130px' }}>Status</th>
-              <th style={{ textAlign: 'center', minWidth: '150px' }}>Actions</th>
+              <th>Invoice No</th>
+              <th>Date</th>
+              <th>Period</th>
+              <th>Landlord</th>
+              <th>Property</th>
+                <th>Tenant</th>
+              <th>Rent</th>
+              <th>Charges</th>
+              <th>GST</th>
+              <th>Total Amount</th>
+              <th style={{ textAlign: 'center', width: '130px' }}>Status</th>
+              <th style={{ textAlign: "center", width: "120px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -489,18 +572,18 @@ export default function Invoices() {
                         {inv.invoice_number}
                       </span>
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{inv.invoice_date}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{inv.billing_period}</td>
+                    <td>{inv.invoice_date}</td>
+                    <td>{inv.billing_period}</td>
                     <td style={{ fontWeight: 600 }}>{inv.landlord_name}</td>
                     <td>{inv.property_name}</td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
-                    </td>
-                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{inv.tenant_name ? inv.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                      </td>
+                    <td style={{ fontWeight: 500 }}>
                       ₹{parseFloat(inv.rent_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>₹{charges.toLocaleString('en-IN')}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td>₹{charges.toLocaleString('en-IN')}</td>
+                    <td>
                       {inv.gst_amount > 0 ? (
                         <div>
                           <div>₹{parseFloat(inv.gst_amount).toLocaleString('en-IN')}</div>
@@ -510,10 +593,10 @@ export default function Invoices() {
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>0%</span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 700, color: '#1e40af', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontWeight: 700, color: '#1e40af' }}>
                       ₹{parseFloat(inv.total_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center' }}>
                       {isLandlord ? (
                         <span
                           style={{
@@ -581,7 +664,7 @@ export default function Invoices() {
                         </select>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center' }}>
                           {inv.status === 'Draft' ? (
                             !isLandlord ? (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
@@ -617,26 +700,10 @@ export default function Invoices() {
                         ) : (
                               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
                             )
-                          ) : isLandlord && inv.status === 'Generated' ? (
-                            <span
-                              style={{
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                padding: '3px 8px',
-                                background: '#eff6ff',
-                                color: '#1d4ed8',
-                                border: '1px solid #bfdbfe',
-                                borderRadius: '6px',
-                                display: 'inline-block'
-                              }}
-                              title="Invoice is finalized. Receipt download will be enabled once marked as Sent by Admin."
-                            >
-                              Finalized
-                            </span>
                           ) : (
                             <button
-                              className="btn"
-                              style={{
+                                className="btn"
+                                style={{
                                 padding: '4px 8px',
                                 fontSize: '0.78rem',
                                 display: 'inline-flex',
@@ -648,11 +715,7 @@ export default function Invoices() {
                                 cursor: 'pointer',
                                 borderRadius: '6px'
                               }}
-                              onClick={() => handleDownloadInvoice(inv)}
-                              title={inv.status === 'Sent' ? "Download invoice receipt" : "Download invoice preview"}
-                            >
-                              <Download size={12} />
-                              <span>Download</span>
+                              disabled={downloadingId === inv.invoice_id} onClick={() => handleDownloadInvoice(inv)} title="Download invoice"> <Download size={12} /> <span>{downloadingId === inv.invoice_id ? 'Generating...' : 'Download'}</span>
                             </button>
                           )}
                         </td>
@@ -842,3 +905,9 @@ export default function Invoices() {
     </div>
   );
 }
+
+
+
+
+
+

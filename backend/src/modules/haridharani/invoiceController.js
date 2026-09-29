@@ -129,6 +129,7 @@ exports.getInvoices = async (req, res) => {
         i.status,
         i.notes,
         l.name AS landlord_name,
+          l.default_invoice_template,
         p.name AS property_name,
         t.name AS tenant_name
       FROM invoices i
@@ -223,6 +224,7 @@ exports.previewInvoices = async (req, res) => {
         p.name AS property_name,
         l.id AS landlord_id,
         l.name AS landlord_name,
+          l.default_invoice_template,
         l.gst_registered AS landlord_gst_registered,
         inv.invoice_id AS existing_invoice_id,
         inv.invoice_number AS existing_invoice_number,
@@ -662,4 +664,5 @@ exports.deleteInvoice = async (req, res) => {
     res.status(500).json({ success: false, error: 'Database error deleting invoice' });
   }
 };
+
 

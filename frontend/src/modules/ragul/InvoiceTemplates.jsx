@@ -134,7 +134,7 @@ export default function InvoiceTemplatesView({
     } catch (e) {
       console.warn("Could not read selectedInvoiceTemplate from localStorage", e);
     }
-    const def = templateList.find((t) => t.isDefault) || templateList[0];
+    const def = templateList[0];
     const initialId = propSelectedTemplateId || def?.id || "wave-blue";
     try {
       localStorage.setItem("selectedInvoiceTemplate", initialId);
@@ -182,7 +182,7 @@ export default function InvoiceTemplatesView({
         }
       }
       // No saved template or saved is no longer in list -> use default template
-      const def = templateList.find((t) => t.isDefault) || templateList[0];
+      const def = templateList[0];
       const defaultId = def?.id || "wave-blue";
       if (internalSelectedId !== defaultId) setInternalSelectedId(defaultId);
       if (propSetSelectedTemplateId && propSelectedTemplateId !== defaultId) {
@@ -208,21 +208,10 @@ export default function InvoiceTemplatesView({
 
   // Handler for selecting a template as active/default
   function handleSelectTemplate(tplId) {
-    const targetId = tplId || currentPreviewId;
-    setInternalSelectedId(targetId);
-    setPreviewTemplateId(targetId);
-    if (propSetSelectedTemplateId) {
-      propSetSelectedTemplateId(targetId);
+      const targetId = tplId || currentPreviewId;
+      setPreviewTemplateId(targetId);
+      setInternalSelectedId(targetId); // keep for UI selection styling in sidebar
     }
-    try {
-      localStorage.setItem("selectedInvoiceTemplate", targetId);
-    } catch (e) {
-      console.warn("Failed to save selectedInvoiceTemplate to localStorage", e);
-    }
-    if (onSetDefault) {
-      onSetDefault(targetId);
-    }
-  }
 
   // Popup Modal visibility state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -492,12 +481,11 @@ export default function InvoiceTemplatesView({
 
           <div className="template-items-wrap">
             {templateList.map((tpl) => {
-              const isThisSelected = tpl.id === selectedTemplateId;
               const isThisViewing = tpl.id === currentPreviewId;
               return (
                 <div
                   key={tpl.id}
-                  className={`template-tab-item ${isThisViewing ? "viewing" : ""} ${isThisSelected ? "selected" : ""}`}
+                  className={`template-tab-item ${isThisViewing ? "selected" : ""}`}
                   onClick={() => handleSelectTemplate(tpl.id)}
                 >
                   <div className="template-tab-meta">
@@ -511,11 +499,7 @@ export default function InvoiceTemplatesView({
                       className="template-color-dot"
                       style={{ backgroundColor: tpl.header || "#1d4ed8" }}
                     />
-                    {isThisSelected && (
-                      <span className="template-default-indicator" title="Active / Default Template">
-                        ●
-                      </span>
-                    )}
+                    
                   </div>
                 </div>
               );
@@ -1158,19 +1142,7 @@ export default function InvoiceTemplatesView({
                   />
                 </div>
 
-                <div className="mentor-checkbox-row">
-                  <input
-                    type="checkbox"
-                    id="modal-default-toggle"
-                    checked={formData.isDefault}
-                    onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                  />
-                  <label htmlFor="modal-default-toggle" className="mentor-checkbox-label">
-                    Set as Default Template
-                  </label>
-                </div>
-
-                <div className="mentor-form-actions">
+<div className="mentor-form-actions">
                   <button type="button" className="btn-mentor-cancel" onClick={handleCloseModal}>
                     Cancel
                   </button>

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../priya/context/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle, ArrowRight, X, Download } from 'lucide-react';
 
-const API_BASE = '/api/haridharani';
+const API_BASE = 'http://localhost:5000/api/haridharani';
 
 export default function GenerateInvoices() {
   const { user, isLandlord } = useAuth();
@@ -98,7 +98,9 @@ export default function GenerateInvoices() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleDownloadInvoice = (invNum) => { alert('Please go to the Invoices tab to download generated PDFs.'); };
+
+    const handleGenerate = async () => {
     if (selectedIds.length === 0) {
       setErrorMessage('Please select at least one tenant to generate an invoice for.');
       return;
@@ -167,7 +169,7 @@ export default function GenerateInvoices() {
         </div>
       </div>
 
-      {/* Filter / Period Selector Bar */}
+      {/* Filter / Period Selector Bar aligned same as Landlord & Property */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -252,47 +254,45 @@ export default function GenerateInvoices() {
         </div>
       )}
 
-      {/* Table Toolbar */}
-      <div style={{ padding: '12px 18px', display: 'flex', justifyContent: isLandlord ? 'flex-end' : 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderBottom: 'none', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
-        {!isLandlord && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={toggleSelectAll}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#334155' }}
-              disabled={eligibleCount === 0}
-            >
-              {selectedIds.length > 0 && selectedIds.length === eligibleCount ? (
-                <CheckSquare size={18} color="#2563eb" />
-              ) : (
-                <Square size={18} color="#94a3b8" />
-              )}
-              <span style={{ fontSize: '0.84rem' }}>Select All Eligible ({eligibleCount})</span>
-            </button>
-          </div>
-        )}
-        <span style={{ fontSize: '0.84rem', color: '#64748b' }}>
-          Billing Period: <strong>{billingPeriod}</strong>
-        </span>
-      </div>
-
       {/* Auto Rent + GST Preview Table */}
-      <div className="table-container" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-        <table style={{ width: '100%', minWidth: '1200px' }}>
+      <div className="table-container">
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: isLandlord ? 'flex-end' : 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+          {!isLandlord && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={toggleSelectAll}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#334155' }}
+                disabled={eligibleCount === 0}
+              >
+                {selectedIds.length > 0 && selectedIds.length === eligibleCount ? (
+                  <CheckSquare size={18} color="#2563eb" />
+                ) : (
+                  <Square size={18} color="#94a3b8" />
+                )}
+                <span style={{ fontSize: '0.84rem' }}>Select All Eligible ({eligibleCount})</span>
+              </button>
+            </div>
+          )}
+          <span style={{ fontSize: '0.84rem', color: '#64748b' }}>
+            Billing Period: <strong>{billingPeriod}</strong>
+          </span>
+        </div>
+
+        <table>
           <thead>
             <tr>
               {!isLandlord && (
-                <th style={{ width: '44px', minWidth: '44px', textAlign: 'center' }}></th> 
+                <th style={{ width: '40px', textAlign: 'center' }}></th> 
               )}
-              <th style={{ minWidth: '150px' }}>Tenant</th>
-              <th style={{ minWidth: '150px' }}>Landlord</th>
-              <th style={{ minWidth: '140px' }}>Property</th>
-              <th style={{ minWidth: '110px' }}>Rent</th>
-              <th style={{ minWidth: '110px' }}>Charges</th>
-              <th style={{ minWidth: '125px' }}>Taxable Amount</th>
-              <th style={{ minWidth: '130px' }}>GST</th>
-              <th style={{ minWidth: '125px' }}>Total Amount</th>
-              <th style={{ textAlign: 'center', minWidth: '140px' }}>Status</th>
+              <th>Tenant</th>
+                <th>Landlord</th>
+              <th>Property</th>
+              <th>Base Rent</th>
+              <th>Charges (Maint/Park)</th>
+              <th>Taxable Amount</th>
+              <th>GST Breakdown</th>
+              <th>Total Payable</th>
+              <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -319,7 +319,6 @@ export default function GenerateInvoices() {
                       <td style={{ textAlign: 'center' }}>
                         {!item.already_generated ? (
                           <button
-                            type="button"
                             onClick={() => toggleSelectItem(itemId)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', margin: '0 auto' }}
                           >
@@ -330,61 +329,57 @@ export default function GenerateInvoices() {
                             )}
                           </button>
                         ) : (
-                          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>-</span>
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>-</span>
                         )}
                       </td>
                     )}
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>
-                        {item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}
-                      </div>
+                    <td>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.landlord_name}</div>
+                        <div style={{ fontSize: '0.74rem' }}>
+                          {item.landlord_gst_registered ? (
+                            <span style={{ color: '#2563eb', fontWeight: 600 }}>GST Registered</span>
+                          ) : (
+                            <span style={{ color: '#b91c1c' }}>Non-GST</span>
+                          )}
+                        </div>
+                      </td>
+                    <td>{item.property_name}</td>
+                    <td style={{ fontWeight: 500 }}>
+                      ₹{parseFloat(item.rent_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.landlord_name}</div>
-                      <div style={{ marginTop: '3px' }}>
-                        {item.landlord_gst_registered ? (
-                          <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>GST Registered</span>
-                        ) : (
-                          <span className="badge badge-inactive" style={{ fontSize: '0.72rem', padding: '2px 8px' }}>Non-GST</span>
-                        )}
-                      </div>
+                    <td>
+                      ₹{parseFloat(item.additional_charges).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <div style={{ color: '#334155', fontWeight: 500 }}>{item.property_name}</div>
+                    <td style={{ fontWeight: 600 }}>
+                      ₹{parseFloat(item.taxable_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                      ₹{parseFloat(item.rent_amount || 0).toLocaleString('en-IN')}
-                    </td>
-                    <td style={{ color: '#475569', whiteSpace: 'nowrap' }}>
-                      ₹{parseFloat(item.additional_charges || 0).toLocaleString('en-IN')}
-                    </td>
-                    <td style={{ fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                      ₹{parseFloat(item.taxable_amount || 0).toLocaleString('en-IN')}
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
+                    <td>
                       {item.gst_amount > 0 ? (
                         <div>
                           <div style={{ fontWeight: 600, color: '#2563eb' }}>
                             ₹{parseFloat(item.gst_amount).toLocaleString('en-IN')}{' '}
-                            <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>({item.gst_rate}%)</span>
+                            <span style={{ fontSize: '0.75rem' }}>({item.gst_rate}%)</span>
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                             {item.tax_supply_type === 'inter_state'
-                              ? `IGST: ₹${parseFloat(item.igst_amount || 0).toLocaleString('en-IN')}`
-                              : `CGST: ₹${parseFloat(item.cgst_amount || 0).toLocaleString('en-IN')} + SGST: ₹${parseFloat(item.sgst_amount || 0).toLocaleString('en-IN')}`}
+                              ? `IGST: ₹${parseFloat(item.igst_amount).toLocaleString('en-IN')}`
+                              : `CGST: ₹${parseFloat(item.cgst_amount).toLocaleString('en-IN')} + SGST: ₹${parseFloat(item.sgst_amount).toLocaleString('en-IN')}`}
                           </div>
                         </div>
                       ) : (
                         <span style={{ fontSize: '0.8rem', color: '#64748b' }}>₹0.00 (Exempt)</span>
                       )}
                     </td>
-                    <td style={{ fontWeight: 700, fontSize: '0.96rem', color: '#1e40af', whiteSpace: 'nowrap' }}>
-                      ₹{parseFloat(item.total_amount || 0).toLocaleString('en-IN')}
+                    <td style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e40af' }}>
+                      ₹{parseFloat(item.total_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center' }}>
                       {item.already_generated ? (
                         <div>
-                          <span className="badge badge-active" style={{ fontSize: '0.76rem', fontFamily: 'monospace' }}>
+                          <span className="badge badge-active" style={{ fontSize: '0.75rem' }}>
                             {item.existing_invoice_number}
                           </span>
                           <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
@@ -433,3 +428,4 @@ export default function GenerateInvoices() {
     </div>
   );
 }
+
