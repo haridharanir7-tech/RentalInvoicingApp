@@ -28,10 +28,12 @@ export default function InvoiceTemplateRenderer({ invoice, template }) {
   const currentHeader = template?.header || "#1d4ed8";
   const currentAccent = template?.accent || "#2563eb";
   
-  const landlordName = invoice?.landlord_name || template?.businessName || '';
-  const landlordAddress = invoice?.landlord_address || template?.address || '';
-  const landlordGstin = invoice?.landlord_gstin || template?.gstin || 'N/A';
-  const landlordPan = invoice?.landlord_pan || template?.pan || 'N/A';
+  const landlordName = invoice?.landlord_name || (invoice ? '' : template?.businessName || '');
+  const landlordAddress = invoice?.landlord_address || (invoice ? '' : template?.address || '');
+  const landlordGstin = invoice?.landlord_gstin || (invoice ? 'N/A' : template?.gstin || 'N/A');
+  const landlordPan = invoice?.landlord_pan || (invoice ? 'N/A' : template?.pan || 'N/A');
+    const landlordPhone = invoice?.landlord_phone || '';
+    const landlordEmail = invoice?.landlord_email || '';
   
   const invNumber = invoice?.invoice_number || '';
   const invDate = invoice?.invoice_date || '';
