@@ -558,40 +558,41 @@ export default function AdminDashboard() {
                     }}
                   >
                     <div>
+                      {/* Top Row: Full Category Label with Icon */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: '8px'
+                      }}>
+                        <IconComponent size={14} color={cat.color} style={{ flexShrink: 0 }} />
+                        <span style={{
+                          fontSize: '0.80rem',
+                          fontWeight: 700,
+                          color: cat.color,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {cat.label}
+                        </span>
+                      </div>
+
+                      {/* Stat Row: Big Count on Left, Percentage Pill on Right */}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '4px',
-                        marginBottom: '8px',
-                        minWidth: 0
+                        marginBottom: '2px'
                       }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          minWidth: 0,
-                          overflow: 'hidden'
-                        }}>
-                          <IconComponent size={13} color={cat.color} style={{ flexShrink: 0 }} />
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: cat.color,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {cat.label}
-                          </span>
-                        </div>
+                        <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                          {cat.count}
+                        </span>
                         <span style={{
-                          fontSize: '0.67rem',
+                          fontSize: '0.72rem',
                           fontWeight: 800,
                           color: cat.badgeColor,
                           background: cat.badgeBg,
-                          padding: '1.5px 5px',
-                          borderRadius: '6px',
+                          padding: '2px 7px',
+                          borderRadius: '8px',
                           flexShrink: 0,
                           whiteSpace: 'nowrap'
                         }}>
@@ -599,11 +600,8 @@ export default function AdminDashboard() {
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                        {cat.count}
-                        <span style={{ fontSize: '0.70rem', fontWeight: 600, color: '#64748b' }}>
-                          {cat.count === 1 ? 'Property' : 'Properties'}
-                        </span>
+                      <div style={{ fontSize: '0.70rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
+                        {cat.count === 1 ? 'Property' : 'Properties'}
                       </div>
 
                       <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '6px', lineHeight: '1.25' }}>
@@ -636,14 +634,24 @@ export default function AdminDashboard() {
 
             {/* Proportional Full-Width Split Meter */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
-                <span>Portfolio Share Breakdown</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
-                  {propertyCategories.map((c, i) => (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px',
+                flexWrap: 'wrap',
+                gap: '8px',
+                fontSize: '0.74rem'
+              }}>
+                <span style={{ color: '#475569', fontWeight: 700 }}>
+                  Portfolio Share Breakdown
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem', flexWrap: 'wrap' }}>
+                  {propertyCategories.map((c) => (
                     <span key={c.type} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.color }} />
-                      <span>{c.percentage}% {c.label}</span>
-                      {i < propertyCategories.length - 1 && <span style={{ color: '#cbd5e1' }}>•</span>}
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                      <strong style={{ color: '#1e293b' }}>{c.label}</strong>
+                      <span style={{ color: c.color, fontWeight: 700 }}>{c.percentage}%</span>
                     </span>
                   ))}
                 </span>
@@ -676,12 +684,11 @@ export default function AdminDashboard() {
                       filter: hoveredCategory === cat.type ? 'brightness(1.15)' : 'none',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis',
                       padding: '0 4px'
                     }}
                     title={`${cat.label}: ${cat.count} Properties (${cat.percentage}%)`}
                   >
-                    {Number(cat.percentage) >= 12 ? `${cat.label} ${cat.percentage}%` : (Number(cat.percentage) >= 7 ? `${cat.percentage}%` : '')}
+                    {Number(cat.percentage) >= 28 ? `${cat.label} ${cat.percentage}%` : (Number(cat.percentage) >= 8 ? `${cat.percentage}%` : '')}
                   </div>
                 ))}
               </div>
