@@ -278,21 +278,21 @@ export default function GenerateInvoices() {
           </span>
         </div>
 
-        <table>
+        <table style={{ minWidth: '1350px' }}>
           <thead>
             <tr>
               {!isLandlord && (
-                <th style={{ width: '40px', textAlign: 'center' }}></th> 
+                <th style={{ width: '48px', textAlign: 'center' }}></th>
               )}
-              <th>Tenant</th>
-                <th>Landlord</th>
-              <th>Property</th>
-              <th>Base Rent</th>
-              <th>Charges (Maint/Park)</th>
-              <th>Taxable Amount</th>
-              <th>GST Breakdown</th>
-              <th>Total Payable</th>
-              <th style={{ textAlign: 'center', width: '150px' }}>Status</th>
+              <th style={{ minWidth: '130px' }}>Tenant</th>
+              <th style={{ minWidth: '150px' }}>Landlord</th>
+              <th style={{ minWidth: '150px' }}>Property</th>
+              <th style={{ minWidth: '120px' }}>Base Rent</th>
+              <th style={{ minWidth: '150px' }}>Charges (Maint/Park)</th>
+              <th style={{ minWidth: '140px' }}>Taxable Amount</th>
+              <th style={{ minWidth: '190px' }}>GST Breakdown</th>
+              <th style={{ minWidth: '140px' }}>Total Payable</th>
+              <th style={{ textAlign: 'center', minWidth: '180px' }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -334,62 +334,75 @@ export default function GenerateInvoices() {
                       </td>
                     )}
                     <td>
-                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.landlord_name}</div>
-                        <div style={{ fontSize: '0.74rem' }}>
-                          {item.landlord_gst_registered ? (
-                            <span style={{ color: '#2563eb', fontWeight: 600 }}>GST Registered</span>
-                          ) : (
-                            <span style={{ color: '#b91c1c' }}>Non-GST</span>
-                          )}
-                        </div>
-                      </td>
-                    <td>{item.property_name}</td>
-                    <td style={{ fontWeight: 500 }}>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.tenant_name ? item.tenant_name : <span style={{ color: '#b91c1c' }}>Unassigned Tenant</span>}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.landlord_name}</div>
+                      <div style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                        {item.landlord_gst_registered ? (
+                          <span style={{ color: '#2563eb', fontWeight: 600 }}>GST Registered</span>
+                        ) : (
+                          <span style={{ color: '#b91c1c' }}>Non-GST</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.property_name}</div>
+                    </td>
+                    <td className="cell-currency" style={{ fontWeight: 600, color: '#0f172a' }}>
                       ₹{parseFloat(item.rent_amount).toLocaleString('en-IN')}
                     </td>
-                    <td>
+                    <td className="cell-currency" style={{ fontWeight: 500 }}>
                       ₹{parseFloat(item.additional_charges).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ fontWeight: 600 }}>
+                    <td className="cell-currency" style={{ fontWeight: 600, color: '#0f172a' }}>
                       ₹{parseFloat(item.taxable_amount).toLocaleString('en-IN')}
                     </td>
-                    <td>
+                    <td className="cell-currency">
                       {item.gst_amount > 0 ? (
                         <div>
                           <div style={{ fontWeight: 600, color: '#2563eb' }}>
                             ₹{parseFloat(item.gst_amount).toLocaleString('en-IN')}{' '}
                             <span style={{ fontSize: '0.75rem' }}>({item.gst_rate}%)</span>
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                            {item.tax_supply_type === 'inter_state'
-                              ? `IGST: ₹${parseFloat(item.igst_amount).toLocaleString('en-IN')}`
-                              : `CGST: ₹${parseFloat(item.cgst_amount).toLocaleString('en-IN')} + SGST: ₹${parseFloat(item.sgst_amount).toLocaleString('en-IN')}`}
-                          </div>
+                          {item.tax_supply_type === 'inter_state' ? (
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                              IGST: ₹{parseFloat(item.igst_amount).toLocaleString('en-IN')}
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                CGST: ₹{parseFloat(item.cgst_amount).toLocaleString('en-IN')}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                SGST: ₹{parseFloat(item.sgst_amount).toLocaleString('en-IN')}
+                              </div>
+                            </>
+                          )}
                         </div>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>₹0.00 (Exempt)</span>
+                        <div>
+                          <div style={{ fontWeight: 500 }}>₹0.00</div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Exempt from GST</div>
+                        </div>
                       )}
                     </td>
-                    <td style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1e40af' }}>
+                    <td className="cell-currency" style={{ fontWeight: 700, color: '#1e40af' }}>
                       ₹{parseFloat(item.total_amount).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {item.already_generated ? (
-                        <div>
-                          <span className="badge badge-active" style={{ fontSize: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <span className="badge badge-active">Generated</span>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                             {item.existing_invoice_number}
-                          </span>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
-                            Generated ({item.existing_invoice_status})
+                            {item.existing_invoice_status && item.existing_invoice_status !== 'Generated'
+                              ? ` · ${item.existing_invoice_status}`
+                              : ''}
                           </div>
                         </div>
                       ) : (
-                        <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
-                          Ready to Generate
-                        </span>
+                        <span className="badge badge-warning">Ready to Generate</span>
                       )}
                     </td>
                   </tr>
