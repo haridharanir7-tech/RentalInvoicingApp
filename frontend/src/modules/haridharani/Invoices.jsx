@@ -220,12 +220,16 @@ export default function Invoices() {
   // Open correction modal for Draft invoices
   const openCorrectModal = (invoice) => {
     setSelectedInvoice(invoice);
-    const isGst = Boolean(invoice.landlord_gst_registered);
+    const isGst = Boolean(
+      invoice.landlord_gst_registered ||
+      (invoice.gst_amount && parseFloat(invoice.gst_amount) > 0) ||
+      (invoice.gst_rate && parseFloat(invoice.gst_rate) > 0)
+    );
     setCorrectionForm({
       rent_amount: invoice.rent_amount,
       maintenance_charges: invoice.maintenance_charges || 0,
       parking_charges: invoice.parking_charges || 0,
-      gst_rate: isGst ? (invoice.gst_rate || 18) : 0,
+      gst_rate: isGst ? (parseFloat(invoice.gst_rate) || 18) : 0,
       gst_applicable: isGst,
       tax_supply_type: isGst ? (invoice.tax_supply_type || 'intra_state') : 'intra_state',
       change_reason: ''
@@ -830,8 +834,8 @@ export default function Invoices() {
                   
                 </div>
                 <div className="form-group flex-1" style={{ margin: 0 }}>
-                  <label className="form-label">{selectedInvoice?.landlord_gst_registered ? 'Tax Supply Type' : 'Tax Status'}</label>
-                  {selectedInvoice?.landlord_gst_registered ? (
+                  <label className="form-label">{correctionForm.gst_applicable ? 'Tax Supply Type' : 'Tax Status'}</label>
+                  {correctionForm.gst_applicable ? (
                     <select
                       className="form-input"
                       value={correctionForm.tax_supply_type}
