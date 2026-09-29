@@ -190,7 +190,11 @@ export default function Invoices() {
         landlord_phone: landlordInfo?.contact_details || inv.landlord_phone,
         landlord_email: landlordInfo?.email || inv.landlord_email,
         default_template_id: defaultTemplateId || matchedTemplate?.id,
-        default_invoice_template: defaultInvoiceTemplate || matchedTemplate?.name
+        default_invoice_template: defaultInvoiceTemplate || matchedTemplate?.name,
+        property_address: inv.property_address,
+        tenant_pan: inv.tenant_pan,
+        tenant_gstin: inv.tenant_gstin,
+        tenant_address: inv.tenant_address
       };
 
       const result = await generateInvoicePdf(fullInvoice, matchedTemplate);
