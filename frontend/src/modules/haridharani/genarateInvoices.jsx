@@ -98,17 +98,7 @@ export default function GenerateInvoices() {
     }
   };
 
-  const handleDownloadInvoice = (invNum) => {
-      // Mock download logic
-      const blob = new Blob([`INVOICE: ${invNum}\nDownloaded from Generate Invoices screen.`], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${invNum}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
+  const handleDownloadInvoice = (invNum) => { alert('Please go to the Invoices tab to download generated PDFs.'); };
 
     const handleGenerate = async () => {
     if (selectedIds.length === 0) {
@@ -438,3 +428,4 @@ export default function GenerateInvoices() {
     </div>
   );
 }
+

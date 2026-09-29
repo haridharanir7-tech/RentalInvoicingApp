@@ -127,7 +127,7 @@ export default function AdminLandlords() {
         id: null,
         name: '', email: '', pan: '', gstin: '', contact_details: '',
         billing_address: '', gst_registered: false,
-        default_invoice_template: defaultTpl ? defaultTpl.name : '',
+        default_invoice_template: defaultTpl ? defaultTpl.id : '',
         is_active: true
       });
       fetchLandlords();
@@ -150,7 +150,7 @@ export default function AdminLandlords() {
           const def = tpls.find((t) => t.isDefault) || tpls[0];
           setAddFormData((prev) => ({
             ...prev,
-            default_invoice_template: prev.default_invoice_template || def.name
+            default_invoice_template: prev.default_invoice_template || def.id
           }));
         }
       }
@@ -289,7 +289,7 @@ export default function AdminLandlords() {
                 contact_details: '',
                 billing_address: '',
                 gst_registered: false,
-                default_invoice_template: def ? def.name : '',
+                default_invoice_template: def ? def.id : '',
                 is_active: true
               });
               setAddModalOpen(true);
@@ -608,7 +608,7 @@ export default function AdminLandlords() {
                                   contact_details: l.contact_details || '',
                                   billing_address: l.billing_address || '',
                                   gst_registered: !!l.gst_registered,
-                                  default_invoice_template: l.default_invoice_template || (templatesList.find((t) => t.isDefault)?.name || templatesList[0]?.name || ''),
+                                  default_invoice_template: l.default_invoice_template || templatesList[0]?.id || '',
                                   is_active: (l.status || '').toUpperCase() === 'ACTIVE'
                                 });
                                 setError('');
@@ -1256,11 +1256,11 @@ export default function AdminLandlords() {
                     <option value="">{loadingTemplates ? 'Loading templates from database...' : 'No templates found'}</option>
                   )}
                   {templatesList.map((tpl) => (
-                    <option key={tpl.id} value={tpl.name}>
-                      {tpl.name} {tpl.isDefault ? '★ (Active Default)' : ''}
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name}
                     </option>
                   ))}
-                  {addFormData.default_invoice_template && !templatesList.some((t) => t.name === addFormData.default_invoice_template) && (
+                  {addFormData.default_invoice_template && !templatesList.some((t) => t.id === addFormData.default_invoice_template) && (
                     <option value={addFormData.default_invoice_template}>
                       {addFormData.default_invoice_template} (Current)
                     </option>
