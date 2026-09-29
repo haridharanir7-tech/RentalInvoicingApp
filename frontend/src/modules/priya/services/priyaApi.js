@@ -51,7 +51,8 @@ export const userApi = {
 export const adminLandlordApi = {
   getLandlords: () => api.get('/admin/landlords'),
   updateStatus: (id, status) => api.put(`/admin/landlords/${id}/status`, { status }),
-  createAccess: (id, payload) => api.post(`/admin/landlords/${id}/create-access`, payload)
+  createAccess: (id, payload) => api.post(`/admin/landlords/${id}/create-access`, payload),
+  removeAccess: (id) => api.delete(`/admin/landlords/${id}/access`)
 };
 
 export const dashboardApi = {

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Building, User, CheckSquare, Square, Zap, AlertTriangle, CheckCircle } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/haridharani';
+const API_BASE = '/api/haridharani';
 
 export default function GenerateInvoices() {
   const { user, isLandlord } = useAuth();

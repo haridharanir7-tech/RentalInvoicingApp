@@ -28,6 +28,7 @@ router.get('/landlords', authenticateToken, requireRoles(['Admin']), userControl
 router.get('/admin/landlords', authenticateToken, requireRoles(['Admin']), userController.getAdminLandlords);
 router.put('/admin/landlords/:id/status', authenticateToken, requireRoles(['Admin']), userController.updateLandlordStatus);
 router.post('/admin/landlords/:id/create-access', authenticateToken, requireRoles(['Admin']), userController.createLandlordLoginAccess);
+router.delete('/admin/landlords/:id/access', authenticateToken, requireRoles(['Admin']), userController.removeLandlordLoginAccess);
 
 // ==========================================
 // 3. Dashboards & Invoice Status Summary

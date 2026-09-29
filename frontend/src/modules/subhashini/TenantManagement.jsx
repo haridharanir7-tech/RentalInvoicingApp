@@ -310,7 +310,6 @@ export default function TenantManagement() {
               style={{ width: '220px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -323,6 +322,7 @@ export default function TenantManagement() {
             <option value="Notice Period">Notice Period</option>
             <option value="Vacated">Vacated</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
       
@@ -330,12 +330,12 @@ export default function TenantManagement() {
         <table style={{ tableLayout: 'fixed', width: '100%', minWidth: '1000px' }}>
           <thead>
             <tr>
-              <th style={{ width: '6%' }}>ID</th>
-              <th style={{ width: '23%' }}>Tenant Name</th>
-              <th style={{ width: '23%' }}>Property</th>
-              <th style={{ width: '18%' }}>Lease Period</th>
-              <th style={{ textAlign: 'center', width: '10%' }}>Status</th>
-              {!isLandlord && <th style={{ textAlign: 'center', width: '20%' }}>Actions</th>}
+              <th style={{ width: '6%', minWidth: '60px' }}>ID</th>
+              <th style={{ width: isLandlord ? '33%' : '23%', minWidth: '200px' }}>Tenant Name</th>
+              <th style={{ width: isLandlord ? '33%' : '23%', minWidth: '200px' }}>Property</th>
+              <th style={{ width: '18%', minWidth: '150px' }}>Lease Period</th>
+              <th style={{ textAlign: 'center', width: '10%', minWidth: '90px' }}>Status</th>
+              {!isLandlord && <th style={{ textAlign: 'center', width: '20%', minWidth: '150px' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>

@@ -29,7 +29,7 @@ export default function OccupancyReport() {
     setLoading(true);
     try {
       const landlordParam = isLandlord && user?.landlord_id ? `&landlord_id=${user.landlord_id}` : '';
-      const url = `/api/master-data/reports/occupancy?page=${overridePage}&limit=10&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${landlordParam}`;
+      const url = `/api/master-data/reports/occupancy?page=${overridePage}&limit=5&search=${encodeURIComponent(overrideSearch)}&status=${overrideStatus}${landlordParam}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -114,7 +114,6 @@ export default function OccupancyReport() {
               style={{ width: '250px' }}
             />
             <button type="submit" className="btn btn-secondary">Search</button>
-            <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9' }}>Clear</button>
           </form>
           <select 
             className="form-input" 
@@ -127,6 +126,7 @@ export default function OccupancyReport() {
             <option value="Vacant">Vacant</option>
             <option value="Notice Period">Notice Period</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={handleClearFilters} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1' }}>Clear</button>
         </div>
       </div>
 
@@ -178,7 +178,10 @@ export default function OccupancyReport() {
                       )}
                     </td>
                     <td>{row.tenant_name || '-'}</td>
-                    <td style={{ fontSize: '0.84rem', color: '#334155' }}>
+                    <td 
+                      style={{ fontSize: '0.84rem', color: '#334155', cursor: row.lease_start_date ? 'help' : 'default' }}
+                      title={row.lease_start_date || row.lease_end_date ? `Lease Period: ${row.lease_start_date ? new Date(row.lease_start_date).toLocaleDateString() : 'N/A'} to ${row.lease_end_date ? new Date(row.lease_end_date).toLocaleDateString() : 'N/A'}` : 'No lease details available'}
+                    >
                       {row.lease_start_date ? new Date(row.lease_start_date).toLocaleDateString() : '-'} 
                       {row.lease_end_date ? ` to ${new Date(row.lease_end_date).toLocaleDateString()}` : ''}
                     </td>
