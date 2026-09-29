@@ -31,7 +31,7 @@ export default function AdminLandlords() {
   const [search, setSearch] = useState('');
     const [appliedSearch, setAppliedSearch] = useState('');
   const [filterTab, setFilterTab] = useState('ALL'); // ALL, PENDING, ACTIVE, INACTIVE
-  const [templates, setTemplates] = useState([]);
+
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
@@ -127,7 +127,7 @@ export default function AdminLandlords() {
         id: null,
         name: '', email: '', pan: '', gstin: '', contact_details: '',
         billing_address: '', gst_registered: false,
-        default_invoice_template: defaultTpl ? defaultTpl.name : (templates.length > 0 ? templates[0].name : ''),
+        default_invoice_template: defaultTpl ? defaultTpl.name : '',
         is_active: true
       });
       fetchLandlords();
@@ -177,21 +177,7 @@ export default function AdminLandlords() {
     }
   };
 
-  const fetchTemplates = async () => {
-    try {
-      const res = await fetch('/api/ragul/templates');
-      if (res.ok) {
-        const jsonData = await res.json();
-        const tplArray = jsonData.data || [];
-        setTemplates(tplArray);
-        if (tplArray.length > 0 && !addFormData.default_invoice_template) {
-          setAddFormData(prev => ({ ...prev, default_invoice_template: tplArray[0].name }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch templates:', err);
-    }
-  };
+
 
   useEffect(() => {
     fetchLandlords();
