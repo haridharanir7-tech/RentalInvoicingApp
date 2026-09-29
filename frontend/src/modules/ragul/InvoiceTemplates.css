@@ -273,20 +273,21 @@
 .btn-action-customize {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: #f1f5f9;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
-  padding: 8px 14px;
+  gap: 7px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
 .btn-action-customize:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
+  background: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .btn-action-zip {
