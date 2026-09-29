@@ -128,18 +128,7 @@ export default function Invoices() {
 
       let defaultTemplateId = inv.default_template_id;
       let defaultInvoiceTemplate = inv.default_invoice_template;
-      let landlordInfo = null;
-
-      if (inv.landlord_id) {
-        try {
-          const lRes = await axios.get(`${API_BASE.replace('/haridharani', '/master-data')}/landlords/${inv.landlord_id}`);
-          if (lRes.data) {
-            landlordInfo = lRes.data;
-            if (lRes.data.default_template_id) defaultTemplateId = lRes.data.default_template_id;
-            if (lRes.data.default_invoice_template) defaultInvoiceTemplate = lRes.data.default_invoice_template;
-          }
-        } catch (lErr) {}
-      }
+      
 
       if (!defaultTemplateId && !defaultInvoiceTemplate) {
         setActionError('No default invoice template is configured for this landlord.');
@@ -183,12 +172,12 @@ export default function Invoices() {
 
       const fullInvoice = {
         ...inv,
-        landlord_name: landlordInfo?.name || inv.landlord_name,
-        landlord_address: landlordInfo?.billing_address || inv.landlord_address || inv.billing_address,
-        landlord_pan: landlordInfo?.pan || inv.landlord_pan,
-        landlord_gstin: landlordInfo?.gstin || inv.landlord_gstin,
-        landlord_phone: landlordInfo?.contact_details || inv.landlord_phone,
-        landlord_email: landlordInfo?.email || inv.landlord_email,
+        landlord_name: inv.landlord_name,
+        landlord_address: inv.landlord_address || inv.billing_address,
+        landlord_pan: inv.landlord_pan,
+        landlord_gstin: inv.landlord_gstin,
+        landlord_phone: inv.landlord_phone,
+        landlord_email: inv.landlord_email,
         default_template_id: defaultTemplateId || matchedTemplate?.id,
         default_invoice_template: defaultInvoiceTemplate || matchedTemplate?.name,
         property_address: inv.property_address,
