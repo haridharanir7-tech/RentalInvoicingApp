@@ -90,7 +90,7 @@ export default function LandlordDashboard() {
   };
 
   // Helper to compute SVG pie slices from items
-  const computePieSlices = (items, total, radius = 78, center = 100) => {
+  const computePieSlices = (items, total, radius = 88, center = 100) => {
     if (!total || total <= 0) return [];
     const nonZero = items.filter(i => i.value > 0);
     if (nonZero.length === 1) {
@@ -859,17 +859,17 @@ export default function LandlordDashboard() {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              padding: '6px 0 10px 0',
-              minHeight: '175px'
+              padding: '8px 0 12px 0',
+              minHeight: '235px'
             }}>
-              <div style={{ position: 'relative', width: '170px', height: '170px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="170" height="170" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
+              <div style={{ position: 'relative', width: '230px', height: '230px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="230" height="230" viewBox="0 0 200 200" style={{ overflow: 'visible' }}>
                   <filter id="landlordInvPieShadow" x="-10%" y="-10%" width="120%" height="120%">
                     <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.12" />
                   </filter>
                   <g filter="url(#landlordInvPieShadow)">
                     {totalInvoicesCount === 0 ? (
-                      <circle cx="100" cy="100" r="78" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
+                      <circle cx="100" cy="100" r="88" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
                     ) : (
                       invoiceSlices.map((slice) => {
                         const isHovered = hoveredInvoiceIdx === slice.index;
@@ -879,7 +879,7 @@ export default function LandlordDashboard() {
                               key={slice.index}
                               cx="100"
                               cy="100"
-                              r="78"
+                              r="88"
                               fill={slice.color}
                               stroke="#ffffff"
                               strokeWidth="2.5"
@@ -922,8 +922,8 @@ export default function LandlordDashboard() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: '10px',
-              marginTop: '10px',
+              gap: '8px',
+              marginTop: '12px',
               paddingTop: '12px',
               borderTop: '1px solid #f1f5f9'
             }}>
@@ -938,7 +938,7 @@ export default function LandlordDashboard() {
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      padding: '10px 12px',
+                      padding: '8px 10px',
                       background: isHovered ? '#eff6ff' : '#f8fafc',
                       borderRadius: '8px',
                       border: isHovered ? `1.5px solid ${item.color}` : '1px solid #e2e8f0',
@@ -947,9 +947,9 @@ export default function LandlordDashboard() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: item.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {item.label}
                         </span>
                       </div>
