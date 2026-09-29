@@ -298,16 +298,6 @@ export default function Invoices() {
             Overview of all generated rental invoices, payment statuses, and audit records
           </p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary" onClick={handleExportCSV}>
-            <FileText size={15} />
-            <span>Export CSV</span>
-          </button>
-          <button className="btn btn-primary" onClick={handlePrint}>
-            <Printer size={15} />
-            <span>Print Register</span>
-          </button>
-        </div>
       </div>
 
       {/* Filter Row matching Landlord & Property modules */}
