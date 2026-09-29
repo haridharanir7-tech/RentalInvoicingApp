@@ -73,25 +73,40 @@ const getAdminDashboard = async (req, res) => {
       Sent: allInvoices.filter(i => i.status === 'Sent').length
     };
 
-    // Chart 3: Properties Overview (Commercial vs Residential & Area sqft)
+    // Chart 3: Properties Overview (Commercial, Residential, Warehouse)
     const getArea = (p) => Number(p.area_sqft || p.total_area || p.area || 0);
     const commercialProps = allProperties.filter(p => (p.property_type || '').toLowerCase() === 'commercial');
     const residentialProps = allProperties.filter(p => (p.property_type || '').toLowerCase() === 'residential');
+    const warehouseProps = allProperties.filter(p => (p.property_type || '').toLowerCase() === 'warehouse');
     const commercialAreaSqft = commercialProps.reduce((acc, curr) => acc + getArea(curr), 0);
     const residentialAreaSqft = residentialProps.reduce((acc, curr) => acc + getArea(curr), 0);
-    const totalAreaSqft = commercialAreaSqft + residentialAreaSqft;
+    const warehouseAreaSqft = warehouseProps.reduce((acc, curr) => acc + getArea(curr), 0);
+    const totalAreaSqft = commercialAreaSqft + residentialAreaSqft + warehouseAreaSqft;
 
     const propertyTypeCounts = {
       Commercial: commercialProps.length,
-      Residential: residentialProps.length
+      Residential: residentialProps.length,
+      Warehouse: warehouseProps.length
     };
+
+    // Capture any custom property types if present
+    allProperties.forEach(p => {
+      const rawType = (p.property_type || '').trim();
+      if (!rawType) return;
+      const norm = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+      if (!['Commercial', 'Residential', 'Warehouse'].includes(norm)) {
+        propertyTypeCounts[norm] = (propertyTypeCounts[norm] || 0) + 1;
+      }
+    });
 
     const propertyArea = {
       commercialAreaSqft,
       residentialAreaSqft,
+      warehouseAreaSqft,
       totalAreaSqft,
       commercialCount: commercialProps.length,
       residentialCount: residentialProps.length,
+      warehouseCount: warehouseProps.length,
       properties: allProperties.map(p => ({
         id: p.id,
         name: p.property_name || p.name,

@@ -6,6 +6,7 @@ import {
   Users,
   Building2,
   Home,
+  Warehouse,
   Receipt,
   IndianRupee,
   Clock,
@@ -32,7 +33,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
   const [hoveredInvoiceIdx, setHoveredInvoiceIdx] = useState(null);
-  const [hoveredAreaType, setHoveredAreaType] = useState(null);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
   const invoicePageSize = 5;
 
   const fetchDashboardData = async () => {
@@ -74,7 +75,7 @@ export default function AdminDashboard() {
 
   const { summaryCards, charts, recentInvoices = [] } = data || {
     summaryCards: { totalLandlords: 0, totalProperties: 0, totalTenants: 0, totalInvoices: 0, totalRevenue: 0, totalBilled: 0, pendingApprovalsCount: 0 },
-    charts: { monthlyRevenue: [], invoiceStatus: { Draft: 0, Generated: 0, Sent: 0 }, propertyTypes: { Commercial: 0, Residential: 0 }, tenantStatus: { Active: 0, NoticePeriod: 0, Vacated: 0 }, gstSummary: {}, chargesBreakdown: {} }
+    charts: { monthlyRevenue: [], invoiceStatus: { Draft: 0, Generated: 0, Sent: 0 }, propertyTypes: { Commercial: 0, Residential: 0, Warehouse: 0 }, tenantStatus: { Active: 0, NoticePeriod: 0, Vacated: 0 }, gstSummary: {}, chargesBreakdown: {} }
   };
 
   const totalInvoicePages = Math.ceil((recentInvoices?.length || 0) / invoicePageSize) || 1;
@@ -134,22 +135,87 @@ export default function AdminDashboard() {
     });
   };
 
-  // 1. Chart 1 Data: Commercial vs Residential Area Breakdown & Comparison
-  const propArea = charts.propertyArea || {};
-  const commCount = propArea.commercialCount ?? charts.propertyTypes?.Commercial ?? 0;
-  const resCount = propArea.residentialCount ?? charts.propertyTypes?.Residential ?? 0;
-  const totalPropsCount = (commCount + resCount) || summaryCards.totalProperties || 1;
+  // 1. Chart 1 Data: Property Category Distribution (Commercial, Residential, Warehouse)
+  const propTypes = charts.propertyTypes || {};
+  const commCount = Number(propTypes.Commercial ?? charts.propertyArea?.commercialCount ?? 0);
+  const resCount = Number(propTypes.Residential ?? charts.propertyArea?.residentialCount ?? 0);
+  const whCount = Number(propTypes.Warehouse ?? charts.propertyArea?.warehouseCount ?? 0);
+  const totalPortfolioProps = (commCount + resCount + whCount) || Number(summaryCards.totalProperties || 0) || 1;
 
-  // Exact Square Footage (sq.ft)
-  const commArea = Number(propArea.commercialAreaSqft ?? (charts.totalAreaSqft ? Math.round(charts.totalAreaSqft * 0.65) : 0));
-  const resArea = Number(propArea.residentialAreaSqft ?? (charts.totalAreaSqft ? Math.round(charts.totalAreaSqft * 0.35) : 0));
-  const totalArea = (commArea + resArea) || Number(charts.totalAreaSqft || 0);
+  const commPct = ((commCount / totalPortfolioProps) * 100).toFixed(1);
+  const resPct = ((resCount / totalPortfolioProps) * 100).toFixed(1);
+  const whPct = ((whCount / totalPortfolioProps) * 100).toFixed(1);
 
-  const commAreaPct = totalArea > 0 ? ((commArea / totalArea) * 100).toFixed(1) : (commCount > 0 ? ((commCount / totalPropsCount) * 100).toFixed(1) : '50.0');
-  const resAreaPct = totalArea > 0 ? ((resArea / totalArea) * 100).toFixed(1) : (resCount > 0 ? ((resCount / totalPropsCount) * 100).toFixed(1) : '50.0');
+  const propertyCategories = [
+    {
+      type: 'Commercial',
+      label: 'Commercial',
+      count: commCount,
+      percentage: commPct,
+      color: '#2563eb',
+      bgColor: '#eff6ff',
+      borderColor: '#bfdbfe',
+      activeBorder: '#2563eb',
+      gradient: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
+      badgeBg: '#dbeafe',
+      badgeColor: '#1d4ed8',
+      desc: 'Offices & Commercial spaces',
+      icon: Building2
+    },
+    {
+      type: 'Residential',
+      label: 'Residential',
+      count: resCount,
+      percentage: resPct,
+      color: '#059669',
+      bgColor: '#ecfdf5',
+      borderColor: '#a7f3d0',
+      activeBorder: '#059669',
+      gradient: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+      badgeBg: '#d1fae5',
+      badgeColor: '#047857',
+      desc: 'Housing & Residential units',
+      icon: Home
+    },
+    {
+      type: 'Warehouse',
+      label: 'Warehouse',
+      count: whCount,
+      percentage: whPct,
+      color: '#d97706',
+      bgColor: '#fffbeb',
+      borderColor: '#fde68a',
+      activeBorder: '#d97706',
+      gradient: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+      badgeBg: '#fef3c7',
+      badgeColor: '#b45309',
+      desc: 'Storage & Logistics hubs',
+      icon: Warehouse
+    }
+  ];
 
-  const avgCommArea = commCount > 0 && commArea > 0 ? Math.round(commArea / commCount) : 0;
-  const avgResArea = resCount > 0 && resArea > 0 ? Math.round(resArea / resCount) : 0;
+  // Capture any other custom property types if present
+  const standardTypes = ['Commercial', 'Residential', 'Warehouse'];
+  Object.keys(propTypes).forEach(key => {
+    if (!standardTypes.includes(key) && Number(propTypes[key]) > 0) {
+      const c = Number(propTypes[key]);
+      propertyCategories.push({
+        type: key,
+        label: key,
+        count: c,
+        percentage: ((c / totalPortfolioProps) * 100).toFixed(1),
+        color: '#7c3aed',
+        bgColor: '#f5f3ff',
+        borderColor: '#ddd6fe',
+        activeBorder: '#7c3aed',
+        gradient: 'linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%)',
+        badgeBg: '#ede9fe',
+        badgeColor: '#6d28d9',
+        desc: `${key} properties`,
+        icon: Building2
+      });
+    }
+  });
 
 
   // 2. Invoice Status Distribution (Pie Chart)
@@ -287,7 +353,7 @@ export default function AdminDashboard() {
             {summaryCards.totalProperties}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px' }}>
-            Commercial & Residential
+            Commercial, Residential & Warehouse
           </div>
         </div>
 
@@ -414,7 +480,7 @@ export default function AdminDashboard() {
         gap: '20px',
         marginBottom: '28px'
       }}>
-        {/* Chart 1: Commercial vs Residential Area Graph */}
+        {/* Chart 1: Property Portfolio Distribution (Commercial, Residential & Warehouse) */}
         <div style={{
           background: '#ffffff',
           borderRadius: '12px',
@@ -438,175 +504,130 @@ export default function AdminDashboard() {
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Building2 size={18} color="#2563eb" />
-                  Commercial vs Residential Area
+                  Property Portfolio Distribution
                 </h3>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  Real estate square footage volume & portfolio distribution
+                  Commercial, Residential & Warehouse asset breakdown
                 </p>
               </div>
 
-              {/* Total Area Pill in Top Right */}
+              {/* Total Portfolio Count Badge */}
               <div style={{
                 background: '#f8fafc',
                 border: '1px solid #e2e8f0',
                 borderRadius: '8px',
-                padding: '6px 12px',
+                padding: '6px 14px',
                 textAlign: 'right'
               }}>
                 <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Total Portfolio
                 </div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                  {totalArea.toLocaleString('en-IN')} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>sq.ft</span>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                  {totalPortfolioProps} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Properties</span>
                 </div>
               </div>
             </div>
 
-            {/* Main Visual: Dual Comparative Volume Level Columns */}
+            {/* Main Visual: 3 Category Volume Level Cards */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: '12px',
               marginBottom: '18px'
             }}>
-              {/* Commercial Column */}
-              <div
-                onMouseEnter={() => setHoveredAreaType('Commercial')}
-                onMouseLeave={() => setHoveredAreaType(null)}
-                style={{
-                  background: hoveredAreaType === 'Commercial' ? '#eff6ff' : '#f8fafc',
-                  border: hoveredAreaType === 'Commercial' ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '0.80rem',
-                    fontWeight: 700,
-                    color: '#1d4ed8'
-                  }}>
-                    <Building2 size={15} color="#2563eb" />
-                    Commercial
-                  </span>
-                  <span style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    color: '#1d4ed8',
-                    background: '#dbeafe',
-                    padding: '2px 8px',
-                    borderRadius: '12px'
-                  }}>
-                    {commAreaPct}%
-                  </span>
-                </div>
+              {propertyCategories.map((cat) => {
+                const IconComponent = cat.icon;
+                const isHovered = hoveredCategory === cat.type;
+                return (
+                  <div
+                    key={cat.type}
+                    onMouseEnter={() => setHoveredCategory(cat.type)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      background: isHovered ? cat.bgColor : '#f8fafc',
+                      border: isHovered ? `1.5px solid ${cat.activeBorder}` : '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: cat.color
+                        }}>
+                          <IconComponent size={14} color={cat.color} />
+                          {cat.label}
+                        </span>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: cat.badgeColor,
+                          background: cat.badgeBg,
+                          padding: '2px 7px',
+                          borderRadius: '12px'
+                        }}>
+                          {cat.percentage}%
+                        </span>
+                      </div>
 
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                  {commArea.toLocaleString('en-IN')}
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginLeft: '4px' }}>sq.ft</span>
-                </div>
+                      <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', marginBottom: '2px', display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                        {cat.count}
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>
+                          {cat.count === 1 ? 'Property' : 'Properties'}
+                        </span>
+                      </div>
 
-                {/* Animated Level Bar */}
-                <div style={{
-                  height: '10px',
-                  background: '#e2e8f0',
-                  borderRadius: '9999px',
-                  overflow: 'hidden',
-                  margin: '10px 0 8px 0'
-                }}>
-                  <div style={{
-                    width: `${commAreaPct}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #2563eb 0%, #3b82f6 100%)',
-                    borderRadius: '9999px',
-                    transition: 'width 0.4s ease'
-                  }} />
-                </div>
+                      <div style={{ fontSize: '0.69rem', color: '#64748b', marginBottom: '6px', lineHeight: '1.2' }}>
+                        {cat.desc}
+                      </div>
+                    </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
-                  <span><strong>{commCount}</strong> Properties</span>
-                  <span>Avg: <strong>{avgCommArea.toLocaleString('en-IN')}</strong> sq.ft</span>
-                </div>
-              </div>
-
-              {/* Residential Column */}
-              <div
-                onMouseEnter={() => setHoveredAreaType('Residential')}
-                onMouseLeave={() => setHoveredAreaType(null)}
-                style={{
-                  background: hoveredAreaType === 'Residential' ? '#ecfdf5' : '#f8fafc',
-                  border: hoveredAreaType === 'Residential' ? '1.5px solid #059669' : '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '0.80rem',
-                    fontWeight: 700,
-                    color: '#047857'
-                  }}>
-                    <Home size={15} color="#059669" />
-                    Residential
-                  </span>
-                  <span style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    color: '#047857',
-                    background: '#d1fae5',
-                    padding: '2px 8px',
-                    borderRadius: '12px'
-                  }}>
-                    {resAreaPct}%
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                  {resArea.toLocaleString('en-IN')}
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginLeft: '4px' }}>sq.ft</span>
-                </div>
-
-                {/* Animated Level Bar */}
-                <div style={{
-                  height: '10px',
-                  background: '#e2e8f0',
-                  borderRadius: '9999px',
-                  overflow: 'hidden',
-                  margin: '10px 0 8px 0'
-                }}>
-                  <div style={{
-                    width: `${resAreaPct}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
-                    borderRadius: '9999px',
-                    transition: 'width 0.4s ease'
-                  }} />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
-                  <span><strong>{resCount}</strong> Properties</span>
-                  <span>Avg: <strong>{avgResArea.toLocaleString('en-IN')}</strong> sq.ft</span>
-                </div>
-              </div>
+                    {/* Category Level Bar */}
+                    <div>
+                      <div style={{
+                        height: '8px',
+                        background: '#e2e8f0',
+                        borderRadius: '9999px',
+                        overflow: 'hidden',
+                        marginTop: '6px'
+                      }}>
+                        <div style={{
+                          width: `${cat.percentage}%`,
+                          height: '100%',
+                          background: cat.gradient,
+                          borderRadius: '9999px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Proportional Full-Width Split Meter */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
-                <span>Area Share Breakdown</span>
-                <span>{commAreaPct}% Commercial • {resAreaPct}% Residential</span>
+                <span>Portfolio Share Breakdown</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
+                  {propertyCategories.map((c, i) => (
+                    <span key={c.type} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: c.color }} />
+                      <span>{c.percentage}% {c.label}</span>
+                      {i < propertyCategories.length - 1 && <span style={{ color: '#cbd5e1' }}>•</span>}
+                    </span>
+                  ))}
+                </span>
               </div>
               <div style={{
                 height: '24px',
@@ -617,51 +638,38 @@ export default function AdminDashboard() {
                 border: '1px solid #e2e8f0',
                 boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
               }}>
-                <div
-                  onMouseEnter={() => setHoveredAreaType('Commercial')}
-                  onMouseLeave={() => setHoveredAreaType(null)}
-                  style={{
-                    width: `${commAreaPct}%`,
-                    background: 'linear-gradient(90deg, #2563eb, #3b82f6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ffffff',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    filter: hoveredAreaType === 'Commercial' ? 'brightness(1.1)' : 'none'
-                  }}
-                  title={`Commercial: ${commArea.toLocaleString('en-IN')} sq.ft (${commAreaPct}%)`}
-                >
-                  {Number(commAreaPct) > 15 ? `${commAreaPct}%` : ''}
-                </div>
-                <div
-                  onMouseEnter={() => setHoveredAreaType('Residential')}
-                  onMouseLeave={() => setHoveredAreaType(null)}
-                  style={{
-                    width: `${resAreaPct}%`,
-                    background: 'linear-gradient(90deg, #10b981, #059669)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ffffff',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    filter: hoveredAreaType === 'Residential' ? 'brightness(1.1)' : 'none'
-                  }}
-                  title={`Residential: ${resArea.toLocaleString('en-IN')} sq.ft (${resAreaPct}%)`}
-                >
-                  {Number(resAreaPct) > 15 ? `${resAreaPct}%` : ''}
-                </div>
+                {propertyCategories.map((cat) => (
+                  <div
+                    key={cat.type}
+                    onMouseEnter={() => setHoveredCategory(cat.type)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      width: `${cat.percentage}%`,
+                      background: cat.gradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      filter: hoveredCategory === cat.type ? 'brightness(1.15)' : 'none',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      padding: '0 4px'
+                    }}
+                    title={`${cat.label}: ${cat.count} Properties (${cat.percentage}%)`}
+                  >
+                    {Number(cat.percentage) >= 12 ? `${cat.label} ${cat.percentage}%` : (Number(cat.percentage) >= 7 ? `${cat.percentage}%` : '')}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Footer Navigation & Portfolio Ratio */}
+          {/* Footer Navigation & Portfolio Mix */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -671,7 +679,7 @@ export default function AdminDashboard() {
             marginTop: '10px'
           }}>
             <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-              Ratio: <strong style={{ color: '#0f172a' }}>{resArea > 0 ? (commArea / resArea).toFixed(1) : '1.0'}x</strong> Commercial to Residential area
+              Portfolio mix: <strong style={{ color: '#0f172a' }}>{commCount} Commercial</strong>, <strong style={{ color: '#0f172a' }}>{resCount} Residential</strong>, and <strong style={{ color: '#0f172a' }}>{whCount} Warehouse</strong> assets
             </div>
             <button
               onClick={() => navigate('/admin/properties')}
