@@ -36,6 +36,11 @@ exports.createProperty = async (req, res) => {
         // Insert documents if files were uploaded
         if (req.files && req.files.length > 0) {
             for (let file of req.files) {
+                if (file.size > 250 * 1024) {
+                    return res.status(400).json({ error: `File ${file.originalname} exceeds the 250KB limit.` });
+                }
+            }
+            for (let file of req.files) {
                 const document_name = file.originalname;
                 const document_url = '/uploads/properties/' + file.filename;
                 await db.query(
@@ -84,6 +89,11 @@ exports.updateProperty = async (req, res) => {
 
         // Insert documents if files were uploaded during edit
         if (req.files && req.files.length > 0) {
+            for (let file of req.files) {
+                if (file.size > 250 * 1024) {
+                    return res.status(400).json({ error: `File ${file.originalname} exceeds the 250KB limit.` });
+                }
+            }
             for (let file of req.files) {
                 const document_name = file.originalname;
                 const document_url = '/uploads/properties/' + file.filename;
@@ -207,8 +217,8 @@ exports.uploadDocument = async (req, res) => {
         }
         
         for (let file of req.files) {
-            if (file.mimetype !== 'application/pdf' && !file.originalname.toLowerCase().endsWith('.pdf')) {
-                return res.status(400).json({ error: 'Invalid file format. Only PDF files are allowed.' });
+            if (file.size > 250 * 1024) {
+                return res.status(400).json({ error: `File ${file.originalname} exceeds the 250KB limit.` });
             }
             
             const document_name = file.originalname;
@@ -224,6 +234,22 @@ exports.uploadDocument = async (req, res) => {
         res.json({ message: 'Documents uploaded successfully' });
     } catch (error) {
         console.error('uploadDocument error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteDocument = async (req, res) => {
+    try {
+        const { id, docId } = req.params;
+        const result = await db.query('DELETE FROM property_documents WHERE property_id = $1 AND id = $2 RETURNING *', [id, docId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        res.json({ message: 'Document deleted successfully' });
+    } catch (error) {
+        console.error('deleteDocument error:', error);
         res.status(500).json({ error: error.message });
     }
 };

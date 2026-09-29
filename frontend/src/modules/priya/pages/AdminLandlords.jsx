@@ -633,7 +633,7 @@ export default function AdminLandlords() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Landlord ID:</span>
-                <strong>#{selectedLandlord.id}</strong>
+                <strong>{selectedLandlord.id}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Account Status:</span>
@@ -929,9 +929,6 @@ export default function AdminLandlords() {
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                   {addFormData.id ? 'Edit Landlord' : 'Add New Landlord'}
                 </h3>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                  {addFormData.id ? 'Update landlord record and invoice preferences' : 'Create a new landlord record in the database'}
-                </p>
               </div>
               <button
                 type="button"
@@ -1219,11 +1216,6 @@ export default function AdminLandlords() {
                     </option>
                   )}
                 </select>
-                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
-                  {templatesList.length > 0
-                    ? `Loaded ${templatesList.length} templates from database`
-                    : 'Fetching invoice templates from database...'}
-                </div>
               </div>
 
                 <div style={{ marginBottom: '20px' }}>
