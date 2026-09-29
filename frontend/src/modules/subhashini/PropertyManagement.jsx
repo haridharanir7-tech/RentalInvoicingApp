@@ -130,7 +130,7 @@ export default function PropertyManagement() {
       setOdtText('');
       setOdtError(false);
       
-      const url = `http://localhost:5000${encodeURI(viewingDoc.url)}`;
+      const url = `${encodeURI(viewingDoc.url)}`;
       fetch(url)
         .then(res => {
           if (!res.ok) throw new Error('Network error');
@@ -855,13 +855,13 @@ export default function PropertyManagement() {
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto' }}>
                     {viewingDoc?.url?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                       <img 
-                        src={`http://localhost:5000${encodeURI(viewingDoc.url)}`} 
+                        src={`${encodeURI(viewingDoc.url)}`} 
                         alt="Document Preview" 
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                       />
                     ) : viewingDoc?.url?.match(/\.(pdf)$/i) ? (
                       <iframe 
-                        src={`http://localhost:5000${encodeURI(viewingDoc.url)}`} 
+                        src={`${encodeURI(viewingDoc.url)}`} 
                         title="Document Preview"
                         style={{ width: '100%', height: '100%', border: 'none' }}
                       />
