@@ -24,7 +24,7 @@ exports.getRentalRates = async (req, res) => {
         r.change_reason,
         r.created_at,
         COALESCE(l.name, 'Unassigned Landlord') AS landlord_name,
-        (COALESCE(l.gst_registered, false) OR (l.gstin IS NOT NULL AND TRIM(l.gstin) != '')) AS landlord_gst_registered,
+        COALESCE(l.gst_registered, false) AS landlord_gst_registered,
         COALESCE(p.name, 'Unassigned Property') AS property_name,
         COALESCE(t.name, 'N/A') AS tenant_name
       FROM rentalrate r
@@ -51,7 +51,7 @@ exports.getPropertiesAndTenants = async (req, res) => {
         l.id, 
         l.name, 
         MAX(COALESCE(l.email, u.email, '')) AS email, 
-        (COALESCE(l.gst_registered, false) OR (l.gstin IS NOT NULL AND TRIM(l.gstin) != '')) AS gst_registered, 
+        COALESCE(l.gst_registered, false) AS gst_registered, 
         l.gstin, 
         COALESCE(l.is_active, true) AS is_active 
       FROM landlords l
