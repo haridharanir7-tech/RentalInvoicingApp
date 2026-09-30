@@ -42,7 +42,7 @@ let isPgAvailable = false;
 let checkPromise = null;
 
 async function checkPgConnection() {
-  if (checkPromise) return checkPromise;
+  if (checkPromise && isPgAvailable) return checkPromise;
   checkPromise = (async () => {
     try {
       const res = await pool.query('SELECT 1');
@@ -50,6 +50,7 @@ async function checkPgConnection() {
       console.log('✓ Active connection to Supabase (PostgreSQL) pool established');
     } catch (err) {
       isPgAvailable = false;
+      checkPromise = null; // clear it to retry next time
       console.log('ℹ Running with local data store:', err.message);
     }
     return isPgAvailable;
@@ -193,6 +194,7 @@ const dbAdapter = {
           userData.status || 'Active'
         ]);
         created = res.rows[0];
+        return created;
       } catch (err) {
         console.error('Supabase createUser error, falling back:', err.message);
       }
@@ -249,6 +251,7 @@ const dbAdapter = {
             RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login, reset_token, reset_token_expiry;
           `, values);
           pgUpdated = res.rows[0];
+          return pgUpdated;
         }
       } catch (err) {
         console.error('Supabase updateUser error, falling back:', err.message);

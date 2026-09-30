@@ -77,10 +77,10 @@ export default function AdminLandlords() {
       return;
     }
 
-    // PAN validation: alphanumeric characters up to 20 characters if provided
+    // PAN validation: 10 characters structure (5 letters, 4 numbers, 1 letter)
     const cleanPan = (addFormData.pan || '').trim().toUpperCase();
-    if (cleanPan && !/^[A-Z0-9]{3,20}$/.test(cleanPan)) {
-      setError('PAN must be alphanumeric characters (e.g. ABCDE1234F).');
+    if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      setError('Invalid PAN format (must be 5 letters, 4 numbers, 1 letter. e.g., ABCDE1234F).');
       return;
     }
 
@@ -91,9 +91,16 @@ export default function AdminLandlords() {
     }
 
     const cleanGstin = (addFormData.gstin || '').trim().toUpperCase();
-    if (cleanGstin && !/^[A-Z0-9]{3,20}$/.test(cleanGstin)) {
-      setError('Invalid GSTIN format. Must be alphanumeric characters (e.g. 33AAAAA0000A1Z5).');
-      return;
+    if (cleanGstin) {
+      if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9]{1}[A-Z]{1}[0-9]{1}$/.test(cleanGstin)) {
+        setError('Invalid GSTIN format. Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit.');
+        return;
+      }
+      const gstinPan = cleanGstin.substring(2, 12);
+      if (cleanPan && gstinPan !== cleanPan) {
+        setError('The PAN inside the GSTIN must match the entered PAN.');
+        return;
+      }
     }
 
     setAddingLandlord(true);
@@ -120,7 +127,7 @@ export default function AdminLandlords() {
       if (!res.ok) {
         throw new Error(data.error || (isEdit ? 'Failed to update landlord' : 'Failed to create landlord'));
       }
-      setSuccessMsg(isEdit ? `Landlord "${addFormData.name}" updated successfully.` : `Landlord "${addFormData.name}" added successfully.`);
+      // setSuccessMsg(isEdit ? `Landlord "${addFormData.name}" updated successfully.` : `Landlord "${addFormData.name}" added successfully.`);
       setAddModalOpen(false);
       const defaultTpl = templatesList.find((t) => t.isDefault) || templatesList[0];
       setAddFormData({
@@ -394,7 +401,22 @@ export default function AdminLandlords() {
             className="form-input" 
             value={filterTab} 
             onChange={(e) => { setFilterTab(e.target.value); setPage(1); }}
-            style={{ width: '115px' }}
+            style={{ 
+              width: '130px',
+              padding: '8px 30px 8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#fff',
+              color: '#0f172a',
+              fontSize: '14px',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+              backgroundSize: '16px'
+            }}
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -452,7 +474,19 @@ export default function AdminLandlords() {
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ color: '#1e293b', fontSize: '0.82rem' }}>{l.email || l.landlord_email || 'No email registered'}</div>
+                        <div 
+                          title={l.email || l.landlord_email || ''} 
+                          style={{ 
+                            color: '#1e293b', 
+                            fontSize: '0.82rem',
+                            maxWidth: '150px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {l.email || l.landlord_email || 'No email registered'}
+                        </div>
                         <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{l.contact_details || 'No phone'}</div>
                       </td>
 
@@ -562,7 +596,7 @@ export default function AdminLandlords() {
                               setSelectedLandlord(l);
                               setViewModalOpen(true);
                             }}
-                            title="View Full Profile"
+                            title="View Details"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1045,11 +1079,13 @@ export default function AdminLandlords() {
                     type="text"
                     value={addFormData.pan}
                     onChange={(e) => {
-                      const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+                      const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
                       setAddFormData({ ...addFormData, pan: cleanPan });
                     }}
                     placeholder="ABCDE1234F"
-                    maxLength={20}
+                    maxLength={10}
+                    pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}"
+                    title="Must be 5 letters, 4 numbers, and 1 letter (e.g., ABCDE1234F)"
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -1060,17 +1096,6 @@ export default function AdminLandlords() {
                       textTransform: 'uppercase'
                     }}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
-                    {addFormData.pan && (
-                      <span style={{ 
-                        fontSize: '0.72rem', 
-                        fontWeight: 600,
-                        color: /^[A-Z0-9]{3,20}$/.test(addFormData.pan) ? '#16a34a' : '#e11d48' 
-                      }}>
-                        {/^[A-Z0-9]{3,20}$/.test(addFormData.pan) ? 'Valid PAN' : `${addFormData.pan.length} chars`}
-                      </span>
-                    )}
-                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
@@ -1081,11 +1106,11 @@ export default function AdminLandlords() {
                     disabled={!addFormData.gst_registered}
                     value={addFormData.gstin}
                     onChange={(e) => {
-                      const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+                      const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
                       setAddFormData({ ...addFormData, gstin: cleanGstin });
                     }}
-                    placeholder="33AAAAA0000A1Z5"
-                    maxLength={20}
+                    placeholder="33ABCDE1234F1Z5"
+                    maxLength={15}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -1102,9 +1127,9 @@ export default function AdminLandlords() {
                       <span style={{ 
                         fontSize: '0.72rem', 
                         fontWeight: 600,
-                        color: /^[A-Z0-9]{3,20}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
+                        color: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9]{1}[A-Z]{1}[0-9]{1}$/.test(addFormData.gstin) ? '#16a34a' : '#e11d48' 
                       }}>
-                        {/^[A-Z0-9]{3,20}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length} chars`}
+                        {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9]{1}[A-Z]{1}[0-9]{1}$/.test(addFormData.gstin) ? 'Valid GSTIN' : `${addFormData.gstin.length} chars`}
                       </span>
                     )}
                   </div>
@@ -1230,7 +1255,7 @@ export default function AdminLandlords() {
                     fontSize: '0.84rem'
                   }}
                 >
-                  {addingLandlord ? 'Saving...' : (addFormData.id ? 'Save Changes' : 'Add Landlord')}
+                  {addingLandlord ? 'Saving...' : (addFormData.id ? 'Save Landlord' : 'Add Landlord')}
                 </button>
               </div>
             </form>

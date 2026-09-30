@@ -42,10 +42,10 @@ exports.createProperty = async (req, res) => {
             }
             for (let file of req.files) {
                 const document_name = file.originalname;
-                const document_url = '/uploads/properties/' + file.filename;
+                const document_url = ''; // Replaced with download endpoint dynamically
                 await db.query(
-                    `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
-                    [newProperty.id, document_name, document_url]
+                    `INSERT INTO property_documents (property_id, document_name, document_url, document_data, mime_type) VALUES ($1, $2, $3, $4, $5)`,
+                    [newProperty.id, document_name, document_url, file.buffer, file.mimetype]
                 );
             }
         }
@@ -96,10 +96,10 @@ exports.updateProperty = async (req, res) => {
             }
             for (let file of req.files) {
                 const document_name = file.originalname;
-                const document_url = '/uploads/properties/' + file.filename;
+                const document_url = '';
                 await db.query(
-                    `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
-                    [id, document_name, document_url]
+                    `INSERT INTO property_documents (property_id, document_name, document_url, document_data, mime_type) VALUES ($1, $2, $3, $4, $5)`,
+                    [id, document_name, document_url, file.buffer, file.mimetype]
                 );
             }
         }
@@ -155,7 +155,7 @@ exports.getProperties = async (req, res) => {
         const query = `
             SELECT p.*, l.name as landlord_name, 
                    COALESCE(
-                       (SELECT json_agg(json_build_object('url', pd.document_url, 'name', pd.document_name, 'id', pd.id)) 
+                       (SELECT json_agg(json_build_object('url', '/api/master-data/properties/documents/' || pd.id || '/download', 'name', pd.document_name, 'id', pd.id)) 
                         FROM property_documents pd 
                         WHERE pd.property_id = p.id), 
                        '[]'::json
@@ -222,12 +222,12 @@ exports.uploadDocument = async (req, res) => {
             }
             
             const document_name = file.originalname;
-            const document_url = '/uploads/properties/' + file.filename;
+            const document_url = '';
             
             // Insert new document (keeping old ones)
             await db.query(
-                `INSERT INTO property_documents (property_id, document_name, document_url) VALUES ($1, $2, $3)`,
-                [id, document_name, document_url]
+                `INSERT INTO property_documents (property_id, document_name, document_url, document_data, mime_type) VALUES ($1, $2, $3, $4, $5)`,
+                [id, document_name, document_url, file.buffer, file.mimetype]
             );
         }
         
@@ -250,6 +250,25 @@ exports.deleteDocument = async (req, res) => {
         res.json({ message: 'Document deleted successfully' });
     } catch (error) {
         console.error('deleteDocument error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.downloadDocument = async (req, res) => {
+    try {
+        const { docId } = req.params;
+        const result = await db.query('SELECT document_data, mime_type, document_name FROM property_documents WHERE id = $1', [docId]);
+        
+        if (result.rows.length === 0 || !result.rows[0].document_data) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+        
+        const doc = result.rows[0];
+        res.setHeader('Content-Type', doc.mime_type || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `inline; filename="${doc.document_name}"`);
+        res.send(doc.document_data);
+    } catch (error) {
+        console.error('downloadDocument error:', error);
         res.status(500).json({ error: error.message });
     }
 };

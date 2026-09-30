@@ -121,7 +121,7 @@ export default function OccupancyReport() {
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             style={{ width: '180px' }}
           >
-            <option value="">All Occupancy Status</option>
+            <option value="">All Statuses</option>
             <option value="Occupied">Occupied</option>
             <option value="Vacant">Vacant</option>
             <option value="Notice Period">Notice Period</option>

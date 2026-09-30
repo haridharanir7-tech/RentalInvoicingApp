@@ -9,14 +9,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir)
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname)
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 const landlordController = require('./landlordController');
@@ -34,6 +27,7 @@ router.get('/landlords', landlordController.getLandlords);
 // Property Routes
 router.post('/properties', upload.array('property_documents', 10), propertyController.createProperty);
 router.post('/properties/:id/document', upload.array('property_documents', 10), propertyController.uploadDocument);
+router.get('/properties/documents/:docId/download', propertyController.downloadDocument);
 router.delete('/properties/:id/document/:docId', propertyController.deleteDocument);
 router.put('/properties/:id', upload.array('property_documents', 10), propertyController.updateProperty);
 router.patch('/properties/:id/deactivate', propertyController.deactivateProperty);
