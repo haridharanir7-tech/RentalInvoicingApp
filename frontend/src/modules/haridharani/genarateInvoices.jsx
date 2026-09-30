@@ -254,8 +254,8 @@ export default function GenerateInvoices() {
         </div>
       )}
 
-      {/* Auto Rent + GST Preview Table */}
-      <div className="table-container">
+      {/* Auto Rent + GST Preview Card */}
+      <div style={{ background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', marginBottom: '20px', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: isLandlord ? 'flex-end' : 'space-between', alignItems: 'center', background: '#f8fafc' }}>
           {!isLandlord && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -278,23 +278,24 @@ export default function GenerateInvoices() {
           </span>
         </div>
 
-        <table style={{ minWidth: '1350px' }}>
-          <thead>
-            <tr>
-              {!isLandlord && (
-                <th style={{ width: '48px', textAlign: 'center' }}></th>
-              )}
-              <th style={{ minWidth: '130px' }}>Tenant</th>
-              <th style={{ minWidth: '150px' }}>Landlord</th>
-              <th style={{ minWidth: '150px' }}>Property</th>
-              <th style={{ minWidth: '120px' }}>Base Rent</th>
-              <th style={{ minWidth: '150px' }}>Charges (Maint/Park)</th>
-              <th style={{ minWidth: '140px' }}>Taxable Amount</th>
-              <th style={{ minWidth: '190px' }}>GST Breakdown</th>
-              <th style={{ minWidth: '140px' }}>Total Payable</th>
-              <th style={{ textAlign: 'center', minWidth: '180px' }}>Status</th>
-            </tr>
-          </thead>
+        <div className="table-container" style={{ margin: 0, border: 'none', borderRadius: 0, boxShadow: 'none' }}>
+          <table style={{ width: '100%', minWidth: '1100px' }}>
+            <thead>
+              <tr>
+                {!isLandlord && (
+                  <th style={{ width: '44px', textAlign: 'center' }}></th>
+                )}
+                <th style={{ minWidth: '120px' }}>Tenant</th>
+                <th style={{ minWidth: '130px' }}>Landlord</th>
+                <th style={{ minWidth: '130px' }}>Property</th>
+                <th style={{ minWidth: '110px' }}>Base Rent</th>
+                <th style={{ minWidth: '130px' }}>Charges (Maint/Park)</th>
+                <th style={{ minWidth: '120px' }}>Taxable Amount</th>
+                <th style={{ minWidth: '160px' }}>GST Breakdown</th>
+                <th style={{ minWidth: '120px' }}>Total Payable</th>
+                <th style={{ textAlign: 'center', minWidth: '130px' }}>Status</th>
+              </tr>
+            </thead>
           <tbody>
             {loading ? (
               <tr>
@@ -411,6 +412,7 @@ export default function GenerateInvoices() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination container */}
