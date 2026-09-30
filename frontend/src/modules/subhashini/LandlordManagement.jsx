@@ -103,6 +103,7 @@ export default function LandlordManagement() {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete landlord');
+      alert('Landlord deleted successfully from the database');
       fetchLandlords();
     } catch (err) {
       alert(err.message);
@@ -113,30 +114,36 @@ export default function LandlordManagement() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
+      alert('Name is required');
       return setError('Name is required');
     }
     
     const cleanPan = (formData.pan || '').trim().toUpperCase();
     if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      alert('Invalid PAN format (must be 5 letters, 4 numbers, 1 letter. e.g., ABCDE1234F)');
       return setError('Invalid PAN format (must be 5 letters, 4 numbers, 1 letter. e.g., ABCDE1234F)');
     }
 
     if (formData.gst_registered && !formData.gstin) {
+      alert('GSTIN is required when GST Registered is checked');
       return setError('GSTIN is required when GST Registered is checked');
     }
 
     const cleanGstin = (formData.gstin || '').trim().toUpperCase();
     if (cleanGstin) {
       if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9]{1}[A-Z]{1}[0-9]{1}$/.test(cleanGstin)) {
+        alert('Invalid GSTIN format. Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit.');
         return setError('Invalid GSTIN format. Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit.');
       }
       const gstinPan = cleanGstin.substring(2, 12);
       if (cleanPan && gstinPan !== cleanPan) {
+        alert('The PAN inside the GSTIN must match the entered PAN.');
         return setError('The PAN inside the GSTIN must match the entered PAN.');
       }
     }
 
     if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
+      alert('Contact Details must be a 10-digit phone number');
       return setError('Contact Details must be a 10-digit phone number');
     }
 
@@ -168,16 +175,24 @@ export default function LandlordManagement() {
         body: JSON.stringify(payload)
       });
       
-      if (!res.ok) throw new Error(editingId ? 'Failed to update landlord' : 'Failed to create landlord');
+      if (!res.ok) {
+        let errMessage = editingId ? 'Failed to update landlord' : 'Failed to create landlord';
+        try {
+          const errData = await res.json();
+          if (errData.error) errMessage = errData.error;
+        } catch (e) {}
+        throw new Error(errMessage);
+      }
       
-      setSuccess(editingId ? 'Landlord updated successfully!' : 'Landlord created successfully!');
+      alert(editingId ? 'Landlord updated successfully in the database' : 'Landlord added successfully in the database');
+      setSuccess(editingId ? 'Landlord updated successfully in the database' : 'Landlord added successfully in the database');
       setFormData({
         name: '', email: '', pan: '', gstin: '', contact_details: '', 
         billing_address: '', gst_registered: false, default_invoice_template: templates.length > 0 ? templates[0].name : ''
       });
       setEditingId(null);
       fetchLandlords();
-      setTimeout(() => setShowForm(false), 1200);
+      setTimeout(() => setShowForm(false), 300);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -374,13 +389,51 @@ export default function LandlordManagement() {
                     {l.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td>
-                  <button onClick={() => handleEdit(l)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '10px' }} title="Edit">
-                    <Edit size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete">
-                    <Trash2 size={18} />
-                  </button>
+                <td style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button
+                      className="action-btn-edit"
+                      onClick={() => handleEdit(l)}
+                      title="Edit"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #dbeafe',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                    <button
+                      className="action-btn-delete"
+                      onClick={() => handleDelete(l.id)}
+                      title="Delete"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #fee2e2',
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

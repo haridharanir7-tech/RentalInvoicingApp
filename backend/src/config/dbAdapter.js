@@ -251,7 +251,9 @@ const dbAdapter = {
             RETURNING user_id AS id, full_name, email, role, landlord_id, status, last_login, reset_token, reset_token_expiry;
           `, values);
           pgUpdated = res.rows[0];
-          return pgUpdated;
+          if (pgUpdated) {
+            return pgUpdated;
+          }
         }
       } catch (err) {
         console.error('Supabase updateUser error, falling back:', err.message);
@@ -268,6 +270,28 @@ const dbAdapter = {
       };
     }
     return pgUpdated || null;
+  },
+
+  deleteUserByLandlordId: async (landlordId) => {
+    let pgSuccess = false;
+    await checkPgConnection();
+    if (isPgAvailable) {
+      try {
+        await pool.query('DELETE FROM users WHERE landlord_id = $1', [parseInt(landlordId, 10)]);
+        pgSuccess = true;
+      } catch (err) {
+        console.error('Supabase deleteUser error, falling back:', err.message);
+      }
+    }
+    const s = loadStore();
+    const lIdStr = String(landlordId);
+    const initialLen = s.users.length;
+    s.users = s.users.filter(u => String(u.landlord_id) !== lIdStr);
+    if (s.users.length < initialLen) {
+      saveStore();
+      return true;
+    }
+    return pgSuccess;
   },
 
   // ==========================================

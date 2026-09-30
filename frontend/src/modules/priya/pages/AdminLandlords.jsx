@@ -127,7 +127,7 @@ export default function AdminLandlords() {
       if (!res.ok) {
         throw new Error(data.error || (isEdit ? 'Failed to update landlord' : 'Failed to create landlord'));
       }
-      // setSuccessMsg(isEdit ? `Landlord "${addFormData.name}" updated successfully.` : `Landlord "${addFormData.name}" added successfully.`);
+      alert(isEdit ? 'Landlord updated successfully in the database' : 'Landlord added successfully in the database');
       setAddModalOpen(false);
       const defaultTpl = templatesList.find((t) => t.isDefault) || templatesList[0];
       setAddFormData({
@@ -581,10 +581,13 @@ export default function AdminLandlords() {
                             <button title="Delete" onClick={async () => {
                               if(window.confirm('Are you sure you want to delete this landlord?')) {
                                 try {
-                                  await fetch('/api/master-data/landlords/' + l.id, { method: 'DELETE' });
+                                  const res = await fetch('/api/master-data/landlords/' + l.id, { method: 'DELETE' });
+                                  if (!res.ok) throw new Error('Failed to delete landlord');
+                                  alert('Landlord deleted successfully from the database');
                                   fetchLandlords();
                                 } catch (e) {
                                   console.error(e);
+                                  alert(e.message);
                                 }
                               }
                             }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}><Trash2 size={13} /> Delete</button>

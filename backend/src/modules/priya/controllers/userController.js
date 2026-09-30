@@ -327,8 +327,7 @@ const createLandlordLoginAccess = async (req, res) => {
 const removeLandlordLoginAccess = async (req, res) => {
   try {
     const { id } = req.params;
-    const { pool } = require('../../../config/database');
-    await pool.query('DELETE FROM users WHERE landlord_id = $1', [parseInt(id, 10)]);
+    await dbAdapter.deleteUserByLandlordId(id);
     
     // Log audit
     await logAudit({

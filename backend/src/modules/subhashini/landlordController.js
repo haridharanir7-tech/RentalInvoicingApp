@@ -182,6 +182,13 @@ exports.getLandlords = async (req, res) => {
 exports.deleteLandlord = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        // Ensure we remove associated login access first (to prevent FK violation and block login immediately)
+        const dbAdapter = require('../../../config/dbAdapter');
+        if (dbAdapter && dbAdapter.deleteUserByLandlordId) {
+            await dbAdapter.deleteUserByLandlordId(id);
+        }
+
         const result = await db.query('DELETE FROM landlords WHERE id = $1 RETURNING *', [id]);
         
         if (result.rows.length === 0) {

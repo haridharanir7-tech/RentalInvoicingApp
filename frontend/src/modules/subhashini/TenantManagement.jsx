@@ -119,7 +119,7 @@ export default function TenantManagement() {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Delete failed');
-        alert('Deleted successfully!');
+        alert('Tenant deleted successfully from database!');
         fetchTenants();
     } catch (err) {
       alert(err.message);
@@ -198,7 +198,7 @@ export default function TenantManagement() {
         throw new Error(errMessage);
       }
       
-      alert(editingId ? 'Updated successfully!' : 'Created successfully!');
+      alert(editingId ? 'Tenant updated successfully in the database' : 'Tenant added successfully in the database');
       setFormData({
         property_id: '', name: '', pan: '', gstin: '', contact_details: '', 
         lease_start_date: '', lease_end_date: '', status: 'Active'

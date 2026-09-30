@@ -276,6 +276,7 @@ export default function PropertyManagement() {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete property');
+      alert('Property deleted successfully from database!');
       fetchProperties();
     } catch (err) {
       alert(err.message);
@@ -331,6 +332,7 @@ export default function PropertyManagement() {
         throw new Error(errMessage);
       }
       
+      alert(editingId ? 'Property updated successfully in the database' : 'Property added successfully in the database');
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
       setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_documents: [] });
       setEditingId(null);
