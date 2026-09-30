@@ -83,42 +83,6 @@
       "reset_token_expiry": null
     },
     {
-      "id": 2,
-      "full_name": "Greenwood Landlord Admin",
-      "email": "landlord1@greenwood.com",
-      "password_hash": "$2a$10$Dw/yJvtoZ3/RVvBH3PzvyOCATd4fVycN/IuqddZtXh/XK34df74su",
-      "role": "Landlord",
-      "landlord_id": 1,
-      "status": "Active",
-      "last_login": "2026-09-23T11:11:53.092Z",
-      "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-09-23T11:11:53.092Z"
-    },
-    {
-      "id": 3,
-      "full_name": "Apex Realty Landlord Admin",
-      "email": "landlord2@apex.com",
-      "password_hash": "$2a$10$SZeh/jQLiW4IiShCJFzB4eZ4h2.qFPTYpE08DRTl2VcJJ.3rsc6S6",
-      "role": "Landlord",
-      "landlord_id": 2,
-      "status": "Active",
-      "last_login": "2026-09-21T10:27:26.755Z",
-      "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
-    },
-    {
-      "id": 4,
-      "full_name": "Skyline Owner Admin",
-      "email": "landlord3@skyline.com",
-      "password_hash": "$2a$10$69eL2ouq3Aq9wss7Xlw2SOxCWISNfY//wfMG/.MMxci8Axw7817ya",
-      "role": "Landlord",
-      "landlord_id": 3,
-      "status": "Active",
-      "last_login": "2026-09-18T10:27:26.825Z",
-      "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
-    },
-    {
       "id": 5,
       "full_name": "Deactivated Staff Account",
       "email": "inactive@rentalapp.com",
@@ -129,30 +93,6 @@
       "last_login": "2026-08-24T10:27:26.897Z",
       "created_at": "2026-01-01T00:00:00.000Z",
       "updated_at": "2026-01-01T00:00:00.000Z"
-    },
-    {
-      "id": 6,
-      "full_name": "Test Corp Landlord",
-      "email": "test_landlord_1790159247455@testcorp.com",
-      "password_hash": "$2a$10$lXzcacbYVxwKOmAa6NKu4eC4ZbwBgJv6DF/OlCjnMbOdGTC4kPvFa",
-      "role": "Landlord",
-      "landlord_id": 2,
-      "status": "Active",
-      "last_login": null,
-      "created_at": "2026-09-23T10:27:27.535Z",
-      "updated_at": "2026-09-23T10:27:27.623Z"
-    },
-    {
-      "id": 7,
-      "full_name": "Test Corp Landlord",
-      "email": "test_landlord_1790159829166@testcorp.com",
-      "password_hash": "$2a$10$X7lDzYfiIG207IhRK9arWubeUiTPt/ICH0UMgy6a2KyezETRw1IQW",
-      "role": "Landlord",
-      "landlord_id": 2,
-      "status": "Active",
-      "last_login": null,
-      "created_at": "2026-09-23T10:37:09.243Z",
-      "updated_at": "2026-09-23T10:37:09.332Z"
     },
     {
       "id": "usr_1790185153746_dr3l7",
@@ -185,67 +125,6 @@
       "created_at": "2026-09-23T17:39:13.904Z"
     },
     {
-      "id": "usr_1790185154053_tsagv",
-      "full_name": "karan",
-      "email": "karan@gmail.com",
-      "password_hash": "$2a$10$kO/CeTT9KsVol0XyaPDIEOOOxm2mmZ3icEp1o7PGP0DJUhDsUVlOS",
-      "role": "Landlord",
-      "landlord_id": 13,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.053Z"
-    },
-    {
-      "id": "usr_1790185154124_sn9w2",
-      "full_name": "Ramesh Kumar",
-      "email": "rameshkumar@gmail.com",
-      "password_hash": "$2a$10$akznW/WL8.2ISNE0mhGVwuO8Y0n/r2wbJXSzoo7NxjCy5OmdOaHQu",
-      "role": "Landlord",
-      "landlord_id": 12,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.124Z"
-    },
-    {
-      "id": "usr_1790185154200_wh383",
-      "full_name": "Ramesh",
-      "email": "ramesh@gmail.com",
-      "password_hash": "$2a$10$KX4d3c7oUzn3VaURq.zDvOEykoRWM/fit9NwPwqR7KBsBz8n6eZwW",
-      "role": "Landlord",
-      "landlord_id": 11,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.200Z"
-    },
-    {
-      "id": "usr_1790185154273_16ibd",
-      "full_name": "Ragav",
-      "email": "ragav@gmail.com",
-      "password_hash": "$2a$10$DIBmxFGeGzqSZsx.MTQdWOEvK7D/DsKVbZuFHPib74xWbda5L0VnK",
-      "role": "Landlord",
-      "landlord_id": 10,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.273Z"
-    },
-    {
-      "id": "usr_1790185154344_spkj0",
-      "full_name": "Santhi",
-      "email": "santhi@gmail.com",
-      "password_hash": "$2a$10$eTmEOybxznDn5LvStPEnge19Ej6Lu7iSXI2QRmXjNCeRaICrDRuCK",
-      "role": "Landlord",
-      "landlord_id": 9,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.344Z",
-      "last_login": "2026-09-29T08:05:24.708Z"
-    },
-    {
-      "id": "usr_1790185154412_zsv2e",
-      "full_name": "Subhashini",
-      "email": "subhashini@gmail.com",
-      "password_hash": "$2a$10$hi31VEQe3Cy6k.vFa2Fgs.C5iDIAj42MALrfo5ZgxysQBMwLqvQmK",
-      "role": "Landlord",
-      "landlord_id": 8,
-      "status": "Active",
-      "created_at": "2026-09-23T17:39:14.412Z"
-    },
-    {
       "id": "usr_1790185154482_hnesn",
       "full_name": "Shanu",
       "email": "shanu@gmail.com",
@@ -266,17 +145,28 @@
       "last_login": "2026-09-30T06:51:56.267Z"
     },
     {
-      "id": "b0a6a01d-7edf-4160-a16d-0b228b203e15",
-      "full_name": "Vickykumar",
-      "email": "vicky@gmail.com",
-      "password_hash": "$2a$10$Zsd1oeDrTMPmvibicIBmTeM3AA1MDLCrvrmVTN/LlwZBDy9Ma2uym",
+      "id": "37a51c7f-f55f-456b-8bff-343068b6b95f",
+      "full_name": "vaishu",
+      "email": "vaishi@gmail.com",
       "role": "Landlord",
-      "landlord_id": 23,
-      "assigned_landlords": [],
-      "assigned_properties": [],
-      "status": "Active",
-      "last_login": null,
-      "created_at": "2026-09-29T09:32:39.595Z"
+      "landlord_id": 41,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "ebee41f0-2c07-4e21-9844-5e94cbdc199a",
+      "full_name": "kishore",
+      "email": "kishore@gmai.com",
+      "role": "Landlord",
+      "landlord_id": 40,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "a16a516c-7b38-49f7-8ffd-b5b29ddc358b",
+      "full_name": "Zara",
+      "email": "zara@gmail.com",
+      "role": "Landlord",
+      "landlord_id": 36,
+      "status": "ACTIVE"
     }
   ],
   "properties": [

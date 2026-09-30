@@ -13,6 +13,7 @@ const reportController = require('../controllers/reportController');
 // 1. Authentication & Password Reset
 // ==========================================
 router.post('/login', authController.login);
+router.get('/quick-accounts', authController.getQuickAccounts);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/change-password', authenticateToken, authController.changePassword);
