@@ -72,15 +72,21 @@ export default function PropertyManagement() {
   const [odtLoading, setOdtLoading] = useState(false);
   const [odtError, setOdtError] = useState(false);
 
-  const handleDownload = async (url) => {
+  const handleDownload = async (url, filename = null) => {
     try {
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Network response was not ok');
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('Document not found on the server. It may have been deleted or moved.');
+          return;
+        }
+        throw new Error('Network response was not ok');
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = url.split('/').pop() || 'document';
+      link.download = filename || url.split('/').pop() || 'document';
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -530,7 +536,22 @@ export default function PropertyManagement() {
             className="form-input" 
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ width: '150px' }}
+            style={{ 
+              width: '140px',
+              padding: '8px 30px 8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#fff',
+              color: '#0f172a',
+              fontSize: '14px',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+              backgroundSize: '16px'
+            }}
           >
             <option value="">All Statuses</option>
             <option value="active">Active</option>
@@ -801,7 +822,7 @@ export default function PropertyManagement() {
                                 <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', verticalAlign: 'middle' }}>
                                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                     <button
-                                      onClick={() => handleDownload(encodeURI(doc.url))}
+                                      onClick={() => handleDownload(encodeURI(doc.url), doc.name)}
                                       title="Download Document"
                                       style={{
                                         background: '#eff6ff',
