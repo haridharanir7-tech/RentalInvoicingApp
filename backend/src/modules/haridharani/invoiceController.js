@@ -184,68 +184,6 @@ exports.getInvoices = async (req, res) => {
 };
 
 /**
- * Get single invoice by ID with all related Supabase data (landlord, tenant, property).
- * Used by the PDF download button to ensure fresh, accurate data is used.
- */
-exports.getInvoiceById = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await db.query(`
-      SELECT 
-        i.invoice_id,
-        i.invoice_number,
-        TO_CHAR(i.invoice_date, 'YYYY-MM-DD') AS invoice_date,
-        i.billing_period,
-        i.landlord_id,
-        i.property_id,
-        i.tenant_id,
-        i.rent_amount,
-        COALESCE(i.maintenance_charges, 0) AS maintenance_charges,
-        COALESCE(i.parking_charges, 0) AS parking_charges,
-        COALESCE(i.additional_charges, 0) AS additional_charges,
-        COALESCE(i.taxable_amount, i.rent_amount + COALESCE(i.maintenance_charges, 0) + COALESCE(i.parking_charges, 0)) AS taxable_amount,
-        COALESCE(i.tax_supply_type, 'intra_state') AS tax_supply_type,
-        COALESCE(i.gst_rate, 0) AS gst_rate,
-        COALESCE(i.cgst_amount, 0) AS cgst_amount,
-        COALESCE(i.sgst_amount, 0) AS sgst_amount,
-        COALESCE(i.igst_amount, 0) AS igst_amount,
-        COALESCE(i.gst_amount, 0) AS gst_amount,
-        i.total_amount,
-        i.status,
-        i.notes,
-        l.name AS landlord_name,
-        l.default_invoice_template,
-        l.billing_address AS landlord_address,
-        l.pan AS landlord_pan,
-        l.gstin AS landlord_gstin,
-        l.contact_details AS landlord_phone,
-        l.email AS landlord_email,
-        COALESCE(l.gst_registered, false) AS landlord_gst_registered,
-        p.name AS property_name,
-        p.address AS property_address,
-        t.name AS tenant_name,
-        t.pan AS tenant_pan,
-        t.gstin AS tenant_gstin,
-        t.contact_details AS tenant_address
-      FROM invoices i
-      LEFT JOIN landlords l ON i.landlord_id = l.id
-      LEFT JOIN properties p ON i.property_id = p.id
-      LEFT JOIN tenants t ON i.tenant_id = t.id
-      WHERE i.invoice_id = $1
-    `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Invoice not found' });
-    }
-
-    res.json({ success: true, invoice: result.rows[0] });
-  } catch (error) {
-    console.error('Error fetching invoice by ID:', error);
-    res.status(500).json({ success: false, error: 'Database error fetching invoice' });
-  }
-};
-
-/**
  * Preview generation for a billing period and selected landlords/properties
  */
 exports.previewInvoices = async (req, res) => {

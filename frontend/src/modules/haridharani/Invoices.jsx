@@ -139,18 +139,7 @@ export default function Invoices() {
       setDownloadingId(inv.invoice_id);
       setActionError('');
 
-      // Step 1: Re-fetch the exact invoice from Supabase by ID to get fresh accurate data.
-      let invoiceData = inv;
-      try {
-        const freshRes = await axios.get(`${API_BASE}/invoices/${inv.invoice_id}`);
-        if (freshRes.data && freshRes.data.success && freshRes.data.invoice) {
-          invoiceData = freshRes.data.invoice;
-        }
-      } catch (fetchErr) {
-        console.warn('Could not re-fetch invoice, using cached data:', fetchErr);
-      }
-
-      // Step 2: Fetch templates if not already loaded
+      // Fetch templates if not already loaded
       let currentTemplates = templates;
       if (!currentTemplates || currentTemplates.length === 0) {
         try {
@@ -170,9 +159,9 @@ export default function Invoices() {
         return;
       }
 
-      // Step 3: Match template by landlord preferred template name/id, fall back to default or first
+      // Match template by landlord preferred template name/id, fall back to default or first
       let matchedTemplate = null;
-      const defaultInvoiceTemplate = invoiceData.default_invoice_template;
+      const defaultInvoiceTemplate = inv.default_invoice_template;
 
       if (defaultInvoiceTemplate) {
         const lowerVal = defaultInvoiceTemplate.toLowerCase();
@@ -194,19 +183,24 @@ export default function Invoices() {
         return;
       }
 
-      // Step 4: Build complete invoice object from fresh Supabase data.
+      // Build the complete invoice data object.
+      // All fields are already fetched from Supabase via getInvoices() API.
+      // The PDF template reads: invoice_number, invoice_date, due_date, billing_period,
+      // rent_amount, maintenance_charges, parking_charges, taxable_amount,
+      // cgst_amount, sgst_amount, igst_amount, gst_rate, total_amount,
+      // landlord_name/address/gstin/pan, tenant_name/address/gstin, property_name/address
       const fullInvoice = {
-        ...invoiceData,
-        landlord_name: invoiceData.landlord_name || '',
-        landlord_address: invoiceData.landlord_address || invoiceData.billing_address || '',
-        landlord_pan: invoiceData.landlord_pan || '',
-        landlord_gstin: invoiceData.landlord_gstin || '',
-        landlord_phone: invoiceData.landlord_phone || '',
-        landlord_email: invoiceData.landlord_email || '',
-        property_address: invoiceData.property_address || '',
-        tenant_pan: invoiceData.tenant_pan || '',
-        tenant_gstin: invoiceData.tenant_gstin || '',
-        tenant_address: invoiceData.tenant_address || '',
+        ...inv,
+        landlord_name: inv.landlord_name || '',
+        landlord_address: inv.landlord_address || inv.billing_address || '',
+        landlord_pan: inv.landlord_pan || '',
+        landlord_gstin: inv.landlord_gstin || '',
+        landlord_phone: inv.landlord_phone || '',
+        landlord_email: inv.landlord_email || '',
+        property_address: inv.property_address || '',
+        tenant_pan: inv.tenant_pan || '',
+        tenant_gstin: inv.tenant_gstin || '',
+        tenant_address: inv.tenant_address || '',
       };
 
       const result = await generateInvoicePdf(fullInvoice, matchedTemplate);
@@ -392,16 +386,7 @@ export default function Invoices() {
             Overview of all generated rental invoices, payment statuses, and audit records
           </p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary" onClick={handleExportCSV}>
-            <FileText size={15} />
-            <span>Export CSV</span>
-          </button>
-          <button className="btn btn-primary" onClick={handlePrint}>
-            <Printer size={15} />
-            <span>Print Register</span>
-          </button>
-        </div>
+        
       </div>
 
       {/* Filter Row matching Landlord & Property modules */}
@@ -938,6 +923,7 @@ export default function Invoices() {
     </div>
   );
 }
+
 
 
 

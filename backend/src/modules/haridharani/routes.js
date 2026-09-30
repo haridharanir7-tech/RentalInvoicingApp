@@ -18,7 +18,6 @@ router.get('/properties-tenants', rentalRateController.getPropertiesAndTenants);
 
 // 2. Invoice Generation & Management
 router.get('/invoices', invoiceController.getInvoices);
-router.get('/invoices/:id', invoiceController.getInvoiceById);
 router.post('/invoices/preview', invoiceController.previewInvoices);
 router.post('/invoices/generate', invoiceController.generateInvoices);
 router.put('/invoices/:id/status', invoiceController.updateInvoiceStatus);
