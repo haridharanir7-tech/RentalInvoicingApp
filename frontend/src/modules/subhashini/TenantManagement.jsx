@@ -136,12 +136,20 @@ export default function TenantManagement() {
       return setError('Property is required');
     }
     
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.pan)) {
-      return setError('Invalid PAN format (e.g. ABCDE1234F)');
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.toUpperCase())) {
+      return setError('Invalid PAN format (must be 5 letters, 4 numbers, 1 letter. e.g., ABCDE1234F)');
     }
 
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(formData.gstin)) {
-      return setError('Invalid GSTIN format');
+    const cleanGstin = (formData.gstin || '').trim().toUpperCase();
+    if (cleanGstin) {
+      if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9]{1}[A-Z]{1}[0-9]{1}$/.test(cleanGstin)) {
+        return setError('Invalid GSTIN format. Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit.');
+      }
+      const cleanPan = (formData.pan || '').trim().toUpperCase();
+      const gstinPan = cleanGstin.substring(2, 12);
+      if (cleanPan && gstinPan !== cleanPan) {
+        return setError('The PAN inside the GSTIN must match the entered PAN.');
+      }
     }
 
     if (formData.contact_details && !/^\d{10}$/.test(formData.contact_details)) {
@@ -255,11 +263,11 @@ export default function TenantManagement() {
               <div className="flex-row">
                 <div className="form-group flex-1">
                   <label>PAN *</label>
-                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" style={{textTransform: 'uppercase'}} required />
+                  <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" title="Must be 5 letters, 4 numbers, and 1 letter (e.g., ABCDE1234F)" style={{textTransform: 'uppercase'}} required />
                 </div>
                 <div className="form-group flex-1">
                   <label>GSTIN *</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="22AAAAA0000A1Z5" maxLength="15" style={{textTransform: 'uppercase'}} required />
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="33ABCDE1234F1Z5" maxLength="15" pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[0-9]{1}[A-Za-z]{1}[0-9]{1}" title="Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit" style={{textTransform: 'uppercase'}} required />
                 </div>
               </div>
 
@@ -315,7 +323,22 @@ export default function TenantManagement() {
             className="form-input" 
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ width: '150px' }}
+            style={{ 
+              width: '140px',
+              padding: '8px 30px 8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#fff',
+              color: '#0f172a',
+              fontSize: '14px',
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+              backgroundSize: '16px'
+            }}
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
