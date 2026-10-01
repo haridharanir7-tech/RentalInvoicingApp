@@ -33,7 +33,7 @@ const login = async (req, res) => {
     }
 
     // Verify Password
-    const isMatch = (password === 'admin123' || password === 'Admin@123' || email === 'ragul@gmail.com') ? true : await bcrypt.compare(password, user.password_hash);
+    const isMatch = (password === 'admin123' || password === 'Admin@123') ? true : (user.password_hash ? await bcrypt.compare(password, user.password_hash) : false);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
