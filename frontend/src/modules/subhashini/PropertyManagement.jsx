@@ -7,8 +7,9 @@ export default function PropertyManagement() {
   const { user, isLandlord } = useAuth();
   const [properties, setProperties] = useState([]);
   const [landlords, setLandlords] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [formData, setFormData] = useState({
-    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_document: null
+    landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, invoice_template_override: '', property_document: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -200,7 +201,20 @@ export default function PropertyManagement() {
 
   useEffect(() => {
     fetchLandlordsForDropdown();
+    fetchTemplates();
   }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch('/api/ragul/templates');
+      if (res.ok) {
+        const json = await res.json();
+        setTemplates(json.data || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load templates:', err);
+    }
+  };
 
   useEffect(() => {
     fetchProperties(page, searchQuery, statusFilter);
@@ -258,6 +272,7 @@ export default function PropertyManagement() {
       property_type: property.property_type || 'Commercial',
       total_area: property.total_area !== null && property.total_area !== undefined ? property.total_area : '',
       is_active: property.is_active !== false,
+      invoice_template_override: property.invoice_template_override || '',
       property_documents: [],
       existing_documents: property.property_documents || []
     });
@@ -311,6 +326,9 @@ export default function PropertyManagement() {
       if (formData.total_area && formData.total_area !== '') {
         formDataToSend.append('total_area', parseFloat(formData.total_area));
       }
+      if (formData.invoice_template_override) {
+        formDataToSend.append('invoice_template_override', formData.invoice_template_override);
+      }
       formDataToSend.append('is_active', formData.is_active !== false);
       if (formData.property_documents && formData.property_documents.length > 0) {
         formData.property_documents.forEach(doc => {
@@ -334,7 +352,7 @@ export default function PropertyManagement() {
       
       alert(editingId ? 'Property updated successfully in the database' : 'Property added successfully in the database');
       setSuccess(editingId ? 'Property updated successfully!' : 'Property created successfully!');
-      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, property_documents: [] });
+      setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', is_active: true, invoice_template_override: '', property_documents: [] });
       setEditingId(null);
       fetchProperties();
       setTimeout(() => setShowForm(false), 1200);
@@ -356,7 +374,7 @@ export default function PropertyManagement() {
           {!isLandlord && (<button className="btn btn-primary" onClick={() => {
             setShowForm(true);
             setEditingId(null);
-            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', property_documents: [] });
+            setFormData({ landlord_id: isLandlord ? user.landlord_id : '', name: '', address: '', property_type: 'Commercial', total_area: '', invoice_template_override: '', property_documents: [] });
             setSuccess('');
             setError('');
           }}>
@@ -449,7 +467,19 @@ export default function PropertyManagement() {
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
-</div>
+              </div>
+
+              <div className="flex-row">
+                <div className="form-group flex-1">
+                  <label>Invoice Template Override (Optional)</label>
+                  <select className="form-input" name="invoice_template_override" value={formData.invoice_template_override} onChange={handleChange}>
+                    <option value="">-- No Override (Use Landlord Default) --</option>
+                    {templates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               <div className="flex-row">
                 <div className="form-group flex-1">

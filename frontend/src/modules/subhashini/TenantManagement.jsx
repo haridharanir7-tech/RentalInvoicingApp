@@ -266,8 +266,8 @@ export default function TenantManagement() {
                   <input type="text" className="form-input" name="pan" value={formData.pan} onChange={handleChange} placeholder="ABCDE1234F" maxLength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" title="Must be 5 letters, 4 numbers, and 1 letter (e.g., ABCDE1234F)" style={{textTransform: 'uppercase'}} required />
                 </div>
                 <div className="form-group flex-1">
-                  <label>GSTIN *</label>
-                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="33ABCDE1234F1Z5" maxLength="15" pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[0-9]{1}[A-Za-z]{1}[0-9]{1}" title="Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit" style={{textTransform: 'uppercase'}} required />
+                  <label>GSTIN</label>
+                  <input type="text" className="form-input" name="gstin" value={formData.gstin} onChange={handleChange} placeholder="33ABCDE1234F1Z5" maxLength="15" pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[0-9]{1}[A-Za-z]{1}[0-9]{1}" title="Must be 15 characters: 2 digits, PAN, 1 digit, 1 letter, 1 digit" style={{textTransform: 'uppercase'}} />
                 </div>
               </div>
 
