@@ -103,6 +103,9 @@ exports.getInvoices = async (req, res) => {
       params.push(status);
     }
 
+    // Never bill or return invoices for vacated or notice period tenants
+    whereClauses.push(`(t.status IS NULL OR LOWER(t.status) NOT IN ('vacated', 'notice period'))`);
+
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const listQuery = `
@@ -139,6 +142,7 @@ exports.getInvoices = async (req, res) => {
         p.name AS property_name,
         p.address AS property_address,
         t.name AS tenant_name,
+        t.status AS tenant_status,
         t.pan AS tenant_pan,
         t.gstin AS tenant_gstin,
         t.contact_details AS tenant_address
@@ -200,11 +204,12 @@ exports.previewInvoices = async (req, res) => {
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${billing_period}-${String(lastDay).padStart(2, '0')}`;
 
-    // Find active rates that are effective during this billing period
+    // Find active rates that are effective during this billing period, excluding vacated/notice period tenants
     let filters = [
       `r.status = 'Active'`,
       `r.effective_from <= $1`,
-      `(r.effective_to IS NULL OR r.effective_to >= $2)`
+      `(r.effective_to IS NULL OR r.effective_to >= $2)`,
+      `(t.status IS NULL OR LOWER(t.status) NOT IN ('vacated', 'notice period'))`
     ];
     let params = [endDate, startDate];
     let pIdx = 3;
@@ -230,6 +235,7 @@ exports.previewInvoices = async (req, res) => {
         COALESCE(r.gst_rate, 18.00) AS gst_rate,
         t.id AS tenant_id,
         t.name AS tenant_name,
+        t.status AS tenant_status,
         p.id AS property_id,
         p.name AS property_name,
         l.id AS landlord_id,
@@ -313,6 +319,21 @@ exports.generateInvoices = async (req, res) => {
     const skippedInvoices = [];
 
     for (const item of items) {
+      // 0. Ensure tenant is not vacated or in notice period
+      if (item.tenant_id) {
+        const tCheck = await client.query('SELECT id, name, status FROM tenants WHERE id = $1', [item.tenant_id]);
+        if (tCheck.rows.length > 0) {
+          const tStat = (tCheck.rows[0].status || '').toLowerCase();
+          if (tStat === 'vacated' || tStat === 'notice period') {
+            skippedInvoices.push({
+              tenant_name: tCheck.rows[0].name || item.tenant_name || 'N/A',
+              reason: `Tenant is ${tCheck.rows[0].status} and cannot be billed.`
+            });
+            continue;
+          }
+        }
+      }
+
       // 1. Check if invoice already exists for this tenant & property & period
       const checkExisting = await client.query(
         `SELECT invoice_id, invoice_number FROM invoices WHERE tenant_id IS NOT DISTINCT FROM $1 AND property_id = $2 AND billing_period = $3`,

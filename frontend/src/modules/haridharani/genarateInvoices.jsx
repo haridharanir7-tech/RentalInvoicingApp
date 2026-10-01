@@ -64,9 +64,13 @@ export default function GenerateInvoices() {
       });
 
       if (res.data.success) {
-        setPreviews(res.data.previews || []);
+        const filtered = (res.data.previews || []).filter(p => {
+          const tStat = (p.tenant_status || '').toLowerCase();
+          return tStat !== 'vacated' && tStat !== 'notice period';
+        });
+        setPreviews(filtered);
         // By default, select all items that haven't been generated yet
-        const eligible = (res.data.previews || [])
+        const eligible = filtered
           .filter((p) => !p.already_generated)
           .map((p) => p.rate_id || `${p.tenant_id}-${p.property_id}`);
         setSelectedIds(eligible);

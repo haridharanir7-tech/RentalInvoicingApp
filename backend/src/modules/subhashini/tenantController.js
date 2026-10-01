@@ -75,6 +75,20 @@ exports.updateTenant = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Tenant not found' });
         }
+
+        // Whoever is vacated and in notice period of tenant should not be billed (no rental rates, invoices, or generated invoices)
+        const updatedStatus = (result.rows[0].status || '').toLowerCase();
+        if (updatedStatus === 'vacated' || updatedStatus === 'notice period') {
+            try {
+                await db.query(`DELETE FROM invoice_status_history WHERE invoice_id IN (SELECT invoice_id FROM invoices WHERE tenant_id = $1)`, [id]);
+                await db.query('DELETE FROM invoices WHERE tenant_id = $1', [id]);
+                await db.query('DELETE FROM ratehistory WHERE tenant_id = $1', [id]);
+                await db.query('DELETE FROM rentalrate WHERE tenant_id = $1', [id]);
+            } catch (cleanupErr) {
+                console.warn('Notice cleaning up rates/invoices on tenant status update:', cleanupErr.message);
+            }
+        }
+
         res.json(result.rows[0]);
     } catch (error) {
         console.error('updateTenant error:', error);
@@ -86,12 +100,25 @@ exports.deactivateTenant = async (req, res) => {
     try {
         const { id } = req.params;
         // Marking as vacated when deactivated
-        const query = `UPDATE tenants SET status = CASE WHEN status = 'Active' THEN 'Inactive' ELSE 'Active' END, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
+        const query = `UPDATE tenants SET status = CASE WHEN status = 'Active' THEN 'Vacated' ELSE 'Active' END, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *;`;
         const result = await db.query(query, [id]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Tenant not found' });
         }
+
+        const newStatus = (result.rows[0].status || '').toLowerCase();
+        if (newStatus === 'vacated' || newStatus === 'notice period' || newStatus === 'inactive') {
+            try {
+                await db.query(`DELETE FROM invoice_status_history WHERE invoice_id IN (SELECT invoice_id FROM invoices WHERE tenant_id = $1)`, [id]);
+                await db.query('DELETE FROM invoices WHERE tenant_id = $1', [id]);
+                await db.query('DELETE FROM ratehistory WHERE tenant_id = $1', [id]);
+                await db.query('DELETE FROM rentalrate WHERE tenant_id = $1', [id]);
+            } catch (cleanupErr) {
+                console.warn('Notice cleaning up rates/invoices on deactivation:', cleanupErr.message);
+            }
+        }
+
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -166,6 +193,15 @@ exports.getTenants = async (req, res) => {
 exports.deleteTenant = async (req, res) => {
     try {
         const { id } = req.params;
+        try {
+            await db.query(`DELETE FROM invoice_status_history WHERE invoice_id IN (SELECT invoice_id FROM invoices WHERE tenant_id = $1)`, [id]);
+            await db.query('DELETE FROM invoices WHERE tenant_id = $1', [id]);
+            await db.query('DELETE FROM ratehistory WHERE tenant_id = $1', [id]);
+            await db.query('DELETE FROM rentalrate WHERE tenant_id = $1', [id]);
+        } catch (delErr) {
+            console.warn('Notice cleaning up rates/invoices on tenant delete:', delErr.message);
+        }
+
         const result = await db.query('DELETE FROM tenants WHERE id = $1 RETURNING *', [id]);
         
         if (result.rows.length === 0) {

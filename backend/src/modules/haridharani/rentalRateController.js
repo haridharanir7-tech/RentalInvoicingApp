@@ -26,11 +26,13 @@ exports.getRentalRates = async (req, res) => {
         COALESCE(l.name, 'Unassigned Landlord') AS landlord_name,
         COALESCE(l.gst_registered, false) AS landlord_gst_registered,
         COALESCE(p.name, 'Unassigned Property') AS property_name,
-        COALESCE(t.name, 'N/A') AS tenant_name
+        COALESCE(t.name, 'N/A') AS tenant_name,
+        COALESCE(t.status, 'Active') AS tenant_status
       FROM rentalrate r
       LEFT JOIN properties p ON r.property_id = p.id
       LEFT JOIN landlords l ON COALESCE(r.landlord_id, p.landlord_id) = l.id
       LEFT JOIN tenants t ON r.tenant_id = t.id
+      WHERE (t.status IS NULL OR LOWER(t.status) NOT IN ('vacated', 'notice period'))
       ORDER BY r.effective_from DESC, r.rate_id DESC
     `;
     const result = await db.query(query);
@@ -72,6 +74,7 @@ exports.getPropertiesAndTenants = async (req, res) => {
         t.name AS tenant_name,
         t.pan AS tenant_pan,
         t.gstin AS tenant_gstin,
+        t.status AS tenant_status,
         t.property_id,
         COALESCE(p.name, 'Unassigned Property') AS property_name,
         COALESCE(p.property_type, 'Commercial') AS property_type,
@@ -81,6 +84,7 @@ exports.getPropertiesAndTenants = async (req, res) => {
       FROM tenants t
       LEFT JOIN properties p ON t.property_id = p.id
       LEFT JOIN landlords l ON p.landlord_id = l.id
+      WHERE LOWER(COALESCE(t.status, 'active')) NOT IN ('vacated', 'notice period')
       ORDER BY t.name ASC
     `;
     const tenantsResult = await db.query(tenantsQuery);
@@ -116,12 +120,15 @@ exports.getPropertiesAndTenants = async (req, res) => {
             property_type: p.property_type || 'Commercial',
             is_active: p.status === 'Active' || p.is_active !== false
           })),
-          tenants: (store.tenants || []).map((t) => ({
-            tenant_id: t.id,
-            tenant_name: t.name || t.tenant_name,
-            property_id: t.property_id,
-            property_name: t.property_name || 'Assigned Property'
-          }))
+          tenants: (store.tenants || [])
+            .filter((t) => !['vacated', 'notice period'].includes((t.status || '').toLowerCase()))
+            .map((t) => ({
+              tenant_id: t.id,
+              tenant_name: t.name || t.tenant_name,
+              property_id: t.property_id,
+              tenant_status: t.status || 'Active',
+              property_name: t.property_name || 'Assigned Property'
+            }))
         });
       }
     } catch (fErr) {
@@ -216,6 +223,18 @@ exports.saveRentalRate = async (req, res) => {
   }
 
   try {
+    // Check if tenant is vacated or in notice period
+    const tenantStatusRes = await db.query('SELECT id, name, status FROM tenants WHERE id = $1', [tenant_id]);
+    if (tenantStatusRes.rows.length > 0) {
+      const tStatus = (tenantStatusRes.rows[0].status || '').toLowerCase();
+      if (tStatus === 'vacated' || tStatus === 'notice period') {
+        return res.status(400).json({
+          success: false,
+          error: `Tenant "${tenantStatusRes.rows[0].name}" is currently ${tenantStatusRes.rows[0].status}. Tenants who are vacated or in notice period cannot have rental rates or be billed.`
+        });
+      }
+    }
+
     // -------------------------------------------------------------
     // OVERLAP PREVENTION (Task 5)
     // Check if any existing active rate for this property

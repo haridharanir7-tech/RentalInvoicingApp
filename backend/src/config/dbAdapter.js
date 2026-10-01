@@ -583,7 +583,7 @@ const dbAdapter = {
           LEFT JOIN landlords l ON l.id = i.landlord_id
           LEFT JOIN properties p ON p.id = i.property_id
           LEFT JOIN tenants t ON t.id = i.tenant_id
-          WHERE 1=1
+          WHERE (t.status IS NULL OR LOWER(t.status) NOT IN ('vacated', 'notice period'))
         `;
         const params = [];
         let idx = 1;
@@ -608,6 +608,12 @@ const dbAdapter = {
     }
     const s = loadStore();
     let list = s.invoices;
+    const tenantsMap = {};
+    (s.tenants || []).forEach(t => { tenantsMap[t.id] = (t.status || '').toLowerCase(); });
+    list = list.filter(inv => {
+      const tStat = tenantsMap[inv.tenant_id];
+      return !tStat || !['vacated', 'notice period'].includes(tStat);
+    });
     if (landlordId) list = list.filter(inv => inv.landlord_id === parseInt(landlordId, 10));
     if (billingPeriod) list = list.filter(inv => inv.billing_period === billingPeriod);
     if (status) list = list.filter(inv => inv.status.toLowerCase() === status.toLowerCase());

@@ -9,7 +9,8 @@ exports.getGstMonthlySummary = async (req, res) => {
   try {
     let whereClauses = [
       `l.gst_registered = true`,
-      `i.status IN ('Generated', 'Sent')`
+      `i.status IN ('Generated', 'Sent')`,
+      `(t.status IS NULL OR LOWER(t.status) NOT IN ('vacated', 'notice period'))`
     ];
     let params = [];
     let pIdx = 1;
@@ -42,6 +43,7 @@ exports.getGstMonthlySummary = async (req, res) => {
         COALESCE(SUM(i.total_amount), 0) AS total_invoiced_value
       FROM invoices i
       JOIN landlords l ON i.landlord_id = l.id
+      LEFT JOIN tenants t ON i.tenant_id = t.id
       ${whereSql}
       GROUP BY l.id, l.name, l.gstin, l.gst_registered, i.billing_period
       ORDER BY i.billing_period DESC, l.name ASC

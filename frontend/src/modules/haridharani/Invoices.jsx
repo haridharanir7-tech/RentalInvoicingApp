@@ -116,11 +116,15 @@ export default function Invoices() {
 
       const res = await axios.get(`${API_BASE}/invoices`, { params });
       if (res.data.success) {
-        setInvoices(res.data.invoices || []);
+        const validInvoices = (res.data.invoices || []).filter((i) => {
+          const tStat = (i.tenant_status || '').toLowerCase();
+          return tStat !== 'vacated' && tStat !== 'notice period';
+        });
+        setInvoices(validInvoices);
         setKpis(res.data.kpis || {});
 
         // Extract unique billing periods
-        const periods = Array.from(new Set((res.data.invoices || []).map((i) => i.billing_period))).filter(Boolean);
+        const periods = Array.from(new Set(validInvoices.map((i) => i.billing_period))).filter(Boolean);
         setAvailablePeriods(periods);
       }
     } catch (err) {

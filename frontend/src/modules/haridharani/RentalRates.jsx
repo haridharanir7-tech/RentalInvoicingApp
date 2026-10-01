@@ -196,9 +196,18 @@ export default function RentalRates() {
     setFormError('');
     setFormSuccess('');
 
-    if (!formData.landlord_id || !formData.property_id) {
-      setFormError('Please select both a landlord and a property.');
+    if (!formData.landlord_id || !formData.property_id || !formData.tenant_id) {
+      setFormError('Please select landlord, property, and tenant.');
       return;
+    }
+
+    const selectedTenantObj = masterData.tenants.find(t => String(t.tenant_id) === String(formData.tenant_id));
+    if (selectedTenantObj) {
+      const tStat = (selectedTenantObj.tenant_status || selectedTenantObj.status || '').toLowerCase();
+      if (tStat === 'vacated' || tStat === 'notice period') {
+        setFormError(`Tenant "${selectedTenantObj.tenant_name}" is currently ${selectedTenantObj.tenant_status || selectedTenantObj.status}. Vacated tenants and tenants in notice period cannot have rental rates.`);
+        return;
+      }
     }
 
     if (baseRentNum > 99999999 || maintNum > 99999999 || parkNum > 99999999) {
@@ -242,8 +251,10 @@ export default function RentalRates() {
     }
   };
 
-  // Available properties for selected landlord (or all if none selected)
+  // Available tenants for selected landlord/property (strictly active, non-vacated, non-notice)
   const availableTenants = masterData.tenants.filter(t => {
+    const status = (t.tenant_status || t.status || '').toLowerCase();
+    if (status === 'vacated' || status === 'notice period') return false;
     if (formData.property_id) {
       return String(t.property_id) === String(formData.property_id);
     }
@@ -257,8 +268,11 @@ export default function RentalRates() {
     ? masterData.properties.filter((p) => String(p.landlord_id) === String(formData.landlord_id))
     : masterData.properties;
 
-  // Filtered rates logic
+  // Filtered rates logic (excluding vacated and notice period tenants)
   const filteredRates = rates.filter((r) => {
+    const tStat = (r.tenant_status || '').toLowerCase();
+    if (tStat === 'vacated' || tStat === 'notice period') return false;
+
     const query = searchQuery.toLowerCase();
     const matchesSearch =
       (r.landlord_name || '').toLowerCase().includes(query) ||
@@ -569,7 +583,7 @@ export default function RentalRates() {
                     >
                       <option value="">
                         {formData.property_id && availableTenants.length === 0
-                          ? 'No tenants found for this property'
+                          ? 'No active tenants found for this property'
                           : 'Select Tenant'}
                       </option>
                       {availableTenants.map((t) => (
