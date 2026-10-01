@@ -326,9 +326,7 @@ export default function PropertyManagement() {
       if (formData.total_area && formData.total_area !== '') {
         formDataToSend.append('total_area', parseFloat(formData.total_area));
       }
-      if (formData.invoice_template_override) {
-        formDataToSend.append('invoice_template_override', formData.invoice_template_override);
-      }
+      formDataToSend.append('invoice_template_override', formData.invoice_template_override || '');
       formDataToSend.append('is_active', formData.is_active !== false);
       if (formData.property_documents && formData.property_documents.length > 0) {
         formData.property_documents.forEach(doc => {

@@ -163,17 +163,29 @@ export default function Invoices() {
         return;
       }
 
-      // Match template by landlord preferred template name/id, fall back to default or first
+      // 1. Check Property Template Override
+      // 2. Check Landlord Default Template
+      // 3. Fallback to System Default or First
       let matchedTemplate = null;
-      const defaultInvoiceTemplate = inv.default_invoice_template;
+      const propertyOverride = inv.property_invoice_template;
+      const landlordDefault = inv.default_invoice_template;
 
-      if (defaultInvoiceTemplate) {
-        const lowerVal = defaultInvoiceTemplate.toLowerCase();
-        matchedTemplate = currentTemplates.find(t => {
+      const findTemplate = (val) => {
+        if (!val) return null;
+        const lowerVal = val.toLowerCase();
+        return currentTemplates.find(t => {
           const tId = (t.id || '').toLowerCase();
           const tName = (t.name || '').toLowerCase();
           return tId === lowerVal || tName === lowerVal || tName.includes(lowerVal) || lowerVal.includes(tName);
         });
+      };
+
+      if (propertyOverride) {
+        matchedTemplate = findTemplate(propertyOverride);
+      }
+      
+      if (!matchedTemplate && landlordDefault) {
+        matchedTemplate = findTemplate(landlordDefault);
       }
 
       // Fallback: use template marked isDefault, or simply the first available template

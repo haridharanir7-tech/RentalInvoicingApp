@@ -141,6 +141,7 @@ exports.getInvoices = async (req, res) => {
         COALESCE(l.gst_registered, false) AS landlord_gst_registered,
         p.name AS property_name,
         p.address AS property_address,
+        p.invoice_template_override AS property_invoice_template,
         t.name AS tenant_name,
         t.status AS tenant_status,
         t.pan AS tenant_pan,
