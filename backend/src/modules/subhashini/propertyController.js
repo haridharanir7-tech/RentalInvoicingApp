@@ -4,7 +4,7 @@ exports.createProperty = async (req, res) => {
     try {
         console.log("BODY:", req.body);
         console.log("FILES:", req.files);
-        const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
+        const { landlord_id, name, address, property_type, total_area, is_active, invoice_template_override } = req.body;
         
         if (!landlord_id) {
             return res.status(400).json({ error: 'landlord_id is required to associate property' });
@@ -18,8 +18,8 @@ exports.createProperty = async (req, res) => {
             : null;
 
         const query = `
-            INSERT INTO properties (landlord_id, name, address, property_type, total_area, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+            INSERT INTO properties (landlord_id, name, address, property_type, total_area, is_active, invoice_template_override)
+            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
         `;
         const values = [
             parseInt(landlord_id, 10), 
@@ -27,7 +27,8 @@ exports.createProperty = async (req, res) => {
             address || '', 
             property_type || 'Commercial', 
             parsedArea, 
-            is_active !== false && is_active !== 'false'
+            is_active !== false && is_active !== 'false',
+            invoice_template_override || null
         ];
         
         const result = await db.query(query, values);
@@ -60,7 +61,7 @@ exports.createProperty = async (req, res) => {
 exports.updateProperty = async (req, res) => {
     try {
         const { id } = req.params;
-        const { landlord_id, name, address, property_type, total_area, is_active } = req.body;
+        const { landlord_id, name, address, property_type, total_area, is_active, invoice_template_override } = req.body;
 
         const parsedArea = total_area !== undefined && total_area !== null && total_area !== '' 
             ? parseFloat(total_area) 
@@ -69,8 +70,8 @@ exports.updateProperty = async (req, res) => {
         const query = `
             UPDATE properties
             SET landlord_id = $1, name = $2, address = $3, property_type = $4, 
-                total_area = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $7 RETURNING *;
+                total_area = $5, is_active = $6, invoice_template_override = $7, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $8 RETURNING *;
         `;
         const values = [
             landlord_id ? parseInt(landlord_id, 10) : null, 
@@ -79,6 +80,7 @@ exports.updateProperty = async (req, res) => {
             property_type || 'Commercial', 
             parsedArea, 
             is_active !== undefined ? is_active : true, 
+            invoice_template_override || null,
             id
         ];
 
